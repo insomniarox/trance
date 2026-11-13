@@ -1,0 +1,41 @@
+{
+  "name": "Sunburst",
+  "author": "Trance",
+  "description": "The spectrum as rays around a pulsing sun.",
+  "palette": "sunset",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": "1.02 + 0.02*bass_att",
+    "rot": 0.004,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "radial",
+      "count": 72,
+      "radius": "0.22 + 0.04*bass_att",
+      "height": 0.55,
+      "gap": 0.3,
+      "symmetric": true,
+      "color": "palette(0.25 + 0.7*v)",
+      "angle": "time*0.1",
+      "peaks": false,
+      "additive": true,
+      "fade": 0.3
+    },
+    {
+      "type": "shape",
+      "sides": 48,
+      "radius": "0.2 + 0.04*bass_att",
+      "color": "palette(0.95)",
+      "alpha": "0.25 + 0.5*beat",
+      "color2": "palette(0.6)",
+      "alpha2": 0,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 0.9
+  }
+}

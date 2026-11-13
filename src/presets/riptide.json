@@ -1,0 +1,58 @@
+{
+  "name": "Riptide",
+  "author": "Trance",
+  "description": "Two mirrored waves pulled apart by crossing currents, over a slow plasma.",
+  "palette": "ocean",
+  "frame": "pulse = 0.5 + bass_att",
+  "feedback": {
+    "decay": 0.965,
+    "edge": "mirror",
+    "blur": 0.1
+  },
+  "pixel": "dx = 0.005*pulse*sin(y*5 + time*0.6)*sign(x)\ndy = 0.003*cos(x*4 - time*0.4)\nzoom = 1.004",
+  "background": {
+    "style": "plasma",
+    "intensity": 0.3,
+    "tint": 0.2,
+    "spread": 0.3,
+    "scale": 0.7,
+    "speed": 0.7
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "angle": 1.5708,
+      "x": "0.25*aspect",
+      "scale": 0.2,
+      "width": 0.6,
+      "thickness": 3,
+      "mirror": "x",
+      "color": "palette(0.6 + 0.3*t)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 1200,
+      "rate": "150 + 800*beat",
+      "speed": 0.04,
+      "flow": 1,
+      "life": 3.5,
+      "drag": 2,
+      "size": 2.2,
+      "color": "palette(0.7 + 0.25*i)"
+    },
+    {
+      "type": "vectors",
+      "cols": 26,
+      "rows": 14,
+      "length": 1,
+      "alpha": 0.18,
+      "color": "palette(0.5 + 0.3*t)"
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "vignette": 0.4
+  }
+}

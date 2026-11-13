@@ -1,0 +1,32 @@
+{
+  "name": "Ridgeline",
+  "author": "Trance",
+  "description": "Stacked spectrum lines drifting into the distance, in the theme's foreground color.",
+  "palette": "accent",
+  "feedback": {
+    "decay": 0.5,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "terrain",
+      "style": "lines",
+      "rows": 44,
+      "cols": 110,
+      "speed": 14,
+      "height": 0.42,
+      "width": 1.15,
+      "y": -0.9,
+      "horizon": 0.8,
+      "depth": 1.1,
+      "thickness": 1.6,
+      "color": "bright_foreground",
+      "alpha": 0.95,
+      "additive": false
+    }
+  ],
+  "post": {
+    "bloom": 0.45,
+    "vignette": 0.5
+  }
+}

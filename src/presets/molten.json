@@ -1,0 +1,35 @@
+{
+  "name": "Molten",
+  "author": "Trance",
+  "description": "Slow lava: glowing blobs stirred into a churning surface.",
+  "palette": "fire",
+  "feedback": {
+    "decay": 0.985,
+    "warp": "2 + 2*bass_att",
+    "warpScale": 1.6,
+    "warpSpeed": 0.6,
+    "zoom": 1.004,
+    "blur": 0.35,
+    "edge": "mirror"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 32,
+      "instances": 4,
+      "x": "0.9*sin(time*0.83 + n*2.1)",
+      "y": "0.6*cos(time*0.61 + n*1.4)",
+      "radius": "0.07 + 0.07*bass_att",
+      "color": "white",
+      "alpha": "0.04 + 0.06*vol_att + 0.1*beat",
+      "color2": "white",
+      "alpha2": 0,
+      "additive": true
+    }
+  ],
+  "post": {
+    "colorize": 1,
+    "bloom": 0.4,
+    "contrast": 1.1
+  }
+}

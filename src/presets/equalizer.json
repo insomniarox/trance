@@ -1,0 +1,28 @@
+{
+  "name": "Equalizer",
+  "author": "Trance",
+  "description": "A clean mirrored analyzer in the accent color. Nothing else.",
+  "palette": "accent",
+  "feedback": {
+    "decay": 0.55,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "center",
+      "count": 64,
+      "height": 0.8,
+      "width": 0.94,
+      "gap": 0.35,
+      "symmetric": true,
+      "color": "accent",
+      "fade": 0.75,
+      "peaks": true
+    }
+  ],
+  "post": {
+    "bloom": 0.35,
+    "vignette": 0.2
+  }
+}

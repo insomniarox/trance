@@ -1,0 +1,64 @@
+{
+  "name": "Signal Garden",
+  "author": "Trance",
+  "description": "A ring of bars seeding sparks into a field that turns with the treble, in your theme's colors.",
+  "palette": "theme",
+  "frame": "spin = spin + 0.003 + 0.02*treb_att",
+  "feedback": {
+    "decay": 0.95,
+    "zoom": 1.012,
+    "rot": "0.006*sin(time*0.17)",
+    "edge": "black",
+    "darkenCenter": true
+  },
+  "pixel": "rot = rot + 0.012*sin(rad*5 - spin*3)",
+  "background": {
+    "style": "rays",
+    "intensity": "0.25 + 0.3*bass_att",
+    "tint": "time*0.02",
+    "spread": 0.3
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "radial",
+      "count": 72,
+      "radius": 0.3,
+      "height": 0.35,
+      "gap": 0.3,
+      "angle": "spin",
+      "color": "palette(t + time*0.05)",
+      "alpha": 0.9,
+      "fade": 0.5,
+      "peaks": false,
+      "additive": true
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 1500,
+      "rate": "100 + 1200*beat",
+      "speed": 0.15,
+      "pull": -0.6,
+      "flow": 1,
+      "drag": 1,
+      "life": 3,
+      "size": 2.2,
+      "streak": 0.03,
+      "color": "palette(i + time*0.05)"
+    },
+    {
+      "type": "vectors",
+      "cols": 22,
+      "rows": 12,
+      "dots": true,
+      "thickness": 1.2,
+      "alpha": "0.15 + 0.3*beat",
+      "color": "palette(t + i)"
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "vignette": 0.5
+  }
+}

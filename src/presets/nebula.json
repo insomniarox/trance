@@ -1,0 +1,29 @@
+{
+  "name": "Nebula",
+  "author": "Trance",
+  "description": "Dust carried on a noise field, lit where the music is loud.",
+  "palette": "sunset",
+  "feedback": {
+    "decay": 0.985,
+    "blur": 0.2,
+    "edge": "wrap"
+  },
+  "pixel": "dx = 0.008*(noise(x*1.5 + time*0.05, y*1.5) - 0.5)\ndy = 0.008*(noise(x*1.5 + 40, y*1.5 - time*0.05) - 0.5)",
+  "layers": [
+    {
+      "type": "particles",
+      "count": 800,
+      "rate": "80 + 600*vol_att",
+      "area": 2.0,
+      "speed": "0.05 + 0.2*beat",
+      "life": 2.5,
+      "size": "4 + 4*bass_att",
+      "color": "white",
+      "alpha": 1
+    }
+  ],
+  "post": {
+    "colorize": 0.9,
+    "bloom": 0.7
+  }
+}

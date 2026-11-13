@@ -1,0 +1,40 @@
+{
+  "name": "Fractal Bloom",
+  "author": "Trance",
+  "description": "A ring inside a turning hexagon that holds the whole picture again, and again.",
+  "palette": "neon",
+  "feedback": {
+    "decay": 0.5,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 6,
+      "textured": true,
+      "texZoom": 1,
+      "texAngle": "0.35 + 0.25*sin(time*0.2)",
+      "radius": "0.74 + 0.03*bass_att",
+      "angle": "time*0.08",
+      "color": "white",
+      "alpha": 0.93,
+      "color2": "white",
+      "alpha2": 0.93,
+      "border": "palette(time*0.1)",
+      "borderAlpha": 0.8,
+      "borderWidth": 2
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": 0.86,
+      "scale": 0.12,
+      "smooth": 0.5,
+      "color": "palette(t*2 + time*0.2)",
+      "thickness": 4
+    }
+  ],
+  "post": {
+    "bloom": 0.7
+  }
+}

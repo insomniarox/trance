@@ -1,0 +1,106 @@
+#pragma once
+
+#include <QByteArray>
+#include <QColor>
+#include <QHash>
+#include <QJsonObject>
+#include <QList>
+#include <QString>
+#include <QStringList>
+#include <QVariant>
+
+#include "expr.h"
+
+// A preset is a JSON document. Every number in it may instead be a formula
+// in the expression language, so anything can follow the music. Compiling
+// one needs no display: it yields the programs, the generated shaders, and a
+// list of everything that's wrong with it.
+
+using ThemeColors = QHash<QString, QColor>;
+
+struct Problem {
+    QString path;    // "feedback.zoom", "layers.2.color", or empty for the preset as a whole
+    QString message;
+    bool error = true;
+};
+
+struct Field {
+    enum Type { Number, Integer, Toggle, Choice, Color, Code };
+    QByteArray key;
+    Type type = Number;
+    double def = 0, min = 0, max = 1;
+    QString text;        // default for Choice and Color
+    QStringList options; // Choice
+};
+
+struct ColorSpec {
+    enum Kind { Constant, Theme, Palette, Hsv, Rgb } kind = Constant;
+    float rgb[3] = {1, 1, 1};
+    QString theme;
+    expr::Program a, b, c;
+};
+
+// One compiled section: the feedback settings, the post settings, or a layer.
+struct Block {
+    QString type;
+    QHash<QByteArray, expr::Program> numbers;
+    QHash<QByteArray, QString> choices;
+    QHash<QByteArray, ColorSpec> colors;
+    QHash<QByteArray, expr::Program> code;
+
+    double num(const char *key, std::vector<double> &values) const;
+    bool flag(const char *key, std::vector<double> &values) const { return num(key, values) != 0; }
+    QString choice(const char *key) const;
+    const ColorSpec *color(const char *key) const;
+    const expr::Program *program(const char *key) const;
+};
+
+struct CompiledPreset {
+    QString name;
+    expr::Vars vars;
+    expr::Program init, frame;
+    expr::Program pixel;       // the per-pixel code again, to ask on the CPU where the picture is flowing
+    QString initText;          // to tell whether an edit changed the starting values
+    Block feedback, post, background;
+    QList<Block> layers;
+    QStringList palette;       // color stops: #rrggbb or theme color names
+    QString warpShader;        // fragment shaders, without the #version line
+    QString compositeShader;
+    QList<Problem> problems;
+
+    bool ok() const;
+    QString firstError() const;
+};
+
+// What a setting is called in the editor, and what it does.
+struct FieldDoc {
+    QString label, help;
+};
+
+namespace presets {
+
+CompiledPreset compile(const QJsonObject &json);
+
+// The name and explanation of a setting. The section is feedback, post,
+// background or a kind of layer; "code" has the four code blocks and "type"
+// the kinds of layer themselves.
+FieldDoc fieldDoc(const QString &section, const QString &key);
+
+// The format, for validation, defaults, and the editor.
+const QList<Field> &fields(const QString &section); // feedback, post, or a layer type
+QStringList layerTypes();
+QStringList transitionStyles(); // "mixed" first, then the patterns in the engine's order
+QStringList paletteNames();
+QStringList paletteStops(const QString &name);
+QStringList themeColorNames();
+QStringList variableNames();
+QStringList functionNames();
+QVariantMap schema();
+QJsonObject starterLayer(const QString &type);
+QJsonObject blank(const QString &name);
+
+// Colors Omarchy themes define, with stand-ins for when there is no theme.
+ThemeColors defaultThemeColors();
+QColor resolveColor(const QString &stop, const ThemeColors &theme);
+
+} // namespace presets

@@ -1,0 +1,25 @@
+{
+  "name": "Skyline",
+  "author": "Trance",
+  "description": "Spectrum bars in your theme's colors with a soft upward smear.",
+  "palette": "theme",
+  "feedback": {
+    "decay": 0.9,
+    "dy": 0.004,
+    "sy": 1.004,
+    "blur": 0.4,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "count": 56,
+      "height": 0.8,
+      "color": "palette(t*0.85)"
+    }
+  ],
+  "post": {
+    "bloom": 0.6
+  }
+}

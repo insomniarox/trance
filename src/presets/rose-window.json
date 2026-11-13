@@ -1,0 +1,82 @@
+{
+  "name": "Rose Window",
+  "author": "Trance",
+  "description": "Stained glass. The spectrum stands round the rim and rings the tracery, six panes swell with the six ranges from the rumble at the heart to the cymbals at the edge, and the middle looks back into the window itself.",
+  "palette": "rainbow",
+  "feedback": {
+    "decay": 0.84,
+    "zoom": 1.006,
+    "rot": 0.003,
+    "edge": "mirror"
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "radial",
+      "count": 48,
+      "radius": 0.8,
+      "height": 0.28,
+      "gap": 0.2,
+      "color": "palette(t)",
+      "alpha": 0.5,
+      "fade": 0.6,
+      "peaks": false
+    },
+    {
+      "type": "wave",
+      "source": "spectrum",
+      "shape": "circle",
+      "samples": 128,
+      "radius": 0.6,
+      "scale": 0.14,
+      "thickness": 2.2,
+      "color": "palette(t + 0.5)",
+      "alpha": 0.7
+    },
+    {
+      "type": "shape",
+      "sides": 6,
+      "instances": 6,
+      "color": "palette(n/6 + time*0.02)",
+      "alpha": 0.6,
+      "color2": "palette(n/6 + time*0.02)",
+      "alpha2": 0.15,
+      "border": "white",
+      "borderAlpha": 0.35,
+      "borderWidth": 1.5,
+      "code": "lv = if(equal(n, 0), sub_att, if(equal(n, 1), low_att, if(equal(n, 2), lowmid_att, if(equal(n, 3), highmid_att, if(equal(n, 4), presence_att, air_att)))))\nradius = 0.04 + 0.055*min(lv, 2)\nx = (0.2 + n*0.11)*cos(0.13)\ny = (0.2 + n*0.11)*sin(0.13)"
+    },
+    {
+      "type": "shape",
+      "sides": 12,
+      "radius": 0.14,
+      "textured": true,
+      "texZoom": 2,
+      "texAngle": "time*0.2",
+      "color": "white",
+      "alpha": 1,
+      "color2": "white",
+      "alpha2": 1,
+      "border": "white",
+      "borderAlpha": 0.6,
+      "borderWidth": 2
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 800,
+      "rate": "40 + 800*beat",
+      "speed": 0.1,
+      "flow": 1,
+      "life": 2,
+      "size": 1.8,
+      "color": "palette(i)"
+    }
+  ],
+  "post": {
+    "kaleido": 12,
+    "kaleidoAngle": "time*0.02",
+    "bloom": 0.45,
+    "vignette": 0.5
+  }
+}

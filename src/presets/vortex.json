@@ -1,0 +1,26 @@
+{
+  "name": "Vortex",
+  "author": "Trance",
+  "description": "A ring of dots smeared into counter-rotating bands.",
+  "palette": "neon",
+  "feedback": {
+    "decay": 0.97,
+    "edge": "wrap"
+  },
+  "pixel": "rot = 0.025*sin(rad*5 - time*1.2) + 0.01\nzoom = 1.012 + 0.02*bass_att*cos(ang*3 + time)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "dots": true,
+      "samples": 96,
+      "radius": 0.45,
+      "scale": 0.35,
+      "thickness": 10,
+      "color": "palette(t + time*0.1)"
+    }
+  ],
+  "post": {
+    "bloom": 0.9
+  }
+}

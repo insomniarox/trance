@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Trance
+Comment=Music visualizer that follows what's playing and your theme
+Exec=trance
+Icon=trance
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=visualizer;music;spectrum;milkdrop;
+StartupWMClass=trance

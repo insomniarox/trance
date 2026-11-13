@@ -1,0 +1,57 @@
+{
+  "name": "Windmap",
+  "author": "Trance",
+  "description": "The flow itself, drawn as a field of strokes, with dust carried along it.",
+  "palette": "aurora",
+  "init": "k1 = 1.5 + rand(2)\nk2 = 1.5 + rand(2)\nk3 = rand(6)",
+  "frame": "gust = 0.6 + 0.8*bass_att\nturn = turn + 0.004 + 0.01*treb_att",
+  "feedback": {
+    "decay": 0.93,
+    "edge": "wrap"
+  },
+  "pixel": "dx = 0.006*gust*sin(y*k1*2 + turn + k3)\ndy = 0.006*gust*sin(x*k2*2 - turn*0.7)\nrot = 0.01*sin(rad*3 - turn)",
+  "background": {
+    "style": "gradient",
+    "intensity": 0.3,
+    "tint": 0.05,
+    "spread": 0.25
+  },
+  "layers": [
+    {
+      "type": "vectors",
+      "cols": 34,
+      "rows": 20,
+      "length": "1.2 + 1.5*bass_att",
+      "thickness": 1.6,
+      "color": "palette(0.25 + 0.5*v)",
+      "alpha": 0.55
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 1800,
+      "rate": 500,
+      "speed": 0.02,
+      "flow": 1.6,
+      "drag": 3,
+      "life": 3.5,
+      "size": 2,
+      "edge": "wrap",
+      "color": "palette(0.5 + 0.3*i)",
+      "alpha": 0.8
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.18 + 0.05*bass_att",
+      "scale": 0.15,
+      "color": "palette(t + time*0.05)",
+      "thickness": 2.5,
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "vignette": 0.45
+  }
+}

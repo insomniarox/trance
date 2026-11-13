@@ -1,0 +1,130 @@
+{
+  "name": "Ripple Tank",
+  "author": "Trance",
+  "description": "Six stones dropped in still water, one for each range. The rumble sends wide slow rings, the shimmer quick small ones, and where they cross the water glitters.",
+  "palette": "ocean",
+  "frame": "w0 = w0 + dt*0.25\nw1 = w1 + dt*0.35\nw2 = w2 + dt*0.5\nw3 = w3 + dt*0.7\nw4 = w4 + dt*0.95\nw5 = w5 + dt*1.3",
+  "feedback": {
+    "decay": 0.92,
+    "blur": 0.25,
+    "edge": "mirror"
+  },
+  "pixel": "dx = 0.0012*sin(y*9 + time)\ndy = 0.0012*cos(x*9 - time)",
+  "background": {
+    "style": "plasma",
+    "intensity": 0.2,
+    "scale": 1.5,
+    "speed": 0.4,
+    "tint": 0.2,
+    "spread": 0.3
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 4,
+      "x": 0.0,
+      "y": 0.5,
+      "radius": "1.15*fract(w0 + n/4)",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.38)",
+      "borderAlpha": "(1 - fract(w0 + n/4))*clamp(0.15 + 0.7*sub_att, 0, 1)",
+      "borderWidth": "2 + 3.5*sub",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 4,
+      "x": -0.0,
+      "y": -0.5,
+      "radius": "1.0*fract(w1 + n/4)",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.49)",
+      "borderAlpha": "(1 - fract(w1 + n/4))*clamp(0.15 + 0.7*low_att, 0, 1)",
+      "borderWidth": "2 + 3.5*low",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 4,
+      "x": -0.823,
+      "y": 0.25,
+      "radius": "0.85*fract(w2 + n/4)",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.60)",
+      "borderAlpha": "(1 - fract(w2 + n/4))*clamp(0.15 + 0.7*lowmid_att, 0, 1)",
+      "borderWidth": "2 + 3.5*lowmid",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 4,
+      "x": 0.823,
+      "y": -0.25,
+      "radius": "0.7*fract(w3 + n/4)",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.71)",
+      "borderAlpha": "(1 - fract(w3 + n/4))*clamp(0.15 + 0.7*highmid_att, 0, 1)",
+      "borderWidth": "2 + 3.5*highmid",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 4,
+      "x": -0.823,
+      "y": -0.25,
+      "radius": "0.55*fract(w4 + n/4)",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.82)",
+      "borderAlpha": "(1 - fract(w4 + n/4))*clamp(0.15 + 0.7*presence_att, 0, 1)",
+      "borderWidth": "2 + 3.5*presence",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 4,
+      "x": 0.823,
+      "y": 0.25,
+      "radius": "0.42*fract(w5 + n/4)",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.93)",
+      "borderAlpha": "(1 - fract(w5 + n/4))*clamp(0.15 + 0.7*air_att, 0, 1)",
+      "borderWidth": "2 + 3.5*air",
+      "additive": true
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 500,
+      "rate": "30 + 700*beat",
+      "speed": 0.01,
+      "flow": 1,
+      "life": 1.2,
+      "size": 1.6,
+      "color": "palette(0.85 + 0.15*i)",
+      "alpha": 0.8
+    }
+  ],
+  "post": {
+    "bloom": 1.1,
+    "chroma": 0.4,
+    "vignette": 0.5
+  }
+}

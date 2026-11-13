@@ -1,0 +1,94 @@
+{
+  "name": "Clockwork",
+  "author": "Trance",
+  "description": "A train of six gears, each driven by a range of its own: the great wheel turns on the rumble, the smallest spins on the shimmer, and the beat strikes sparks where the first two meet.",
+  "palette": "gold",
+  "frame": "g0 = g0 + dt*0.5*(0.1 + sub_att)\ng1 = g1 + dt*-0.7*(0.1 + low_att)\ng2 = g2 + dt*0.9*(0.1 + lowmid_att)\ng3 = g3 + dt*-1.2*(0.1 + highmid_att)\ng4 = g4 + dt*1.6*(0.1 + presence_att)\ng5 = g5 + dt*-2.2*(0.1 + air_att)",
+  "feedback": {
+    "decay": 0.82,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.25,
+    "tint": 0.1,
+    "spread": 0.2,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": "5*(0.6 + 0.5*sub)",
+      "color": "palette(0.38)",
+      "alpha": "clamp(0.45 + 0.4*sub_att, 0, 1)",
+      "point": "th = fract(t*2)*tau\nrr = if(below(t, 0.5), 0.56*(1 + 0.071*clamp(4*sin(24*th), -1, 1)), 0.168)\nx = -1.000 + rr*cos(th + g0)\ny = -0.280 + rr*sin(th + g0)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": "4.5*(0.6 + 0.5*low)",
+      "color": "palette(0.46)",
+      "alpha": "clamp(0.45 + 0.4*low_att, 0, 1)",
+      "point": "th = fract(t*2)*tau\nrr = if(below(t, 0.5), 0.4*(1 + 0.100*clamp(4*sin(17*th), -1, 1)), 0.120)\nx = -0.110 + rr*cos(th + g1)\ny = 0.080 + rr*sin(th + g1)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": "4*(0.6 + 0.5*lowmid)",
+      "color": "palette(0.54)",
+      "alpha": "clamp(0.45 + 0.4*lowmid_att, 0, 1)",
+      "point": "th = fract(t*2)*tau\nrr = if(below(t, 0.5), 0.31*(1 + 0.129*clamp(4*sin(13*th), -1, 1)), 0.093)\nx = 0.492 + rr*cos(th + g2)\ny = -0.297 + rr*sin(th + g2)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": "3.4*(0.6 + 0.5*highmid)",
+      "color": "palette(0.62)",
+      "alpha": "clamp(0.45 + 0.4*highmid_att, 0, 1)",
+      "point": "th = fract(t*2)*tau\nrr = if(below(t, 0.5), 0.23*(1 + 0.174*clamp(4*sin(10*th), -1, 1)), 0.069)\nx = 0.854 + rr*cos(th + g3)\ny = 0.105 + rr*sin(th + g3)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": "2.8*(0.6 + 0.5*presence)",
+      "color": "palette(0.70)",
+      "alpha": "clamp(0.45 + 0.4*presence_att, 0, 1)",
+      "point": "th = fract(t*2)*tau\nrr = if(below(t, 0.5), 0.17*(1 + 0.200*clamp(4*sin(7*th), -1, 1)), 0.051)\nx = 1.216 + rr*cos(th + g4)\ny = -0.064 + rr*sin(th + g4)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": "2.4*(0.6 + 0.5*air)",
+      "color": "palette(0.78)",
+      "alpha": "clamp(0.45 + 0.4*air_att, 0, 1)",
+      "point": "th = fract(t*2)*tau\nrr = if(below(t, 0.5), 0.12*(1 + 0.200*clamp(4*sin(5*th), -1, 1)), 0.036)\nx = 1.382 + rr*cos(th + g5)\ny = 0.173 + rr*sin(th + g5)"
+    },
+    {
+      "type": "particles",
+      "emit": "point",
+      "x": -0.481,
+      "y": -0.07,
+      "count": 600,
+      "rate": "20 + 1500*beat",
+      "speed": 0.9,
+      "gravity": 1.0,
+      "life": 0.7,
+      "size": 2,
+      "streak": 0.03,
+      "color": "palette(0.8 + 0.2*i)"
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "vignette": 0.5,
+    "grain": 0.05
+  }
+}

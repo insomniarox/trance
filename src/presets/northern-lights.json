@@ -1,0 +1,56 @@
+{
+  "name": "Northern Lights",
+  "author": "Trance",
+  "description": "Curtains of light rising from the spectrum under a sky of stars.",
+  "palette": "aurora",
+  "feedback": {
+    "decay": 0.972,
+    "dy": 0.006,
+    "sy": 1.004,
+    "cy": -0.6,
+    "warp": 0.5,
+    "warpScale": 2,
+    "blur": 0.3,
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.5,
+    "tint": 0.3,
+    "spread": 0.4,
+    "scale": 1.4,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "source": "spectrum",
+      "shape": "line",
+      "y": -0.55,
+      "scale": "0.5 + 0.3*bass_att",
+      "smooth": 0.6,
+      "thickness": 4,
+      "color": "palette(0.15 + 0.5*t)",
+      "alpha": 0.9
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 700,
+      "rate": "40 + 500*treb_att",
+      "speed": 0.08,
+      "angle": 1.5708,
+      "spread": 1,
+      "gravity": -0.1,
+      "flow": 1,
+      "life": 4,
+      "size": 1.8,
+      "color": "white",
+      "alpha": 0.7
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "vignette": 0.4
+  }
+}

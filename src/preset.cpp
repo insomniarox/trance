@@ -1,0 +1,886 @@
+#include "preset.h"
+
+#include "audio.h"
+
+#include <QJsonArray>
+#include <QRegularExpression>
+#include <cmath>
+
+namespace {
+
+Field number(const char *key, double def, double min, double max) {
+    return Field{key, Field::Number, def, min, max, {}, {}};
+}
+Field integer(const char *key, double def, double min, double max) {
+    return Field{key, Field::Integer, def, min, max, {}, {}};
+}
+Field toggle(const char *key, bool def) { return Field{key, Field::Toggle, def ? 1.0 : 0.0, 0, 1, {}, {}}; }
+Field choice(const char *key, const QStringList &options) {
+    return Field{key, Field::Choice, 0, 0, 0, options.first(), options};
+}
+Field color(const char *key, const char *def) { return Field{key, Field::Color, 0, 0, 0, def, {}}; }
+Field code(const char *key) { return Field{key, Field::Code, 0, 0, 0, {}, {}}; }
+
+const QHash<QString, QList<Field>> &allFields() {
+    static const QHash<QString, QList<Field>> sections = {
+        // How last frame's picture is bent before this frame is drawn on it.
+        // Values are per frame at 60 fps; the engine scales them to the real
+        // frame time, so a preset looks the same at 60 and 144 Hz.
+        {"feedback", {
+            number("decay", 0.96, 0.5, 1), number("zoom", 1, 0.8, 1.2), number("zoomexp", 1, 0.25, 4),
+            number("rot", 0, -0.2, 0.2), number("warp", 0, 0, 5), number("warpScale", 1, 0.1, 5),
+            number("warpSpeed", 1, 0, 5), number("cx", 0, -1, 1), number("cy", 0, -1, 1),
+            number("dx", 0, -0.05, 0.05), number("dy", 0, -0.05, 0.05), number("sx", 1, 0.8, 1.2),
+            number("sy", 1, 0.8, 1.2), number("blur", 0, 0, 1), number("hueshift", 0, -0.2, 0.2),
+            choice("edge", {"wrap", "mirror", "clamp", "black"}), toggle("darkenCenter", false),
+        }},
+        // What happens between the feedback buffer and the screen.
+        {"post", {
+            number("colorize", 0, 0, 1), number("colorShift", 0, -1, 1), number("colorCurve", 1, 0.2, 4),
+            number("bloom", 0.5, 0, 3), number("bloomThreshold", 0.55, 0, 1.2),
+            number("brightness", 1, 0, 3), number("contrast", 1, 0, 2), number("saturation", 1, 0, 2),
+            number("gamma", 1, 0.3, 3), number("hue", 0, -3.1416, 3.1416), number("invert", 0, 0, 1),
+            choice("mirror", {"none", "x", "y", "quad"}), integer("kaleido", 0, 0, 16),
+            number("kaleidoAngle", 0, -3.1416, 3.1416), number("echoAlpha", 0, 0, 1),
+            number("echoZoom", 1, 0.25, 4), choice("echoFlip", {"none", "x", "y", "xy"}),
+            number("chroma", 0, 0, 3), number("vignette", 0.3, 0, 1.5), number("grain", 0, 0, 0.5),
+            number("scanlines", 0, 0, 1),
+        }},
+        // What shows where the picture is dark. It is drawn fresh every
+        // frame behind the feedback picture, so it never smears.
+        {"background", {
+            choice("style", {"none", "gradient", "nebula", "stars", "grid", "rays", "plasma"}),
+            number("intensity", 0.4, 0, 2), number("tint", 0, 0, 1), number("spread", 0.3, 0, 1),
+            number("scale", 1, 0.2, 5), number("speed", 1, 0, 5),
+        }},
+        {"wave", {
+            toggle("enabled", true), choice("source", {"mix", "left", "right", "spectrum"}),
+            choice("shape", {"line", "circle", "xy", "custom"}), integer("samples", 256, 8, 512),
+            number("scale", 0.4, 0, 2), number("smooth", 0.3, 0, 1), number("x", 0, -2, 2), number("y", 0, -1, 1),
+            number("width", 1, 0, 2), number("radius", 0.5, 0, 1.5), number("angle", 0, -3.1416, 3.1416),
+            number("thickness", 2.5, 0.5, 40), color("color", "accent"), number("alpha", 1, 0, 1),
+            toggle("additive", true), toggle("dots", false), choice("mirror", {"none", "x", "y", "quad"}),
+            code("point"),
+        }},
+        {"bars", {
+            toggle("enabled", true), choice("layout", {"bottom", "top", "center", "radial"}),
+            integer("count", 48, 4, 128), number("x", 0, -2, 2), number("y", 0, -1, 1), number("width", 0.9, 0.1, 1),
+            number("height", 0.8, 0, 2), number("gap", 0.25, 0, 0.9), number("radius", 0.35, 0, 1),
+            number("angle", 0, -3.1416, 3.1416), color("color", "palette(t)"), number("alpha", 0.9, 0, 1),
+            number("fade", 0.6, 0, 1), toggle("peaks", true), toggle("symmetric", false), toggle("additive", false),
+            code("point"),
+        }},
+        {"shape", {
+            toggle("enabled", true), integer("sides", 4, 3, 64), integer("instances", 1, 1, 512),
+            number("x", 0, -2, 2), number("y", 0, -1, 1), number("radius", 0.3, 0, 2),
+            number("angle", 0, -3.1416, 3.1416), color("color", "accent"), number("alpha", 1, 0, 1),
+            color("color2", "black"), number("alpha2", 0, 0, 1), color("border", "foreground"),
+            number("borderAlpha", 0, 0, 1), number("borderWidth", 2, 0.5, 20), toggle("additive", false),
+            toggle("textured", false), number("texZoom", 1, 0.2, 5), number("texAngle", 0, -3.1416, 3.1416),
+            code("code"),
+        }},
+        {"terrain", {
+            toggle("enabled", true), choice("style", {"mesh", "lines", "dots"}), integer("rows", 36, 8, 64),
+            integer("cols", 64, 16, 128), number("speed", 18, 1, 60), number("height", 0.55, 0, 2),
+            number("width", 1.7, 0.2, 4), number("y", -0.75, -1.5, 1), number("horizon", 0.25, -1, 1),
+            number("depth", 3, 0.2, 10), number("thickness", 1.6, 0.5, 10), color("color", "palette(t)"),
+            number("alpha", 0.9, 0, 1), toggle("additive", true),
+        }},
+        // MilkDrop's motion vectors: a grid of short strokes showing which
+        // way the picture is flowing at each place.
+        {"vectors", {
+            toggle("enabled", true), integer("cols", 28, 2, 64), integer("rows", 16, 2, 48),
+            number("length", 1, 0, 8), number("thickness", 1.5, 0.5, 12), color("color", "palette(t + i)"),
+            number("alpha", 0.5, 0, 1), toggle("dots", false), toggle("additive", true),
+        }},
+        {"particles", {
+            toggle("enabled", true), integer("count", 600, 16, 4000), number("rate", 120, 0, 2000),
+            choice("emit", {"point", "wave", "bars", "edges", "screen"}),
+            number("x", 0, -2, 2), number("y", 0, -1, 1), number("area", 0, 0, 2), number("speed", 0.6, 0, 4),
+            number("angle", 0, -3.1416, 3.1416), number("spread", 6.2832, 0, 6.2832),
+            number("gravity", 0, -3, 3), number("drag", 0.4, -3, 6), number("flow", 0, 0, 2),
+            number("field", 0, 0, 4), number("fieldScale", 1.5, 0.2, 8), number("fieldSpeed", 0.2, 0, 3),
+            number("pull", 0, -6, 6), number("swirl", 0, -6, 6), choice("edge", {"none", "wrap", "bounce"}),
+            number("life", 2, 0.1, 10), number("size", 3, 0.5, 30), number("streak", 0, 0, 0.5),
+            color("color", "palette(i)"), number("alpha", 1, 0, 1), toggle("additive", true),
+        }},
+    };
+    return sections;
+}
+
+const QHash<QString, QStringList> &palettes() {
+    static const QHash<QString, QStringList> all = {
+        // The first two follow the desktop theme live.
+        {"theme", {"accent", "magenta", "red", "orange", "yellow", "green", "cyan", "blue"}},
+        {"accent", {"darker_background", "muted", "accent", "bright_foreground"}},
+        {"fire", {"#000000", "#5a0a00", "#d43a00", "#ff9a00", "#ffe66d", "#ffffff"}},
+        {"ocean", {"#000814", "#001d3d", "#003566", "#0077b6", "#00b4d8", "#90e0ef", "#caf0f8"}},
+        {"neon", {"#ff00a8", "#7a00ff", "#00c8ff", "#00ffa3", "#fff200", "#ff5e00"}},
+        {"sunset", {"#0d0221", "#3d1a78", "#b5179e", "#f72585", "#ff8500", "#ffd60a"}},
+        {"aurora", {"#001219", "#005f73", "#0a9396", "#94d2bd", "#e9d8a6", "#ee9b00", "#ca6702"}},
+        {"vapor", {"#2b1055", "#7597de", "#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96"}},
+        {"acid", {"#0b0f00", "#3bff00", "#d0ff00", "#00ffc8", "#ff00e6"}},
+        {"ice", {"#000000", "#0b132b", "#1c2541", "#3a506b", "#5bc0be", "#c9f9ff", "#ffffff"}},
+        {"gold", {"#000000", "#3d2b00", "#b8860b", "#ffd60a", "#fff7cc"}},
+        {"rainbow", {"#ff0040", "#ff8a00", "#ffe600", "#3dff00", "#00e5ff", "#2a5cff", "#b400ff"}},
+        {"mono", {"#000000", "#ffffff"}},
+    };
+    return all;
+}
+
+QString codeText(const QJsonValue &value) {
+    if (value.isArray()) {
+        QStringList lines;
+        for (const auto &line : value.toArray())
+            lines << line.toString();
+        return lines.join('\n');
+    }
+    return value.toString();
+}
+
+// Splits "a, f(b, c), d" at the commas outside parentheses.
+QStringList splitArguments(const QString &text) {
+    QStringList parts;
+    int depth = 0, start = 0;
+    for (int i = 0; i < text.size(); ++i) {
+        if (text[i] == '(')
+            ++depth;
+        else if (text[i] == ')')
+            --depth;
+        else if (text[i] == ',' && depth == 0) {
+            parts << text.mid(start, i - start).trimmed();
+            start = i + 1;
+        }
+    }
+    parts << text.mid(start).trimmed();
+    return parts;
+}
+
+class Compiler {
+public:
+    explicit Compiler(CompiledPreset &preset) : p(preset) {}
+
+    void problem(const QString &path, const QString &message, bool error = true) {
+        p.problems.append(Problem{path, message, error});
+    }
+
+    expr::Program program(const QString &source, const QString &path) {
+        expr::Program result;
+        QString error;
+        const QStringList before = p.vars.undefined();
+        if (!result.parse(source, p.vars, &error))
+            problem(path, error);
+        // Remember where each not-yet-assigned name first shows up, to point
+        // at the right field if nothing ever assigns it.
+        for (const auto &name : p.vars.undefined())
+            if (!before.contains(name) && !m_firstUse.contains(name))
+                m_firstUse.insert(name, path);
+        return result;
+    }
+
+    expr::Program numberValue(const QJsonValue &value, const Field &field, const QString &path) {
+        if (value.isUndefined() || value.isNull())
+            return expr::Program::constant(field.def);
+        if (value.isDouble())
+            return expr::Program::constant(value.toDouble());
+        if (value.isBool())
+            return expr::Program::constant(value.toBool() ? 1 : 0);
+        if (value.isString()) {
+            if (value.toString().trimmed().isEmpty())
+                return expr::Program::constant(field.def);
+            expr::Program result = program(value.toString(), path);
+            if (result.isEmpty())
+                result = expr::Program::constant(field.def);
+            return result;
+        }
+        problem(path, "Expected a number or a formula");
+        return expr::Program::constant(field.def);
+    }
+
+    ColorSpec colorValue(const QString &source, const QString &path) {
+        ColorSpec spec;
+        const QString text = source.trimmed();
+        static const QRegularExpression call("^(palette|hsv|rgb)\\s*\\((.*)\\)$",
+                                             QRegularExpression::DotMatchesEverythingOption);
+        const auto match = call.match(text);
+        if (text.startsWith('#') || text == "white" || text == "black") {
+            const QColor parsed(text);
+            if (!parsed.isValid()) {
+                problem(path, QString("'%1' is not a color; write #rrggbb").arg(text));
+                return spec;
+            }
+            spec.rgb[0] = parsed.redF();
+            spec.rgb[1] = parsed.greenF();
+            spec.rgb[2] = parsed.blueF();
+        } else if (match.hasMatch()) {
+            const QString kind = match.captured(1);
+            const QStringList arguments = splitArguments(match.captured(2));
+            const int wanted = kind == "palette" ? 1 : 3;
+            if (arguments.size() != wanted || arguments.contains(QString())) {
+                problem(path, QString("%1() takes %2 value(s)").arg(kind).arg(wanted));
+                return spec;
+            }
+            spec.kind = kind == "palette" ? ColorSpec::Palette : kind == "hsv" ? ColorSpec::Hsv : ColorSpec::Rgb;
+            spec.a = program(arguments[0], path);
+            if (wanted == 3) {
+                spec.b = program(arguments[1], path);
+                spec.c = program(arguments[2], path);
+            }
+            if (spec.a.isEmpty() || (wanted == 3 && (spec.b.isEmpty() || spec.c.isEmpty())))
+                spec.kind = ColorSpec::Constant;
+        } else if (presets::themeColorNames().contains(text)) {
+            spec.kind = ColorSpec::Theme;
+            spec.theme = text;
+        } else {
+            problem(path, QString("Unknown color '%1'. Use #rrggbb, a theme color such as accent, "
+                                  "palette(t), hsv(h, s, v) or rgb(r, g, b)").arg(text));
+        }
+        return spec;
+    }
+
+    Block block(const QJsonObject &object, const QString &section, const QString &path,
+                const QStringList &alsoAllowed = {}) {
+        Block result;
+        const auto &fields = presets::fields(section);
+        QStringList known = alsoAllowed;
+        for (const Field &field : fields) {
+            const QString key = QString::fromLatin1(field.key);
+            known << key;
+            const QJsonValue value = object.value(key);
+            const QString fieldPath = path + "." + key;
+            switch (field.type) {
+            case Field::Number:
+            case Field::Integer:
+            case Field::Toggle:
+                result.numbers.insert(field.key, numberValue(value, field, fieldPath));
+                break;
+            case Field::Choice: {
+                QString picked = value.isUndefined() ? field.text : value.toString();
+                if (!field.options.contains(picked)) {
+                    problem(fieldPath, QString("'%1' is not one of: %2").arg(picked, field.options.join(", ")));
+                    picked = field.text;
+                }
+                result.choices.insert(field.key, picked);
+                break;
+            }
+            case Field::Color:
+                if (!value.isUndefined() && !value.isString())
+                    problem(fieldPath, "Expected a color as text");
+                result.colors.insert(field.key, colorValue(value.isString() ? value.toString() : field.text, fieldPath));
+                break;
+            case Field::Code: {
+                const QString source = codeText(value);
+                if (!source.trimmed().isEmpty())
+                    result.code.insert(field.key, program(source, fieldPath));
+                break;
+            }
+            }
+        }
+        for (auto it = object.begin(); it != object.end(); ++it)
+            if (!known.contains(it.key()))
+                problem(path + "." + it.key(), QString("Unknown setting '%1'").arg(it.key()), false);
+        return result;
+    }
+
+    // Reports names that are read but never assigned, once each.
+    void reportUndefined() {
+        for (const auto &name : p.vars.undefined()) {
+            problem(m_firstUse.value(name), QString("Unknown variable '%1'").arg(name));
+            p.vars.declare(name);
+        }
+    }
+
+    CompiledPreset &p;
+
+private:
+    QHash<QString, QString> m_firstUse;
+};
+
+// While one preset hands over to the next, both are drawn every frame and
+// this decides, pixel by pixel, how much of the new one shows. u_blend runs
+// 0 to 1 over the change; the pattern says where the new picture arrives
+// first. The feedback pass and the screen pass ask the same question, so
+// the motion and the look change hands in the same places.
+const char *const BlendFunction = R"(
+uniform float u_blend;
+uniform float u_pattern;
+uniform float u_patternSeed;
+float f_blendAt(vec2 uv) {
+  if (u_blend >= 1.0) return 1.0;
+  if (u_blend <= 0.0) return 0.0;
+  if (u_pattern < 0.5) return u_blend;
+  vec2 p = vec2((uv.x * 2.0 - 1.0) * u_aspect, uv.y * 2.0 - 1.0);
+  float reach = length(vec2(u_aspect, 1.0));
+  float g;
+  if (u_pattern < 1.5) {
+    g = length(p) / reach;
+  } else if (u_pattern < 2.5) {
+    g = 1.0 - length(p) / reach;
+  } else if (u_pattern < 3.5) {
+    g = abs(fract(f_atan2(p.y, p.x) / 6.28318530718 + u_patternSeed) * 2.0 - 1.0);
+  } else if (u_pattern < 4.5) {
+    vec2 q = p * 1.3 + u_patternSeed * 37.0;
+    g = f_noise(q) * 0.6 + f_noise(q * 2.3 + 11.0) * 0.4;
+  } else {
+    float a = u_patternSeed * 6.28318530718;
+    g = dot(p, vec2(cos(a), sin(a))) / reach * 0.5 + 0.5;
+  }
+  float w = clamp((u_blend * 1.5 - g) / 0.5, 0.0, 1.0);
+  return w * w * (3.0 - 2.0 * w);
+}
+)";
+
+const char *const WarpTemplate = R"(
+uniform sampler2D u_prev;
+uniform sampler2D u_other;
+uniform float V[%SIZE%];
+uniform float u_aspect;
+uniform float u_k;
+uniform float u_warpTime;
+uniform float u_seed;
+uniform vec2 u_texel;
+in vec2 v_uv;
+out vec4 o_color;
+%PRELUDE%
+%BLEND%
+vec3 hueRotate(vec3 c, float a) {
+  const vec3 k = vec3(0.57735);
+  float ca = cos(a), sa = sin(a);
+  return c * ca + cross(k, c) * sa + k * dot(k, c) * (1.0 - ca);
+}
+void main() {
+  float l_x = (v_uv.x * 2.0 - 1.0) * u_aspect;
+  float l_y = v_uv.y * 2.0 - 1.0;
+  float l_rad = length(vec2(l_x, l_y));
+  float l_ang = f_atan2(l_y, l_x);
+%CODE%
+  float zoom = %zoom%, zoomexp = %zoomexp%, rot = %rot%, warp = %warp%;
+  vec2 center = vec2(%cx%, %cy%);
+  vec2 p = vec2(l_x, l_y);
+  // u_k is the frame time in 60ths of a second, so motion per second stays
+  // the same at any refresh rate.
+  float z = pow(max(zoom, 0.01), pow(max(zoomexp, 0.01), l_rad * 2.0 - 1.0) * u_k);
+  vec2 q = (p - center) / z;
+  q /= pow(max(vec2(%sx%, %sy%), vec2(0.01)), vec2(u_k));
+  float a = -rot * u_k;
+  float ca = cos(a), sa = sin(a);
+  q = vec2(q.x * ca - q.y * sa, q.x * sa + q.y * ca);
+  q += center - vec2(%dx%, %dy%) * u_k;
+  if (warp != 0.0) {
+    float w = warp * u_k * 0.007;
+    float t = u_warpTime;
+    vec4 f = vec4(11.68 + 4.0 * cos(t * 1.413 + 10.0), 8.77 + 3.0 * cos(t * 1.113 + 7.0),
+                  10.54 + 3.0 * cos(t * 1.233 + 3.0), 11.49 + 4.0 * cos(t * 0.933 + 5.0));
+    vec2 m = p * 0.5 / max(%warpScale%, 0.01);
+    q.x += w * sin(t * 0.333 + (m.x * f.x - m.y * f.w));
+    q.y += w * cos(t * 0.375 - (m.x * f.z + m.y * f.y));
+    q.x += w * cos(t * 0.753 - (m.x * f.y - m.y * f.z));
+    q.y += w * sin(t * 0.825 + (m.x * f.x + m.y * f.w));
+  }
+  vec2 uv = vec2(q.x / u_aspect, q.y) * 0.5 + 0.5;
+  vec3 c = texture(u_prev, uv).rgb;
+  float blur = clamp(%blur%, 0.0, 1.0);
+  if (blur > 0.0) {
+    vec2 d = u_texel * 1.5;
+    vec3 around = texture(u_prev, uv + vec2(d.x, 0.0)).rgb + texture(u_prev, uv - vec2(d.x, 0.0)).rgb +
+                  texture(u_prev, uv + vec2(0.0, d.y)).rgb + texture(u_prev, uv - vec2(0.0, d.y)).rgb;
+    c = mix(c, around * 0.25, blur);
+  }
+%EDGE%
+  float hs = %hueshift%;
+  if (hs != 0.0) c = max(hueRotate(c, hs * u_k), vec3(0.0));
+  c *= pow(clamp(%decay%, 0.0, 1.0), u_k);
+  // The small subtraction lets trails reach true black instead of leaving a
+  // faint permanent stain.
+  c = max(c - 0.0012 * u_k, vec3(0.0));
+  // During a change of preset, u_other is the same frame bent the old way.
+  float w = f_blendAt(v_uv);
+  if (w < 1.0) c = mix(texture(u_other, v_uv).rgb, c, w);
+  o_color = vec4(min(c, vec3(1.3)), 1.0);
+}
+)";
+
+const char *const CompositeTemplate = R"(
+uniform sampler2D u_tex;
+uniform sampler2D u_bloom;
+uniform sampler2D u_palette;
+uniform sampler2D u_snapshot;
+uniform float V[%SIZE%];
+uniform float u_aspect;
+uniform float u_seed;
+uniform float u_glass;
+uniform float u_glassFloor;
+uniform float u_paletteSpan;
+uniform float u_bgTime;
+in vec2 v_uv;
+out vec4 o_color;
+%PRELUDE%
+%BLEND%
+vec3 f_pal(float t) { return texture(u_palette, vec2(t, 0.5)).rgb; }
+vec3 f_background(vec2 p) {
+  float S = max(%bg_scale%, 0.01), T = %bg_tint%, W = %bg_spread%;
+%BACKGROUND%
+}
+vec3 hueRotate(vec3 c, float a) {
+  const vec3 k = vec3(0.57735);
+  float ca = cos(a), sa = sin(a);
+  return c * ca + cross(k, c) * sa + k * dot(k, c) * (1.0 - ca);
+}
+vec2 fold(vec2 uv) { return 1.0 - abs(1.0 - mod(uv, 2.0)); }
+vec3 pick(vec2 uv) { return texture(u_tex, fold(uv)).rgb; }
+void main() {
+  vec2 screen = vec2((v_uv.x * 2.0 - 1.0) * u_aspect, v_uv.y * 2.0 - 1.0);
+  vec2 p = screen;
+%MIRROR%
+  float segments = floor(%kaleido% + 0.5);
+  if (segments >= 2.0) {
+    float wedge = 6.28318530718 / segments;
+    float an = f_atan2(p.y, p.x) + %kaleidoAngle%;
+    an = abs(mod(an, wedge) - wedge * 0.5);
+    p = length(p) * vec2(cos(an), sin(an));
+  }
+  vec2 uv = vec2(p.x / u_aspect, p.y) * 0.5 + 0.5;
+  vec3 c;
+  float chroma = %chroma%;
+  if (chroma > 0.0) {
+    vec2 d = (uv - 0.5) * chroma * 0.012;
+    c = vec3(pick(uv + d).r, pick(uv).g, pick(uv - d).b);
+  } else {
+    c = pick(uv);
+  }
+  float echoAlpha = clamp(%echoAlpha%, 0.0, 1.0);
+  if (echoAlpha > 0.0) {
+    vec2 e = (uv - 0.5) / max(%echoZoom%, 0.05);
+%ECHO%
+    c = mix(c, pick(e + 0.5), echoAlpha);
+  }
+  c += texture(u_bloom, fold(uv)).rgb * max(%bloom%, 0.0);
+  float colorize = clamp(%colorize%, 0.0, 1.0);
+  if (colorize > 0.0) {
+    float level = clamp(max(c.r, max(c.g, c.b)), 0.0, 1.0);
+    // The curve bends which brightness lands on which color, and the shift
+    // slides the whole palette along (it is a loop, so it can keep going).
+    float place = pow(level, max(%colorCurve%, 0.05)) * u_paletteSpan + %colorShift%;
+    vec3 mapped = f_pal(place) * smoothstep(0.0, 0.2, level);
+    c = mix(c, mapped, colorize);
+  }
+  c = max((c - 0.5) * %contrast% + 0.5, vec3(0.0)) * %brightness%;
+  c = mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, %saturation%);
+  float hue = %hue%;
+  if (hue != 0.0) c = hueRotate(c, hue);
+  c = pow(max(c, vec3(0.0)), vec3(1.0 / max(%gamma%, 0.05)));
+  c = mix(c, 1.0 - min(c, vec3(1.0)), clamp(%invert%, 0.0, 1.0));
+  float l_x = screen.x, l_y = screen.y;
+  float l_rad = length(screen);
+  float l_ang = f_atan2(screen.y, screen.x);
+  float l_r = c.r, l_g = c.g, l_b = c.b;
+  float l_lum = dot(c, vec3(0.299, 0.587, 0.114));
+%CODE%
+  c = max(vec3(l_r, l_g, l_b), vec3(0.0));
+  // A soft shoulder instead of a hard clip, so bright cores keep some color.
+  c = mix(c, 0.75 + 0.25 * tanh((c - 0.75) * 4.0), step(vec3(0.75), c));
+  // The background fills what the picture leaves dark. Glass has the
+  // desktop for a background instead.
+  float behind = %bg_intensity% * (1.0 - u_glass);
+  if (behind > 0.0)
+    c += max(f_background(screen), vec3(0.0)) * behind * (1.0 - clamp(max(c.r, max(c.g, c.b)) * 1.5, 0.0, 1.0));
+  c *= 1.0 - clamp(%vignette%, 0.0, 2.0) * smoothstep(0.55, 1.75, length(screen / vec2(max(u_aspect, 1.0), 1.0)) * 1.4);
+  c *= 1.0 - clamp(%scanlines%, 0.0, 1.0) * 0.5 * (0.5 + 0.5 * sin(gl_FragCoord.y * 2.0943951));
+  c += (f_hash(gl_FragCoord.xy + vec2(u_seed * 91.0, u_seed * 47.0)) - 0.5) * %grain%;
+  c = clamp(c, 0.0, 1.0);
+  // During a change of preset, u_snapshot is this frame as the old one shows it.
+  float w = f_blendAt(v_uv);
+  if (w < 1.0) c = mix(texture(u_snapshot, v_uv).rgb, c, w);
+  float alpha = 1.0;
+  if (u_glass > 0.0) {
+    // Over the desktop: black is see-through, light is solid, and the
+    // floor is how much of the black stays, from none of it to all.
+    alpha = clamp(max(c.r, max(c.g, c.b)) * 1.6, 0.0, 1.0);
+    c = min(c, vec3(alpha));
+    alpha = max(alpha, clamp(u_glassFloor, 0.0, 1.0));
+  }
+  o_color = vec4(c, alpha);
+}
+)";
+
+// The body of f_background(p) for each style. p is the place on screen, S
+// the scale, T where on the palette it sits and W how much of the palette it
+// spans; u_bgTime is the time, already multiplied by the style's speed.
+QString backgroundCode(const QString &style) {
+    if (style == "gradient")
+        return R"(  float g = p.y * 0.5 + 0.5 + 0.12 * sin(p.x * 1.3 * S + u_bgTime * 0.3) + 0.08 * sin(u_bgTime * 0.17);
+  return f_pal(T + W * g) * mix(0.25, 1.0, clamp(g, 0.0, 1.0));)";
+    if (style == "nebula")
+        return R"(  vec2 q = p * S * 0.9;
+  float t = u_bgTime * 0.05;
+  vec2 w = vec2(f_noise(q + vec2(t, -t) + 3.1), f_noise(q * 1.1 - vec2(t, t) + 7.7));
+  float n = f_noise(q * 1.6 + w * 2.2 + t) * 0.6 + f_noise(q * 3.7 - w * 1.5) * 0.3 + f_noise(q * 8.0 + w) * 0.1;
+  n = smoothstep(0.3, 0.85, n);
+  return f_pal(T + W * (w.x + n * 0.5)) * n;)";
+    if (style == "stars")
+        return R"(  vec3 sum = vec3(0.0);
+  for (int layer = 0; layer < 3; ++layer) {
+    float depth = 1.0 + float(layer) * 0.8;
+    vec2 q = p * S * 9.0 * depth + vec2(u_bgTime * 0.25 / depth, float(layer) * 17.0);
+    vec2 cell = floor(q), f = fract(q) - 0.5;
+    float h = f_hash(cell + float(layer) * 31.0);
+    vec2 offset = vec2(f_hash(cell + 5.3), f_hash(cell + 9.1)) - 0.5;
+    float d = length(f - offset * 0.7);
+    float twinkle = 0.6 + 0.4 * sin(u_bgTime * (1.0 + h * 3.0) + h * 40.0);
+    float star = step(0.82, h) * (1.0 - smoothstep(0.0, 0.09 / depth + 0.02, d)) * twinkle;
+    sum += (f_pal(T + W * h) + 0.4) * star;
+  }
+  return sum;)";
+    if (style == "grid")
+        return R"(  float horizon = 0.05;
+  vec3 col = f_pal(T + W) * exp(-abs(p.y - horizon) * 5.0) * 0.6;
+  if (p.y < horizon) {
+    float z = 1.0 / max(horizon - p.y, 0.002);
+    vec2 g = vec2(p.x * z, z + u_bgTime * 1.5) * S * 0.6;
+    vec2 a = abs(fract(g - 0.5) - 0.5) / max(fwidth(g), vec2(1e-4));
+    col += f_pal(T) * (1.0 - min(min(a.x, a.y), 1.0)) * exp(-z * 0.08);
+  }
+  return col;)";
+    if (style == "rays")
+        return R"(  float a = f_atan2(p.y, p.x), r = length(p);
+  float b = 0.5 + 0.25 * sin(a * floor(5.0 * S + 0.5) + u_bgTime * 0.2) +
+            0.25 * sin(a * floor(9.0 * S + 0.5) - u_bgTime * 0.31 + 1.7);
+  return f_pal(T + W * r) * b * b * b / (1.0 + r * r * 1.5);)";
+    if (style == "plasma")
+        return R"(  float t = u_bgTime * 0.4;
+  float v = sin(p.x * 3.0 * S + t) + sin(p.y * 4.0 * S - t * 1.3) + sin((p.x + p.y) * 2.5 * S + t * 0.7) +
+            sin(length(p * S) * 5.0 - t * 1.1);
+  v = v * 0.125 + 0.5;
+  return f_pal(T + W * v) * (0.3 + 0.7 * v);)";
+    return "  return vec3(0.0);";
+}
+
+// Fills a template's %name% slots: fixed pieces first, then one per setting.
+QString fill(QString text, const QHash<QString, QString> &pieces, const Block &block, const QString &prefix,
+             const expr::GlslScope &scope, const expr::Vars &vars) {
+    for (auto it = pieces.begin(); it != pieces.end(); ++it)
+        text.replace("%" + it.key() + "%", it.value());
+    for (auto it = block.numbers.begin(); it != block.numbers.end(); ++it)
+        text.replace("%" + QString::fromLatin1(it.key()) + "%",
+                     scope.ref(prefix + QString::fromLatin1(it.key()), vars));
+    return text;
+}
+
+} // namespace
+
+// -------------------------------------------------------------------- block
+
+double Block::num(const char *key, std::vector<double> &values) const {
+    const auto it = numbers.constFind(QByteArray::fromRawData(key, qstrlen(key)));
+    return it == numbers.constEnd() ? 0.0 : it->run(values);
+}
+
+QString Block::choice(const char *key) const { return choices.value(QByteArray::fromRawData(key, qstrlen(key))); }
+
+const ColorSpec *Block::color(const char *key) const {
+    const auto it = colors.constFind(QByteArray::fromRawData(key, qstrlen(key)));
+    return it == colors.constEnd() ? nullptr : &*it;
+}
+
+const expr::Program *Block::program(const char *key) const {
+    const auto it = code.constFind(QByteArray::fromRawData(key, qstrlen(key)));
+    return it == code.constEnd() || it->isEmpty() ? nullptr : &*it;
+}
+
+bool CompiledPreset::ok() const {
+    for (const auto &problem : problems)
+        if (problem.error)
+            return false;
+    return true;
+}
+
+QString CompiledPreset::firstError() const {
+    for (const auto &problem : problems)
+        if (problem.error)
+            return problem.path.isEmpty() ? problem.message : problem.path + ": " + problem.message;
+    return {};
+}
+
+// ------------------------------------------------------------------ presets
+
+namespace presets {
+
+const QList<Field> &fields(const QString &section) {
+    static const QList<Field> none;
+    const auto it = allFields().constFind(section);
+    return it == allFields().constEnd() ? none : *it;
+}
+
+QStringList layerTypes() { return {"wave", "bars", "shape", "terrain", "particles", "vectors"}; }
+
+QStringList transitionStyles() { return {"mixed", "dissolve", "center", "edges", "sweep", "clouds", "wipe"}; }
+
+QStringList paletteNames() {
+    return {"theme", "accent", "fire", "ocean", "neon", "sunset", "aurora", "vapor", "acid", "ice", "gold",
+            "rainbow", "mono"};
+}
+
+QStringList paletteStops(const QString &name) { return palettes().value(name); }
+
+QStringList themeColorNames() {
+    return {"accent", "foreground", "background", "selection", "muted", "red", "orange", "yellow", "green",
+            "cyan", "blue", "magenta", "brown", "bright_red", "bright_yellow", "bright_green", "bright_cyan",
+            "bright_blue", "bright_magenta", "dark_background", "darker_background", "lighter_background",
+            "dark_foreground", "light_foreground", "bright_foreground"};
+}
+
+QStringList variableNames() {
+    QStringList names{"time", "dt", "frame", "fps", "bass", "mid", "treb", "vol", "bass_att", "mid_att", "treb_att",
+                      "vol_att"};
+    for (int band = 0; band < AudioFrame::Bands; ++band)
+        names << bandInfo(band).name;
+    for (int band = 0; band < AudioFrame::Bands; ++band)
+        names << QString(bandInfo(band).name) + "_att";
+    return names + QStringList{"beat", "beats", "aspect", "progress", "pi", "tau"};
+}
+
+QStringList functionNames() {
+    return {"sin", "cos", "tan", "asin", "acos", "atan", "atan2", "abs", "sign", "floor", "ceil", "fract", "int",
+            "sqrt", "sqr", "exp", "log", "pow", "min", "max", "mod", "clamp", "mix", "step", "smoothstep", "if",
+            "above", "below", "equal", "band", "bor", "bnot", "rand", "noise", "length", "tri"};
+}
+
+ThemeColors defaultThemeColors() {
+    // Tokyo Night, Omarchy's default, with the fallback accent.
+    static const ThemeColors colors = {
+        {"accent", "#FFD60A"}, {"foreground", "#a9b1d6"}, {"background", "#1a1b26"}, {"selection", "#292e42"},
+        {"muted", "#414868"}, {"red", "#f7768e"}, {"orange", "#eb927b"}, {"yellow", "#e0af68"},
+        {"green", "#9ece6a"}, {"cyan", "#449dab"}, {"blue", "#7aa2f7"}, {"magenta", "#ad8ee6"},
+        {"brown", "#75493d"}, {"bright_red", "#ff7a93"}, {"bright_yellow", "#ff9e64"},
+        {"bright_green", "#b9f27c"}, {"bright_cyan", "#0db9d7"}, {"bright_blue", "#7da6ff"},
+        {"bright_magenta", "#bb9af7"}, {"dark_background", "#13141c"}, {"darker_background", "#0e0e14"},
+        {"lighter_background", "#24283b"}, {"dark_foreground", "#565f89"}, {"light_foreground", "#b4bee6"},
+        {"bright_foreground", "#c0caf5"},
+    };
+    return colors;
+}
+
+QColor resolveColor(const QString &stop, const ThemeColors &theme) {
+    if (stop.startsWith('#') || stop == "white" || stop == "black")
+        return QColor(stop);
+    const auto it = theme.constFind(stop);
+    if (it != theme.constEnd() && it->isValid())
+        return *it;
+    return defaultThemeColors().value(stop, QColor("#ffffff"));
+}
+
+QJsonObject starterLayer(const QString &type) {
+    if (type == "wave")
+        return {{"type", "wave"}, {"shape", "line"}, {"color", "palette(t)"}, {"thickness", 3}, {"scale", 0.5}};
+    if (type == "bars")
+        return {{"type", "bars"}, {"layout", "bottom"}, {"color", "palette(t)"}};
+    if (type == "shape")
+        return {{"type", "shape"}, {"sides", 6}, {"radius", "0.2 + 0.1*bass_att"}, {"angle", "time*0.3"},
+                {"color", "palette(time*0.1)"}, {"alpha", 0.6}, {"borderAlpha", 1}};
+    if (type == "terrain")
+        return {{"type", "terrain"}, {"color", "palette(t)"}};
+    if (type == "particles")
+        return {{"type", "particles"}, {"rate", "60 + 600*beat"}, {"color", "palette(i)"}, {"flow", 1}};
+    if (type == "vectors")
+        return {{"type", "vectors"}, {"color", "palette(t + i)"}};
+    return {};
+}
+
+QJsonObject blank(const QString &name) {
+    return {
+        {"name", name},
+        {"palette", "theme"},
+        {"feedback", QJsonObject{{"decay", 0.95}, {"zoom", "1.01 + 0.02*bass_att"}}},
+        {"layers", QJsonArray{starterLayer("wave")}},
+        {"post", QJsonObject{{"bloom", 0.6}}},
+    };
+}
+
+QVariantMap schema() {
+    auto describe = [](const QString &section) {
+        QVariantList list;
+        static const char *const types[] = {"number", "integer", "toggle", "choice", "color", "code"};
+        for (const Field &field : fields(section)) {
+            const QString key = QString::fromLatin1(field.key);
+            const FieldDoc doc = fieldDoc(section, key);
+            list << QVariantMap{{"key", key}, {"type", types[field.type]},
+                                {"def", field.def}, {"min", field.min}, {"max", field.max},
+                                {"text", field.text}, {"options", field.options},
+                                {"label", doc.label}, {"help", doc.help}};
+        }
+        return list;
+    };
+    auto named = [](const QString &section, const QStringList &keys) {
+        QVariantMap map;
+        for (const auto &key : keys) {
+            const FieldDoc doc = fieldDoc(section, key);
+            map.insert(key, QVariantMap{{"label", doc.label}, {"help", doc.help}});
+        }
+        return map;
+    };
+    QVariantMap layers;
+    for (const auto &type : layerTypes())
+        layers.insert(type, describe(type));
+    return {{"feedback", describe("feedback")}, {"post", describe("post")},
+            {"background", describe("background")}, {"layers", layers},
+            {"code", named("code", {"init", "frame", "pixel", "shade"})}, {"types", named("type", layerTypes())},
+            {"transitions", transitionStyles()},
+            {"layerTypes", layerTypes()}, {"palettes", paletteNames()}, {"themeColors", themeColorNames()},
+            {"variables", variableNames()}, {"functions", functionNames()}};
+}
+
+CompiledPreset compile(const QJsonObject &json) {
+    CompiledPreset p;
+    Compiler compiler(p);
+    p.name = json.value("name").toString();
+
+    // What the engine provides every frame...
+    for (const auto &name : variableNames())
+        p.vars.declare(name);
+    p.vars.declare("pi", M_PI);
+    p.vars.declare("tau", 2 * M_PI);
+    // ...and what it hands a layer's own code for each point or instance.
+    for (const char *name : {"t", "i", "v", "v2", "n", "count", "x", "y", "r", "g", "b", "a", "radius", "angle",
+                             "size", "r2", "g2", "b2", "a2"})
+        p.vars.declare(name);
+    // Feedback settings are variables, so the frame code can push them
+    // around and the pixel code can bend them across the screen.
+    const QList<Field> feedbackFields = fields("feedback"), postFields = fields("post"),
+                       backgroundFields = fields("background");
+    for (const Field &field : feedbackFields)
+        if (field.type != Field::Choice)
+            p.vars.declare(QString::fromLatin1(field.key), field.def);
+    for (const Field &field : postFields)
+        if (field.type != Field::Choice)
+            p.vars.declare("post." + QString::fromLatin1(field.key), field.def);
+    for (const Field &field : backgroundFields)
+        if (field.type != Field::Choice)
+            p.vars.declare("bg." + QString::fromLatin1(field.key), field.def);
+
+    static const QStringList topLevel = {"name", "author", "description", "palette", "init", "frame", "pixel",
+                                         "shade", "feedback", "background", "layers",
+                                         "post"};
+    for (auto it = json.begin(); it != json.end(); ++it)
+        if (!topLevel.contains(it.key()))
+            compiler.problem(it.key(), QString("Unknown setting '%1'").arg(it.key()), false);
+    if (p.name.trimmed().isEmpty())
+        compiler.problem("name", "A preset needs a name");
+
+    // Palette: a named one, or a list of stops.
+    const QJsonValue palette = json.value("palette");
+    QStringList stops;
+    if (palette.isArray()) {
+        for (const auto &stop : palette.toArray())
+            stops << stop.toString().trimmed();
+    } else if (palette.isString() && palette.toString().contains(QRegularExpression("[#,]"))) {
+        for (const auto &stop : palette.toString().split(',', Qt::SkipEmptyParts))
+            stops << stop.trimmed();
+    } else {
+        const QString name = palette.isUndefined() ? QString("theme") : palette.toString();
+        stops = paletteStops(name);
+        if (stops.isEmpty()) {
+            compiler.problem("palette", QString("Unknown palette '%1'. Use one of: %2, or a list of colors")
+                                            .arg(name, paletteNames().join(", ")));
+            stops = paletteStops("theme");
+        }
+    }
+    for (const auto &stop : stops) {
+        const bool literal = stop.startsWith('#') ? QColor(stop).isValid() : (stop == "white" || stop == "black");
+        if (!literal && !themeColorNames().contains(stop)) {
+            compiler.problem("palette", QString("'%1' is not a color; write #rrggbb or a theme color").arg(stop));
+            stops = paletteStops("theme");
+            break;
+        }
+    }
+    if (stops.size() == 1)
+        stops << stops.first();
+    p.palette = stops;
+
+    p.feedback = compiler.block(json.value("feedback").toObject(), "feedback", "feedback");
+    p.post = compiler.block(json.value("post").toObject(), "post", "post");
+    if (json.contains("background") && !json.value("background").isObject())
+        compiler.problem("background", "Expected settings in { }");
+    p.background = compiler.block(json.value("background").toObject(), "background", "background");
+    p.initText = codeText(json.value("init"));
+    if (json.contains("init"))
+        p.init = compiler.program(p.initText, "init");
+    if (json.contains("frame"))
+        p.frame = compiler.program(codeText(json.value("frame")), "frame");
+
+    if (json.contains("layers") && !json.value("layers").isArray())
+        compiler.problem("layers", "Expected a list of layers");
+    const QJsonArray layers = json.value("layers").toArray();
+    for (int i = 0; i < layers.size(); ++i) {
+        const QString path = QString("layers.%1").arg(i);
+        const QJsonObject object = layers[i].toObject();
+        const QString type = object.value("type").toString();
+        if (!layerTypes().contains(type)) {
+            compiler.problem(path + ".type", QString("'%1' is not a layer type; use one of: %2")
+                                                 .arg(type, layerTypes().join(", ")));
+            continue;
+        }
+        Block layer = compiler.block(object, type, path, {"type", "name"});
+        layer.type = type;
+        p.layers.append(layer);
+    }
+    if (p.layers.size() > 24)
+        compiler.problem("layers", "A preset can have at most 24 layers");
+
+    // Everything that runs on the CPU is parsed, so a name still unassigned
+    // is a mistake. rad, ang and lum only exist per pixel: they are declared
+    // after this check, so a frame formula that reads them is still caught.
+    compiler.reportUndefined();
+    for (const char *name : {"rad", "ang", "lum"})
+        p.vars.declare(name);
+
+    // The two generated shaders. Pixel code sees x, y, rad and ang as plain
+    // locals; shade code sees those plus the color it may change.
+    expr::GlslScope warpScope;
+    for (const char *name : {"x", "y", "rad", "ang"})
+        warpScope.predeclare(name);
+    const expr::Program pixel = json.contains("pixel") ? compiler.program(codeText(json.value("pixel")), "pixel")
+                                                       : expr::Program();
+    p.pixel = pixel;
+    expr::GlslScope shadeScope;
+    for (const char *name : {"x", "y", "rad", "ang", "r", "g", "b", "lum"})
+        shadeScope.predeclare(name);
+    const expr::Program shade = json.contains("shade") ? compiler.program(codeText(json.value("shade")), "shade")
+                                                       : expr::Program();
+
+    compiler.reportUndefined();
+
+    if (p.vars.size() > 480)
+        compiler.problem("", "Too many variables");
+
+    const QString size = QString::number(qMax(1, p.vars.size()));
+    const QString edge = p.feedback.choice("edge") == "black"
+                             ? "  c *= step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);\n"
+                             : QString();
+    const QString warpCode = pixel.glsl(warpScope, p.vars);
+    p.warpShader = fill(WarpTemplate, {{"SIZE", size}, {"PRELUDE", expr::glslPrelude()}, {"BLEND", BlendFunction},
+                                       {"CODE", warpCode}, {"EDGE", edge}},
+                        p.feedback, "", warpScope, p.vars);
+
+    const QString mirror = p.post.choice("mirror");
+    const QString mirrorCode = mirror == "x" ? "  p.x = -abs(p.x);\n"
+                               : mirror == "y" ? "  p.y = -abs(p.y);\n"
+                               : mirror == "quad" ? "  p = -abs(p);\n" : QString();
+    const QString flip = p.post.choice("echoFlip");
+    const QString echoCode = flip == "x" ? "    e.x = -e.x;\n"
+                             : flip == "y" ? "    e.y = -e.y;\n"
+                             : flip == "xy" ? "    e = -e;\n" : QString();
+    const QString shadeCode = shade.glsl(shadeScope, p.vars);
+    // The post settings live in the variable table under private names, so
+    // the shader reads them from V like everything else.
+    p.compositeShader = fill(CompositeTemplate, {{"SIZE", size}, {"PRELUDE", expr::glslPrelude()},
+                                                 {"BLEND", BlendFunction}, {"CODE", shadeCode},
+                                                 {"MIRROR", mirrorCode}, {"ECHO", echoCode},
+                                                 {"BACKGROUND", backgroundCode(p.background.choice("style"))}},
+                             p.post, "post.", expr::GlslScope(), p.vars);
+    for (auto it = p.background.numbers.begin(); it != p.background.numbers.end(); ++it)
+        p.compositeShader.replace("%bg_" + QString::fromLatin1(it.key()) + "%",
+                                  expr::GlslScope().ref("bg." + QString::fromLatin1(it.key()), p.vars));
+    return p;
+}
+
+} // namespace presets

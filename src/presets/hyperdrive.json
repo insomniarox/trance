@@ -1,0 +1,30 @@
+{
+  "name": "Hyperdrive",
+  "author": "Trance",
+  "description": "Stars streaking out of the center, faster with the bass.",
+  "palette": "ice",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": "1.03 + 0.05*bass_att",
+    "rot": "0.003*sin(time*0.2)",
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "particles",
+      "count": 1500,
+      "rate": "250 + 700*vol_att",
+      "area": 0.08,
+      "speed": "0.12 + 0.15*bass_att",
+      "drag": -2.4,
+      "life": 2.2,
+      "size": 3.5,
+      "color": "palette(0.45 + 0.5*i)"
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "chroma": 0.6,
+    "vignette": 0.2
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "Confetti",
+  "author": "Trance",
+  "description": "Every beat throws a handful in from the edges, folded six ways.",
+  "palette": "rainbow",
+  "feedback": {
+    "decay": 0.94,
+    "zoom": 0.994,
+    "rot": 0.004,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "edges",
+      "count": 2600,
+      "rate": "150 + 2600*beat*beat",
+      "speed": "0.7 + 0.5*bass_att",
+      "spread": 1.2,
+      "field": 1.2,
+      "fieldScale": 2,
+      "drag": 0.9,
+      "life": 3.2,
+      "size": 6,
+      "color": "palette(i)",
+      "alpha": 0.95
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": 0.12,
+      "scale": 0.12,
+      "thickness": 2,
+      "color": "white",
+      "alpha": 0.6
+    }
+  ],
+  "post": {
+    "kaleido": 6,
+    "kaleidoAngle": "time*0.05",
+    "bloom": 0.9,
+    "vignette": 0.35
+  }
+}

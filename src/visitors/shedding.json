@@ -1,0 +1,17 @@
+{
+  "name": "Shedding",
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 500,
+      "rate": "60 + 500*beat",
+      "speed": 0.15,
+      "gravity": 0.5,
+      "life": 2,
+      "size": 2,
+      "streak": 0.04,
+      "color": "palette(i*0.2 + time*0.1)"
+    }
+  ]
+}

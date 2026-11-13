@@ -1,0 +1,29 @@
+{
+  "name": "Halo",
+  "author": "Trance",
+  "description": "The spectrum bent into a ring that keeps collapsing inward.",
+  "palette": "theme",
+  "feedback": {
+    "decay": 0.93,
+    "zoom": "0.985 - 0.02*bass_att",
+    "rot": 0.006,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "source": "spectrum",
+      "shape": "circle",
+      "samples": 180,
+      "radius": 0.6,
+      "scale": 0.45,
+      "smooth": 0.5,
+      "color": "palette(t*2)",
+      "thickness": 3.5,
+      "mirror": "x"
+    }
+  ],
+  "post": {
+    "bloom": 1.0
+  }
+}

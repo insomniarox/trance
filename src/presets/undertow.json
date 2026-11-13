@@ -1,0 +1,47 @@
+{
+  "name": "Undertow",
+  "author": "Trance",
+  "description": "A whirlpool whose arms are rolled anew every time it loads, with the left channel drawn against the right.",
+  "palette": "neon",
+  "init": "arms = 2 + int(rand(4))\ntwist = 2 + rand(5)\nway = if(above(rand(1), 0.5), 1, -1)",
+  "feedback": {
+    "decay": 0.972,
+    "edge": "mirror"
+  },
+  "pixel": "rot = way*(0.012 + 0.02*bass_att)*sin(rad*twist - time*0.3)\nzoom = 1.008 + 0.012*sin(ang*arms + time*0.25)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "xy",
+      "scale": "0.5 + 0.3*bass_att",
+      "thickness": 2.5,
+      "color": "palette(t + time*0.07)",
+      "alpha": 0.9
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 1200,
+      "rate": "100 + 700*beat",
+      "speed": 0.03,
+      "flow": 1,
+      "drag": 3,
+      "life": 5,
+      "size": 2.4,
+      "color": "palette(i + time*0.05)"
+    },
+    {
+      "type": "vectors",
+      "cols": 24,
+      "rows": 14,
+      "length": 1.4,
+      "thickness": 1.2,
+      "color": "palette(0.5*v + time*0.03)",
+      "alpha": "0.12 + 0.25*treb_att"
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "vignette": 0.5
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "name": "Thunderhead",
+  "author": "Trance",
+  "description": "A storm in six parts: clouds that swell with the rumble, wind from the bass, a sea heaving with the low mids, lightning when the leads strike, rain from the snares and spray from the cymbals.",
+  "palette": "ice",
+  "init": "bx = 0\nseed = 1\ncool = 0\nflash = 0",
+  "frame": "hit = above(highmid, 1.5)*below(cool, 0)\ncool = if(hit, 0.3, cool - dt)\nbx = if(hit, (rand()*2 - 1)*aspect*0.7, bx)\nseed = if(hit, rand()*50, seed)\nflash = if(hit, 1, flash*exp(-dt*6))\nwind = 0.4 + 0.6*low_att",
+  "feedback": {
+    "decay": 0.93,
+    "blur": 0.25,
+    "edge": "wrap"
+  },
+  "pixel": "dx = 0.006*wind*sin(y*3 + time*0.5) + 0.002*sin(y*11 - time*1.3)\ndy = 0.002*wind*cos(x*2.5 + time*0.4) - 0.001",
+  "background": {
+    "style": "nebula",
+    "intensity": "0.3 + 0.25*sub_att + 0.8*flash",
+    "tint": 0.1,
+    "spread": 0.3,
+    "scale": 1.4,
+    "speed": "0.4 + 0.6*sub_att"
+  },
+  "layers": [
+    {
+      "type": "terrain",
+      "style": "lines",
+      "rows": 24,
+      "cols": 64,
+      "speed": 10,
+      "height": "0.2 + 0.3*lowmid_att",
+      "width": 3.6,
+      "y": -1.0,
+      "horizon": -0.3,
+      "depth": 4,
+      "thickness": 1.4,
+      "color": "palette(0.45 + 0.3*v)",
+      "alpha": 0.7
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 96,
+      "thickness": "2 + 5*flash",
+      "color": "white",
+      "alpha": "flash",
+      "point": "y = 1.05 - t*1.5\nx = bx + 0.35*(noise(t*7, seed) - 0.5)*(0.3 + t) + 0.06*(noise(t*40, seed + 9) - 0.5)"
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 1800,
+      "rate": "60 + 900*max(0, presence_att - 0.7)",
+      "speed": 1.4,
+      "angle": -1.75,
+      "spread": 0.15,
+      "gravity": 1.2,
+      "drag": 0,
+      "life": 0.9,
+      "size": 1.4,
+      "streak": 0.06,
+      "color": "palette(0.75 + 0.2*i)",
+      "alpha": 0.7
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 500,
+      "rate": "30 + 500*max(0, air - 0.9)",
+      "speed": 0.05,
+      "field": 1.2,
+      "flow": 1,
+      "life": 2,
+      "size": 1.2,
+      "color": "white",
+      "alpha": 0.5
+    }
+  ],
+  "post": {
+    "bloom": "0.8 + 1.2*flash",
+    "contrast": 1.1,
+    "vignette": 0.6
+  }
+}

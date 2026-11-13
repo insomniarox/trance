@@ -1,0 +1,27 @@
+{
+  "name": "Spirograph",
+  "author": "Trance",
+  "description": "A gear inside a gear, changing ratio every few bars.",
+  "palette": "rainbow",
+  "frame": "k = 5 + 2*floor(time/8 % 4)",
+  "feedback": {
+    "decay": 0.94,
+    "zoom": 1.008,
+    "rot": 0.003,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": 2.5,
+      "smooth": 0.6,
+      "color": "palette(t + time*0.05)",
+      "point": "ang1 = t*tau\nr1 = 0.5 + 0.1*bass_att\nx = r1*cos(ang1) + (0.28 + v*0.1)*cos(ang1*k + time*0.5)\ny = r1*sin(ang1) + (0.28 + v*0.1)*sin(ang1*k + time*0.5)"
+    }
+  ],
+  "post": {
+    "bloom": 0.9
+  }
+}

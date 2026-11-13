@@ -1,0 +1,24 @@
+pkgname=trance
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Music visualizer for the Omarchy desktop: feedback, flow and spectrum presets you can edit live'
+arch=('x86_64' 'aarch64')
+license=('MIT')
+depends=('qt6-base' 'qt6-declarative' 'qt6-wayland' 'pipewire' 'pipewire-audio')
+makedepends=('gcc' 'make')
+optdepends=('ffmpeg: render presets against an audio file')
+source=()
+sha256sums=()
+
+build() {
+  cd "$startdir/.."
+  ./bin/build
+}
+
+package() {
+  cd "$startdir/.."
+  install -Dm755 build/trance "$pkgdir/usr/bin/trance"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$startdir/trance.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/trance.svg"
+  install -Dm644 "$startdir/trance.desktop" "$pkgdir/usr/share/applications/trance.desktop"
+}

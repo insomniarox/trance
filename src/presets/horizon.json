@@ -1,0 +1,42 @@
+{
+  "name": "Horizon",
+  "author": "Trance",
+  "description": "The spectrum as a wireframe landscape rolling toward a low sun.",
+  "palette": "sunset",
+  "feedback": {
+    "decay": 0.8,
+    "blur": 0.25,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "y": 0.3,
+      "radius": "0.34 + 0.03*bass_att",
+      "color": "#ffd60a",
+      "alpha": 0.9,
+      "color2": "#f72585",
+      "alpha2": 0.75
+    },
+    {
+      "type": "terrain",
+      "style": "mesh",
+      "rows": 40,
+      "cols": 72,
+      "height": "0.45 + 0.15*bass_att",
+      "width": 2.8,
+      "y": -0.85,
+      "horizon": 0.22,
+      "depth": 3.5,
+      "thickness": 1.5,
+      "color": "palette(0.3 + 0.5*v + 0.2*t)",
+      "additive": false
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "vignette": 0.4,
+    "scanlines": 0.15
+  }
+}

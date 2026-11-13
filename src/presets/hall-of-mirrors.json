@@ -1,0 +1,33 @@
+{
+  "name": "Hall of Mirrors",
+  "author": "Trance",
+  "description": "One waveform, mirrored four ways and echoed back larger.",
+  "palette": "vapor",
+  "feedback": {
+    "decay": 0.95,
+    "zoom": 1.02,
+    "dx": "0.004*sin(time*0.4)",
+    "dy": "0.004*cos(time*0.3)",
+    "edge": "mirror"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "x": "-0.3*aspect",
+      "y": -0.3,
+      "width": 0.6,
+      "angle": "0.6 + 0.3*sin(time*0.2)",
+      "scale": 0.4,
+      "color": "palette(t + time*0.1)",
+      "thickness": 4
+    }
+  ],
+  "post": {
+    "mirror": "quad",
+    "echoAlpha": 0.35,
+    "echoZoom": 1.6,
+    "echoFlip": "xy",
+    "bloom": 0.8
+  }
+}

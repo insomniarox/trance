@@ -1,0 +1,30 @@
+{
+  "name": "Corridor",
+  "author": "Trance",
+  "description": "Frames receding down a hallway, flashing on the beat.",
+  "palette": "neon",
+  "feedback": {
+    "decay": 0.96,
+    "zoom": 0.93,
+    "rot": "0.02*sin(time*0.3)",
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 4,
+      "radius": "1.2 + 0.1*bass",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(time*0.3)",
+      "borderAlpha": 1,
+      "borderWidth": "4 + 10*beat",
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "chroma": 0.8
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "Oscilloscope",
+  "author": "Trance",
+  "description": "Two channels on a glowing tube, scanlines and all.",
+  "palette": "accent",
+  "feedback": {
+    "decay": 0.72,
+    "blur": 0.5,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "source": "left",
+      "y": 0.4,
+      "scale": 0.35,
+      "color": "accent",
+      "thickness": 3,
+      "smooth": 0.2,
+      "samples": 512
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "source": "right",
+      "y": -0.4,
+      "scale": 0.35,
+      "color": "bright_foreground",
+      "thickness": 3,
+      "smooth": 0.2,
+      "samples": 512
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "scanlines": 0.5,
+    "vignette": 0.6,
+    "grain": 0.04
+  }
+}

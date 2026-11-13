@@ -1,0 +1,46 @@
+{
+  "name": "Double Helix",
+  "author": "Trance",
+  "description": "Two strands winding across the screen, written as point code.",
+  "palette": "acid",
+  "feedback": {
+    "decay": 0.9,
+    "dx": 0.012,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 160,
+      "thickness": 4,
+      "color": "palette(0.2 + 0.5*t)",
+      "point": "x = (t*2 - 1)*aspect\ny = 0.45*sin(t*12 + time*2)*(0.6 + 0.4*bass_att) + v*0.15"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 160,
+      "thickness": 4,
+      "color": "palette(0.6 + 0.4*t)",
+      "point": "x = (t*2 - 1)*aspect\ny = 0.45*sin(t*12 + time*2 + pi)*(0.6 + 0.4*bass_att) + v*0.15"
+    },
+    {
+      "type": "shape",
+      "sides": 12,
+      "instances": 24,
+      "x": "(t*2 - 1)*aspect",
+      "y": "0.45*sin(t*12 + time*2)*(0.6 + 0.4*bass_att)",
+      "radius": "0.012 + 0.02*treb_att",
+      "color": "white",
+      "alpha": 0.55,
+      "color2": "white",
+      "alpha2": 0.2,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 1.0
+  }
+}

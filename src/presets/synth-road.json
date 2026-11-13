@@ -1,0 +1,74 @@
+{
+  "name": "Synth Road",
+  "author": "Trance",
+  "description": "A grid running to the horizon under a sun that beats with the bass.",
+  "palette": "sunset",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": 1.006,
+    "cy": 0.05,
+    "edge": "black"
+  },
+  "background": {
+    "style": "grid",
+    "intensity": "0.8 + 0.4*bass_att",
+    "tint": 0.45,
+    "spread": 0.25,
+    "speed": "1 + 2*bass_att"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 48,
+      "y": 0.38,
+      "radius": "0.3 + 0.03*bass_att",
+      "color": "palette(0.83)",
+      "alpha": 0.9,
+      "color2": "palette(0.5)",
+      "alpha2": 0.9,
+      "additive": false
+    },
+    {
+      "type": "bars",
+      "layout": "center",
+      "y": 0.05,
+      "count": 64,
+      "height": 0.22,
+      "width": 1,
+      "gap": 0.2,
+      "color": "palette(0.3 + 0.4*t)",
+      "alpha": 0.8,
+      "fade": 0.2,
+      "peaks": false,
+      "symmetric": true,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": 0.05,
+      "scale": 0.12,
+      "thickness": 2,
+      "color": "white",
+      "alpha": 0.8
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 500,
+      "rate": "30 + 500*beat",
+      "speed": 0.2,
+      "angle": 1.5708,
+      "spread": 2,
+      "gravity": 0.2,
+      "life": 1.8,
+      "size": 2,
+      "color": "palette(0.6 + 0.2*i)"
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "scanlines": 0.25,
+    "vignette": 0.4
+  }
+}

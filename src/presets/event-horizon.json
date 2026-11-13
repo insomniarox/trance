@@ -1,0 +1,45 @@
+{
+  "name": "Event Horizon",
+  "author": "Trance",
+  "description": "Everything spirals into the dark at the center.",
+  "palette": "fire",
+  "feedback": {
+    "decay": 0.985,
+    "edge": "black"
+  },
+  "pixel": "zoom = 0.985 - 0.01/(rad + 0.15)\nrot = 0.02/(rad*rad + 0.08)*(0.6 + 0.4*bass_att)",
+  "layers": [
+    {
+      "type": "particles",
+      "count": 1200,
+      "rate": "200 + 600*vol_att",
+      "x": "1.25*cos(time*0.7)",
+      "y": "1.05*sin(time*0.7)",
+      "speed": 0.05,
+      "life": 3,
+      "size": 4,
+      "color": "palette(0.25 + 0.6*i)"
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": 1.05,
+      "scale": 0.12,
+      "color": "palette(0.3 + 0.4*t)",
+      "thickness": 3,
+      "alpha": 0.8
+    },
+    {
+      "type": "shape",
+      "sides": 48,
+      "radius": "0.11 + 0.02*bass",
+      "color": "black",
+      "alpha": 1,
+      "color2": "black",
+      "alpha2": 1
+    }
+  ],
+  "post": {
+    "bloom": 1.0
+  }
+}

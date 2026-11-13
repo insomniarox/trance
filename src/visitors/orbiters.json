@@ -1,0 +1,18 @@
+{
+  "name": "Orbiters",
+  "init": "orbit = 0.4 + rand(0.4)\npace = 0.3 + rand(0.6)\nhowmany = 3 + int(rand(5))",
+  "layers": [
+    {
+      "type": "shape",
+      "instances": "howmany",
+      "sides": 20,
+      "x": "orbit*aspect*0.7*cos(pace*time + tau*n/howmany)",
+      "y": "orbit*sin(pace*time + tau*n/howmany)",
+      "radius": "0.018 + 0.02*bass_att",
+      "color": "palette(n/howmany + time*0.1)",
+      "alpha": 0.9,
+      "alpha2": 0,
+      "additive": true
+    }
+  ]
+}

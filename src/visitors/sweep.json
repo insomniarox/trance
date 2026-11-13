@@ -1,0 +1,17 @@
+{
+  "name": "Sweep",
+  "init": "way = if(above(rand(1), 0.5), 1, -1)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "source": "spectrum",
+      "angle": "way*time*0.3",
+      "scale": 0.2,
+      "width": 0.5,
+      "thickness": 2,
+      "color": "palette(t*0.5 + time*0.1)",
+      "alpha": 0.7
+    }
+  ]
+}

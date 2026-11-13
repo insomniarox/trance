@@ -1,0 +1,59 @@
+{
+  "name": "Ember Drift",
+  "author": "Trance",
+  "description": "Bars like a bed of coals, throwing embers that rise and curl in the heat.",
+  "palette": "fire",
+  "feedback": {
+    "decay": 0.94,
+    "dy": 0.004,
+    "warp": "0.5 + 0.6*bass_att",
+    "warpScale": 0.7,
+    "blur": 0.25,
+    "edge": "black"
+  },
+  "background": {
+    "style": "plasma",
+    "intensity": 0.12,
+    "tint": 0.2,
+    "spread": 0.2,
+    "scale": 0.6,
+    "speed": 0.5
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "count": 56,
+      "height": 0.5,
+      "gap": 0.3,
+      "color": "palette(0.3 + 0.45*v)",
+      "alpha": 0.9,
+      "fade": 0.8,
+      "peaks": false,
+      "symmetric": true
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 1600,
+      "rate": "60 + 1400*beat + 300*bass_att",
+      "speed": "0.25 + 0.3*bass_att",
+      "angle": 1.5708,
+      "spread": 1.2,
+      "gravity": -0.35,
+      "drag": 0.8,
+      "field": 0.9,
+      "fieldScale": 2.2,
+      "fieldSpeed": 0.4,
+      "flow": 0.6,
+      "life": 3,
+      "size": 2.6,
+      "streak": 0.03,
+      "color": "palette(0.75 - 0.5*t)"
+    }
+  ],
+  "post": {
+    "bloom": 1.2,
+    "vignette": 0.5
+  }
+}

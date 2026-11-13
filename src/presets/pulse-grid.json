@@ -1,0 +1,32 @@
+{
+  "name": "Pulse Grid",
+  "author": "Trance",
+  "description": "A wall of squares, each one listening to its own slice of the spectrum.",
+  "palette": "theme",
+  "feedback": {
+    "decay": 0.85,
+    "zoom": 1.03,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 4,
+      "instances": 40,
+      "x": "(n % 8 - 3.5)*0.4",
+      "y": "(floor(n/8) - 2)*0.4",
+      "radius": "0.03 + 0.2*v",
+      "angle": "0.7854 + v*1.5",
+      "color": "palette(t)",
+      "alpha": "0.3 + 0.7*v",
+      "color2": "palette(t)",
+      "alpha2": 0.1,
+      "border": "palette(t + 0.1)",
+      "borderAlpha": 1,
+      "borderWidth": 1.5
+    }
+  ],
+  "post": {
+    "bloom": 0.8
+  }
+}

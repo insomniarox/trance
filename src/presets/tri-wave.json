@@ -1,0 +1,44 @@
+{
+  "name": "Tri-Wave",
+  "author": "Trance",
+  "description": "Bass, mids and highs as three lines in three theme colors.",
+  "palette": "theme",
+  "feedback": {
+    "decay": 0.88,
+    "zoom": 1.01,
+    "blur": 0.3,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": 0.45,
+      "scale": "0.2 + 0.15*treb_att",
+      "color": "cyan",
+      "thickness": 3.5,
+      "smooth": 0.2
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": 0,
+      "scale": "0.2 + 0.15*mid_att",
+      "color": "accent",
+      "thickness": 3.5,
+      "smooth": 0.5
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.45,
+      "scale": "0.2 + 0.2*bass_att",
+      "color": "magenta",
+      "thickness": 3.5,
+      "smooth": 0.85
+    }
+  ],
+  "post": {
+    "bloom": 0.9
+  }
+}

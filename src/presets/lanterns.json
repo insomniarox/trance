@@ -1,0 +1,51 @@
+{
+  "name": "Lanterns",
+  "author": "Trance",
+  "description": "Lights let go from the bottom of the screen, each keeping time with its own slice of the music.",
+  "palette": "sunset",
+  "feedback": {
+    "decay": 0.93,
+    "dy": 0.002,
+    "blur": 0.4,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.4,
+    "tint": 0.05,
+    "spread": 0.25,
+    "speed": 0.4
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "instances": 14,
+      "sides": 24,
+      "x": "(t*2 - 1)*aspect*0.9 + 0.05*sin(time*0.5 + n)",
+      "y": "mod(time*0.05*(1 + 0.4*sin(n*7)) + n*0.37, 2.4) - 1.2",
+      "radius": "0.035 + 0.05*v",
+      "color": "palette(0.55 + 0.25*sin(n))",
+      "alpha": 0.9,
+      "color2": "palette(0.4)",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 300,
+      "rate": 40,
+      "speed": 0.02,
+      "gravity": -0.05,
+      "field": 0.3,
+      "life": 6,
+      "size": 1.6,
+      "color": "palette(0.75)",
+      "alpha": 0.6
+    }
+  ],
+  "post": {
+    "bloom": 1.4,
+    "vignette": 0.5
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "name": "Seismograph",
+  "author": "Trance",
+  "description": "Six pens on a roll of paper, the rumble at the bottom and the cymbals at the top. Each writes down how loud its range is, and the paper keeps the last few seconds of all of them.",
+  "palette": "theme",
+  "init": "n0 = -0.75\nn1 = -0.45\nn2 = -0.15\nn3 = 0.15\nn4 = 0.45\nn5 = 0.75",
+  "frame": "st = 0.012*dt*60\no0 = n0\nn0 = -0.75 + 0.1*(min(sub, 3) - 1)\no1 = n1\nn1 = -0.45 + 0.1*(min(low, 3) - 1)\no2 = n2\nn2 = -0.15 + 0.1*(min(lowmid, 3) - 1)\no3 = n3\nn3 = 0.15 + 0.1*(min(highmid, 3) - 1)\no4 = n4\nn4 = 0.45 + 0.1*(min(presence, 3) - 1)\no5 = n5\nn5 = 0.75 + 0.1*(min(air, 3) - 1)",
+  "feedback": {
+    "decay": 0.9995,
+    "dx": -0.012,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 1.5,
+      "color": "muted",
+      "alpha": "0.6*above(beat, 0.9)",
+      "point": "x = aspect*0.93\ny = t*2 - 1"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 3.4,
+      "color": "palette(0.00 + 0.04)",
+      "point": "x = aspect*0.93 - st*(1 - t)\ny = o0 + (n0 - o0)*t"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 3.4,
+      "color": "palette(0.17 + 0.04)",
+      "point": "x = aspect*0.93 - st*(1 - t)\ny = o1 + (n1 - o1)*t"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 3.4,
+      "color": "palette(0.33 + 0.04)",
+      "point": "x = aspect*0.93 - st*(1 - t)\ny = o2 + (n2 - o2)*t"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 3.4,
+      "color": "palette(0.50 + 0.04)",
+      "point": "x = aspect*0.93 - st*(1 - t)\ny = o3 + (n3 - o3)*t"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 3.4,
+      "color": "palette(0.67 + 0.04)",
+      "point": "x = aspect*0.93 - st*(1 - t)\ny = o4 + (n4 - o4)*t"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 3.4,
+      "color": "palette(0.83 + 0.04)",
+      "point": "x = aspect*0.93 - st*(1 - t)\ny = o5 + (n5 - o5)*t"
+    },
+    {
+      "type": "shape",
+      "sides": 16,
+      "instances": 6,
+      "x": "aspect*0.93",
+      "y": "if(equal(n, 0), n0, if(equal(n, 1), n1, if(equal(n, 2), n2, if(equal(n, 3), n3, if(equal(n, 4), n4, n5)))))",
+      "radius": 0.012,
+      "color": "white",
+      "alpha": 1,
+      "color2": "white",
+      "alpha2": 0.3,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "scanlines": 0.15,
+    "vignette": 0.3
+  }
+}

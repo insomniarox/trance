@@ -1,0 +1,39 @@
+{
+  "name": "Sonar",
+  "author": "Trance",
+  "description": "Every beat sends a ring out from the middle.",
+  "palette": "ocean",
+  "feedback": {
+    "decay": 0.962,
+    "zoom": "1.03 + 0.01*bass_att",
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "radius": 0.16,
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.42 + 0.2*sin(time*0.2))",
+      "borderAlpha": "above(beat, 0.85)",
+      "borderWidth": 5,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": 0.1,
+      "scale": 0.08,
+      "smooth": 0.4,
+      "color": "palette(0.6)",
+      "thickness": 2.5,
+      "alpha": 0.8
+    }
+  ],
+  "post": {
+    "bloom": 0.8,
+    "vignette": 0.4
+  }
+}

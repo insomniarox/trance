@@ -1,0 +1,81 @@
+{
+  "name": "Deep Field",
+  "author": "Trance",
+  "description": "Flying out through a field of stars. The rumble sets the speed, the bass beats in the core, galaxies flare on the low mids, beams sweep with the leads, comets fall in on the snares and the stars answer the cymbals.",
+  "palette": "aurora",
+  "frame": "q = q + dt*(0.2 + 0.6*highmid_att)",
+  "feedback": {
+    "decay": 0.965,
+    "zoom": "1.012 + 0.012*sub_att",
+    "rot": 0.002,
+    "blur": 0.1,
+    "edge": "black",
+    "darkenCenter": true
+  },
+  "background": {
+    "style": "stars",
+    "intensity": "0.3 + 0.45*air_att",
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.1 + 0.03*low_att",
+      "scale": "0.06 + 0.08*low_att",
+      "thickness": 3,
+      "color": "palette(0.1 + time*0.02)"
+    },
+    {
+      "type": "shape",
+      "sides": 6,
+      "instances": 7,
+      "x": "(noise(n*3.1, 1)*2 - 1)*aspect*0.85",
+      "y": "(noise(n*5.7, 2)*2 - 1)*0.8",
+      "radius": "(0.01 + 0.03*lowmid_att)*(0.5 + noise(n, 3))",
+      "angle": "time*0.3 + n",
+      "color": "palette(t)",
+      "alpha": 0.45,
+      "color2": "palette(t)",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "1 + 2*highmid",
+      "color": "palette(0.55)",
+      "alpha": "clamp(0.06 + 0.22*highmid_att, 0, 1)",
+      "point": "d = (t*2 - 1)*2\nx = d*cos(q)\ny = d*sin(q)\na = a*smoothstep(0.02, 0.3, abs(d))*(1 - smoothstep(0.8, 2, abs(d)))"
+    },
+    {
+      "type": "particles",
+      "emit": "edges",
+      "count": 300,
+      "rate": "10 + 220*max(0, presence - 1)",
+      "speed": 0.9,
+      "life": 2.5,
+      "size": 2.2,
+      "streak": 0.08,
+      "color": "palette(0.8 + 0.2*i)"
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 900,
+      "rate": 150,
+      "speed": 0.02,
+      "flow": 1,
+      "life": 4,
+      "size": 1.2,
+      "color": "white",
+      "alpha": 0.5
+    }
+  ],
+  "post": {
+    "bloom": 1.2,
+    "chroma": 0.6,
+    "vignette": 0.6
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "Aurora",
+  "author": "Trance",
+  "description": "Curtains of light rising off the spectrum.",
+  "palette": "aurora",
+  "feedback": {
+    "decay": 0.972,
+    "dy": 0.006,
+    "sy": 1.01,
+    "blur": 0.6,
+    "warp": 0.8,
+    "warpScale": 2,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "source": "spectrum",
+      "shape": "line",
+      "y": -0.55,
+      "scale": 0.9,
+      "smooth": 0.8,
+      "samples": 128,
+      "color": "palette(0.2 + 0.6*t + 0.1*sin(time*0.2))",
+      "thickness": 8,
+      "alpha": 1
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "vignette": 0.5
+  }
+}

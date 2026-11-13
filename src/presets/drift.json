@@ -1,0 +1,36 @@
+{
+  "name": "Drift",
+  "author": "Trance",
+  "description": "Slow clouds in the accent color. Quiet enough to live behind your windows.",
+  "palette": "accent",
+  "feedback": {
+    "decay": 0.985,
+    "warp": "1.2 + vol_att",
+    "warpScale": 2.5,
+    "warpSpeed": 0.4,
+    "zoom": 1.003,
+    "blur": 0.5,
+    "edge": "mirror"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "source": "spectrum",
+      "y": "-0.2 + 0.3*sin(time*0.1)",
+      "angle": "0.3*sin(time*0.07)",
+      "scale": 0.5,
+      "smooth": 0.9,
+      "samples": 64,
+      "color": "white",
+      "alpha": 0.5,
+      "thickness": 6
+    }
+  ],
+  "post": {
+    "colorize": 1,
+    "brightness": 0.8,
+    "bloom": 0.3,
+    "vignette": 0.6
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "name": "Rosette",
+  "author": "Trance",
+  "description": "Six flowers one inside another, three petals to twelve, turning against each other. Each opens and thickens with its own range, from the rumble outside to the shimmer at the heart.",
+  "palette": "vapor",
+  "frame": "s0 = s0 + dt*0.15*(0.3 + sub_att)\ns1 = s1 + dt*-0.15*(0.3 + low_att)\ns2 = s2 + dt*0.15*(0.3 + lowmid_att)\ns3 = s3 + dt*-0.15*(0.3 + highmid_att)\ns4 = s4 + dt*0.15*(0.3 + presence_att)\ns5 = s5 + dt*-0.15*(0.3 + air_att)",
+  "feedback": {
+    "decay": 0.91,
+    "zoom": "1.006 + 0.006*vol_att",
+    "rot": "0.004*sin(time*0.13)",
+    "edge": "black",
+    "darkenCenter": true
+  },
+  "background": {
+    "style": "nebula",
+    "intensity": 0.2,
+    "tint": 0.6,
+    "spread": 0.3
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 384,
+      "thickness": "4*(0.6 + 0.5*sub)",
+      "color": "palette(0.00 + 0.15*t + time*0.03)",
+      "alpha": "clamp(0.18 + 0.3*sub_att, 0, 1)",
+      "point": "th = t*tau\nrr = 0.92*(0.7 + 0.3*cos(3*th))*(0.75 + 0.25*sub_att) + v*0.025\nx = rr*cos(th + s0)\ny = rr*sin(th + s0)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 384,
+      "thickness": "3.4*(0.6 + 0.5*low)",
+      "color": "palette(0.17 + 0.15*t + time*0.03)",
+      "alpha": "clamp(0.18 + 0.3*low_att, 0, 1)",
+      "point": "th = t*tau\nrr = 0.78*(0.7 + 0.3*cos(4*th))*(0.75 + 0.25*low_att) + v*0.025\nx = rr*cos(th + s1)\ny = rr*sin(th + s1)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 384,
+      "thickness": "2.9*(0.6 + 0.5*lowmid)",
+      "color": "palette(0.33 + 0.15*t + time*0.03)",
+      "alpha": "clamp(0.18 + 0.3*lowmid_att, 0, 1)",
+      "point": "th = t*tau\nrr = 0.64*(0.7 + 0.3*cos(5*th))*(0.75 + 0.25*lowmid_att) + v*0.025\nx = rr*cos(th + s2)\ny = rr*sin(th + s2)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 384,
+      "thickness": "2.5*(0.6 + 0.5*highmid)",
+      "color": "palette(0.50 + 0.15*t + time*0.03)",
+      "alpha": "clamp(0.18 + 0.3*highmid_att, 0, 1)",
+      "point": "th = t*tau\nrr = 0.5*(0.7 + 0.3*cos(6*th))*(0.75 + 0.25*highmid_att) + v*0.025\nx = rr*cos(th + s3)\ny = rr*sin(th + s3)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 384,
+      "thickness": "2.1*(0.6 + 0.5*presence)",
+      "color": "palette(0.67 + 0.15*t + time*0.03)",
+      "alpha": "clamp(0.18 + 0.3*presence_att, 0, 1)",
+      "point": "th = t*tau\nrr = 0.36*(0.7 + 0.3*cos(8*th))*(0.75 + 0.25*presence_att) + v*0.025\nx = rr*cos(th + s4)\ny = rr*sin(th + s4)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 384,
+      "thickness": "1.8*(0.6 + 0.5*air)",
+      "color": "palette(0.83 + 0.15*t + time*0.03)",
+      "alpha": "clamp(0.18 + 0.3*air_att, 0, 1)",
+      "point": "th = t*tau\nrr = 0.22*(0.7 + 0.3*cos(12*th))*(0.75 + 0.25*air_att) + v*0.025\nx = rr*cos(th + s5)\ny = rr*sin(th + s5)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 1200,
+      "rate": "80 + 900*beat",
+      "speed": 0.08,
+      "pull": -0.5,
+      "flow": 1,
+      "drag": 1,
+      "life": 2.5,
+      "size": 2,
+      "color": "palette(i + time*0.05)"
+    }
+  ],
+  "post": {
+    "bloom": 0.8,
+    "vignette": 0.45
+  }
+}

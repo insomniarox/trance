@@ -1,0 +1,14 @@
+{
+  "%n layers": {
+    "one": "%n layer",
+    "other": "%n layers"
+  },
+  "%n presets": {
+    "one": "%n preset",
+    "other": "%n presets"
+  },
+  "%n visitors": {
+    "one": "%n visitor",
+    "other": "%n visitors"
+  }
+}

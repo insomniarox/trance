@@ -1,0 +1,1016 @@
+#include <QDir>
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QOffscreenSurface>
+#include <QOpenGLContext>
+#include <QOpenGLFramebufferObject>
+#include <QSignalSpy>
+#include <QTemporaryDir>
+#include <QtTest>
+#include <cmath>
+
+#include "audio.h"
+#include "audiocapture.h"
+#include "backend.h"
+#include "engine.h"
+#include "expr.h"
+#include "library.h"
+#include "preset.h"
+#include "theme.h"
+#include "translator.h"
+
+class TranceTests : public QObject {
+    Q_OBJECT
+
+private slots:
+    // ------------------------------------------------------------ formulas
+
+    void formulasFollowTheUsualRules()
+    {
+        QCOMPARE(evaluate("1 + 2 * 3"), 7.0);
+        QCOMPARE(evaluate("(1 + 2) * 3"), 9.0);
+        QCOMPARE(evaluate("-2 ^ 2"), -4.0);
+        QCOMPARE(evaluate("2 ^ 3 ^ 2"), 512.0);
+        QCOMPARE(evaluate("7 % 4"), 3.0);
+        QCOMPARE(evaluate("3 > 2 ? 10 : 20"), 10.0);
+        QCOMPARE(evaluate("1 < 2 && 2 < 1"), 0.0);
+        QCOMPARE(evaluate("!0 + !5"), 1.0);
+        QCOMPARE(evaluate("max(1, min(9, 4))"), 4.0);
+        QCOMPARE(evaluate("if(above(3, 2), 5, 6)"), 5.0);
+        QCOMPARE(evaluate("clamp(12, 0, 1) + mix(10, 20, 0.5)"), 16.0);
+        QCOMPARE(evaluate("1e2 + .5"), 100.5);
+        QVERIFY(std::abs(evaluate("sin(pi / 2) + cos(0)") - 2.0) < 1e-9);
+    }
+
+    void formulasNeverProduceInfinity()
+    {
+        QCOMPARE(evaluate("1 / 0"), 0.0);
+        QCOMPARE(evaluate("5 % 0"), 0.0);
+        QCOMPARE(evaluate("sqrt(-4)"), 2.0);
+        QVERIFY(std::isfinite(evaluate("log(0) + exp(1000)")));
+    }
+
+    void statementsAssignAndCarryOver()
+    {
+        expr::Vars vars;
+        expr::Program program;
+        QString error;
+        QVERIFY2(program.parse("a = 2; b = a * 3\n// a comment\nb += 1\nc = (a +\n  b)", vars, &error), qPrintable(error));
+        program.run(vars.values);
+        QCOMPARE(vars.get("b"), 7.0);
+        QCOMPARE(vars.get("c"), 9.0);
+        // The table keeps its values between runs, which is what lets a
+        // preset count beats or ease toward a target.
+        program.run(vars.values);
+        QCOMPARE(vars.get("c"), 9.0);
+        QVERIFY(vars.undefined().isEmpty());
+    }
+
+    void formulaMistakesAreExplained()
+    {
+        QCOMPARE(parseError("1 +"), QString("Unfinished expression"));
+        QCOMPARE(parseError("sine(2)"), QString("Unknown function 'sine'"));
+        QCOMPARE(parseError("min(1)"), QString("min() takes 2 argument(s), not 1"));
+        QCOMPARE(parseError("(1 + 2"), QString("Missing ')'"));
+        QCOMPARE(parseError("2 $ 3"), QString("Unexpected '$'"));
+        QCOMPARE(parseError("sin = 3"), QString("'sin' is a function and can't be assigned"));
+        expr::Vars vars;
+        expr::Program program;
+        QVERIFY(program.parse("x = speeed * 2", vars, nullptr));
+        QCOMPARE(vars.undefined(), QStringList{"speeed"});
+    }
+
+    void formulasBecomeShaderCode()
+    {
+        expr::Vars vars;
+        vars.declare("bass");
+        vars.declare("zoom", 1);
+        expr::Program program;
+        QVERIFY(program.parse("zoom = zoom + 0.1 * sin(rad * 10) * bass; glow = zoom / 2", vars, nullptr));
+        expr::GlslScope scope;
+        scope.predeclare("rad");
+        const QString code = program.glsl(scope, vars);
+        // The first assignment reads the frame's zoom and makes a local of it...
+        QVERIFY2(code.contains(QString("float l_zoom = (V[%1]+").arg(vars.find("zoom"))), qPrintable(code));
+        QVERIFY2(code.contains("sin((l_rad*10.0))"), qPrintable(code));
+        // ...which later statements, and the shader around them, then use.
+        QVERIFY2(code.contains("float l_glow = f_div(l_zoom,2.0);"), qPrintable(code));
+        QCOMPARE(scope.ref("zoom", vars), QString("l_zoom"));
+        QCOMPARE(scope.ref("bass", vars), QString("V[%1]").arg(vars.find("bass")));
+    }
+
+    // --------------------------------------------------------------- music
+
+    void analyzerHearsTheBeat()
+    {
+        Analyzer analyzer;
+        const AudioFrame frame = play(analyzer, 8.0, [](float *out, int frames, qint64 start) {
+            synthesize(out, frames, start, 48000);
+        });
+        QVERIFY(!frame.silent);
+        // The test loop is 120 beats a minute: about 16 in 8 seconds.
+        QVERIFY2(frame.beats >= 12 && frame.beats <= 20, qPrintable(QString::number(frame.beats)));
+        QVERIFY(frame.bassAtt > 0.2f);
+        float peak = 0;
+        for (float sample : frame.wave[0])
+            peak = std::max(peak, std::abs(sample));
+        QVERIFY2(peak > 0.2f && peak < 1.6f, qPrintable(QString::number(peak)));
+    }
+
+    void analyzerLevelsQuietAndLoudAlike()
+    {
+        for (const float volume : {0.02f, 0.9f}) {
+            Analyzer analyzer;
+            std::vector<float> chunk(800 * 2);
+            float peak = 0;
+            int beats = 0;
+            for (int i = 0; i < 4 * 60; ++i) {
+                synthesize(chunk.data(), 800, qint64(i) * 800, 48000);
+                for (float &sample : chunk)
+                    sample *= volume;
+                analyzer.push(chunk.data(), 800);
+                const AudioFrame &frame = analyzer.analyze(1.0 / 60);
+                beats = frame.beats;
+                // The loudest the waveform gets over the last second.
+                if (i >= 3 * 60)
+                    for (float sample : frame.wave[0])
+                        peak = std::max(peak, std::abs(sample));
+            }
+            QVERIFY2(peak > 0.4f && peak < 1.6f, qPrintable(QString("volume %1 peak %2").arg(volume).arg(peak)));
+            QVERIFY(beats > 4);
+        }
+    }
+
+    void analyzerPlacesATone()
+    {
+        Analyzer analyzer;
+        const AudioFrame frame = play(analyzer, 1.0, [](float *out, int frames, qint64 start) {
+            for (int i = 0; i < frames; ++i)
+                out[i * 2] = out[i * 2 + 1] = float(0.5 * std::sin(2 * M_PI * 1000.0 * double(start + i) / 48000.0));
+        });
+        int loudest = 0;
+        for (int band = 0; band < AudioFrame::SpectrumSize; ++band)
+            if (frame.spectrum[band] > frame.spectrum[loudest])
+                loudest = band;
+        // Bands are log-spaced from 30 Hz to 16 kHz.
+        const double expected = AudioFrame::SpectrumSize * std::log(1000.0 / 30.0) / std::log(16000.0 / 30.0);
+        QVERIFY2(std::abs(loudest - expected) <= 3, qPrintable(QString::number(loudest)));
+        QVERIFY(frame.spectrum[loudest] > 0.8f);
+        QVERIFY(frame.spectrum[10] < 0.2f);
+    }
+
+    // Each narrow range hears its own part of the sound and little of the
+    // rest, so layers tied to different ones move apart.
+    void analyzerTellsTheBandsApart()
+    {
+        // A tone that comes and goes in each range in turn, over a quiet
+        // bed of all of them so every range has an average to stand out from.
+        const double tones[AudioFrame::Bands] = {40, 110, 350, 1100, 3500, 9000};
+        for (int loud = 0; loud < AudioFrame::Bands; ++loud) {
+            Analyzer analyzer;
+            const AudioFrame frame = play(analyzer, 3.0, [&](float *out, int frames, qint64 start) {
+                for (int i = 0; i < frames; ++i) {
+                    const double t = double(start + i) / 48000.0;
+                    double sample = 0;
+                    for (int band = 0; band < AudioFrame::Bands; ++band)
+                        sample += (band == loud && t > 2.8 ? 0.4 : 0.04) * std::sin(2 * M_PI * tones[band] * t);
+                    out[i * 2] = out[i * 2 + 1] = float(sample);
+                }
+            });
+            for (int band = 0; band < AudioFrame::Bands; ++band) {
+                if (band == loud)
+                    QVERIFY2(frame.band[band] > 2.0f, qPrintable(QString("%1 is quiet: %2").arg(bandInfo(band).name).arg(frame.band[band])));
+                else
+                    QVERIFY2(frame.band[band] < 1.6f, qPrintable(QString("%1 heard %2: %3").arg(bandInfo(band).name, bandInfo(loud).name).arg(frame.band[band])));
+            }
+        }
+        // Formulas know them by name, plain and smoothed.
+        const CompiledPreset preset = presets::compile(fixture(
+            "{ 'name': 'Bands', 'feedback': { 'zoom': '1 + 0.01*(sub + low_att + lowmid + highmid_att + presence + air_att)' } }"));
+        QVERIFY2(preset.ok(), qPrintable(preset.firstError()));
+    }
+
+    void analyzerKnowsSilence()
+    {
+        Analyzer analyzer;
+        const AudioFrame frame = play(analyzer, 2.0, [](float *out, int frames, qint64) {
+            std::fill(out, out + frames * 2, 0.f);
+        });
+        QVERIFY(frame.silent);
+        QCOMPARE(frame.bass, 0.f);
+        QCOMPARE(frame.beats, 0);
+    }
+
+    // ------------------------------------------------------------- presets
+
+    void everyBuiltinPresetIsClean()
+    {
+        const Library library(QDir::tempPath() + "/trance-tests-no-such-folder");
+        QVERIFY(library.presets().size() >= 25);
+        for (const auto &info : library.presets()) {
+            QString error;
+            const QJsonObject json = library.load(library.indexOf(info.name), &error);
+            QVERIFY2(!json.isEmpty(), qPrintable(info.path + ": " + error));
+            const CompiledPreset compiled = presets::compile(json);
+            for (const auto &problem : compiled.problems)
+                QFAIL(qPrintable(info.name + ": " + problem.path + ": " + problem.message));
+            QVERIFY2(!json.value("description").toString().isEmpty(), qPrintable(info.name));
+            QCOMPARE(Library::slug(info.name) + ".json", QFileInfo(info.path).fileName());
+        }
+    }
+
+    // Every setting has a name and an explanation for the editor, and the
+    // manual covers every one of them by the name it has in the file.
+    void everySettingIsExplained()
+    {
+        QFile file(":/manual.md");
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QString manual = QString::fromUtf8(file.readAll());
+        QStringList sections{"feedback", "post", "background"};
+        sections << presets::layerTypes();
+        for (const auto &section : sections) {
+            for (const Field &field : presets::fields(section)) {
+                const QString key = QString::fromLatin1(field.key);
+                const FieldDoc doc = presets::fieldDoc(section, key);
+                QVERIFY2(doc.label != key && !doc.help.isEmpty(), qPrintable(section + "." + key + " has no name"));
+                QVERIFY2(manual.contains("`" + key + "`"), qPrintable("The manual leaves out " + section + "." + key));
+                QVERIFY2(manual.contains(doc.label), qPrintable("The manual doesn't use the name " + doc.label));
+            }
+        }
+        for (const auto &type : presets::layerTypes())
+            QVERIFY(!presets::fieldDoc("type", type).help.isEmpty());
+        for (const auto &name : presets::variableNames())
+            QVERIFY2(manual.contains("`" + name + "`") || name.endsWith("_att"), qPrintable("The manual leaves out " + name));
+    }
+
+    void presetProblemsPointAtTheField()
+    {
+        const QJsonObject json = fixture(
+            "{ 'name': 'Broken', 'palette': 'nope', 'glitter': 3, 'feedback': { 'zoom': '1 + basss', "
+            "'edge': 'soft', 'rot': 'rad' }, 'layers': [ { 'type': 'wave', 'color': 'chartreuse', "
+            "'thicknes': 2 }, { 'type': 'laser' } ], 'post': { 'bloom': 'min(1)' } } ");
+        const CompiledPreset compiled = presets::compile(json);
+        QVERIFY(!compiled.ok());
+        QHash<QString, Problem> byPath;
+        for (const auto &problem : compiled.problems)
+            byPath.insert(problem.path, problem);
+        QCOMPARE(byPath.value("feedback.zoom").message, QString("Unknown variable 'basss'"));
+        // rad only exists per pixel; a per-frame setting can't read it.
+        QCOMPARE(byPath.value("feedback.rot").message, QString("Unknown variable 'rad'"));
+        QVERIFY(byPath.value("feedback.edge").message.startsWith("'soft' is not one of"));
+        QVERIFY(byPath.value("layers.0.color").message.startsWith("Unknown color 'chartreuse'"));
+        QVERIFY(byPath.value("layers.1.type").message.startsWith("'laser' is not a layer type"));
+        QVERIFY(byPath.value("palette").message.startsWith("Unknown palette 'nope'"));
+        QCOMPARE(byPath.value("post.bloom").message, QString("min() takes 2 argument(s), not 1"));
+        // Misspelled settings are warnings: the preset would still run.
+        QCOMPARE(byPath.value("layers.0.thicknes").error, false);
+        QCOMPARE(byPath.value("glitter").error, false);
+    }
+
+    void presetCodeReachesTheShaders()
+    {
+        const QJsonObject json = fixture(
+            "{ 'name': 'Shaded', 'frame': 'swing = sin(time)', 'pixel': 'zoom = zoom + swing * rad', "
+            "'shade': 'r = r * (1 - rad); glow = lum * swing', 'feedback': { 'edge': 'black' }, "
+            "'post': { 'mirror': 'x', 'echoFlip': 'y' } } ");
+        const CompiledPreset compiled = presets::compile(json);
+        QVERIFY2(compiled.ok(), qPrintable(compiled.firstError()));
+        const QString swing = QString("V[%1]").arg(compiled.vars.find("swing"));
+        QVERIFY(compiled.warpShader.contains("float l_zoom = (V["));
+        QVERIFY(compiled.warpShader.contains(swing + "*l_rad"));
+        QVERIFY(compiled.warpShader.contains("float zoom = l_zoom"));
+        QVERIFY(compiled.warpShader.contains("step(0.0, uv.x)"));
+        QVERIFY(compiled.compositeShader.contains("l_r = (l_r*(1.0-l_rad));"));
+        QVERIFY(compiled.compositeShader.contains("p.x = -abs(p.x);"));
+        QVERIFY(compiled.compositeShader.contains("e.y = -e.y;"));
+        QVERIFY(!compiled.warpShader.contains('%') && !compiled.compositeShader.contains('%'));
+    }
+
+    void paletteTakesNamesListsAndThemeColors()
+    {
+        auto palette = [](const QJsonValue &value) {
+            return presets::compile(QJsonObject{{"name", "P"}, {"palette", value}}).palette;
+        };
+        QCOMPARE(palette("fire"), presets::paletteStops("fire"));
+        QCOMPARE(palette("#ff0000, accent"), (QStringList{"#ff0000", "accent"}));
+        QCOMPARE(palette(QJsonArray{"#000000", "#ffffff", "red"}), (QStringList{"#000000", "#ffffff", "red"}));
+        QCOMPARE(palette(QJsonValue::Undefined), presets::paletteStops("theme"));
+        ThemeColors theme{{"accent", QColor("#123456")}};
+        QCOMPARE(presets::resolveColor("accent", theme).name(), QString("#123456"));
+        QCOMPARE(presets::resolveColor("red", theme), presets::defaultThemeColors().value("red"));
+        QCOMPARE(presets::resolveColor("#abcdef", theme).name(), QString("#abcdef"));
+    }
+
+    // ------------------------------------------------------------- library
+
+    void librarySavesBesideTheBuiltins()
+    {
+        QTemporaryDir dir;
+        Library library(dir.path() + "/presets");
+        const int builtins = library.presets().size();
+        QString error;
+        const QString path = library.save(presets::blank("My First"), &error);
+        QCOMPARE(path, dir.path() + "/presets/my-first.json");
+        QCOMPARE(library.presets().size(), builtins + 1);
+        QVERIFY(!library.presets()[library.indexOf("my first")].builtin);
+
+        // A changed built-in is saved as the user's copy and stands in for it.
+        QJsonObject tunnel = library.find("Neon Tunnel", &error);
+        tunnel["author"] = "Me";
+        QVERIFY(!library.save(tunnel, &error).isEmpty());
+        QCOMPARE(library.presets().size(), builtins + 1);
+        const PresetInfo mine = library.presets()[library.indexOf("Neon Tunnel")];
+        QVERIFY(!mine.builtin && mine.shadowsBuiltin);
+        QCOMPARE(mine.author, QString("Me"));
+
+        // Deleting it brings the built-in back; built-ins themselves stay.
+        QVERIFY(library.remove("Neon Tunnel", &error));
+        QVERIFY(library.presets()[library.indexOf("Neon Tunnel")].builtin);
+        QVERIFY(!library.remove("Neon Tunnel", &error));
+        QCOMPARE(error, QString("Built-in presets can't be deleted"));
+    }
+
+    void libraryExplainsABrokenFile()
+    {
+        QTemporaryDir dir;
+        write(dir.path() + "/bad.json", "{\n  \"name\": \"Bad\",\n  oops\n}");
+        QString error;
+        QVERIFY(Library::readFile(dir.path() + "/bad.json", &error).isEmpty());
+        QVERIFY2(error.endsWith("(line 3)"), qPrintable(error));
+        QCOMPARE(Library::slug("  Ça va? Très BIEN!  "), QString("ça-va-très-bien"));
+    }
+
+    // ------------------------------------------------------------- backend
+
+    void backendEditsUndoesAndSaves()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        QVERIFY(backend.select("Skyline"));
+        QVERIFY(!backend.dirty());
+        QCOMPARE(backend.param("feedback.decay").toDouble(), 0.9);
+        QCOMPARE(backend.param("feedback.zoom").toDouble(), 1.0); // the default, not set in the file
+        QVERIFY(!backend.isSet("feedback.zoom"));
+
+        const int compiledBefore = backend.compiledRevision();
+        backend.setParam("feedback.zoom", "1.02 + 0.1*bass");
+        QVERIFY(backend.dirty());
+        QCOMPARE(backend.param("feedback.zoom").toString(), QString("1.02 + 0.1*bass"));
+        QVERIFY(backend.compiledRevision() > compiledBefore);
+        QVERIFY(backend.problems().isEmpty());
+
+        // A formula with a mistake is kept and reported, while the picture
+        // goes on showing the last version that worked.
+        const int compiledGood = backend.compiledRevision();
+        backend.setParam("feedback.zoom", "1.02 + ");
+        QCOMPARE(backend.problemAt("feedback.zoom"), QString("Unfinished expression"));
+        QCOMPARE(backend.compiledRevision(), compiledGood);
+
+        backend.setParam("feedback.zoom", "1.5"); // typed numbers are stored as numbers
+        QCOMPARE(backend.json().value("feedback").toObject().value("zoom"), QJsonValue(1.5));
+        backend.setParam("layers.0.count", 31.6);
+        QCOMPARE(backend.param("layers.0.count").toDouble(), 32.0);
+        backend.setParam("layers.0.peaks", false);
+        QCOMPARE(backend.param("layers.0.peaks").toBool(), false);
+
+        backend.undo();
+        QCOMPARE(backend.param("layers.0.peaks").toBool(), true);
+        backend.redo();
+        QCOMPARE(backend.param("layers.0.peaks").toBool(), false);
+
+        backend.resetParam("feedback.zoom");
+        QVERIFY(!backend.isSet("feedback.zoom"));
+
+        QSignalSpy notices(&backend, &Backend::notice);
+        QVERIFY(backend.save());
+        QVERIFY(!backend.dirty());
+        QVERIFY(backend.currentIsYours());
+        QVERIFY(QFile::exists(dir.path() + "/presets/skyline.json"));
+        QCOMPARE(notices.last().first().toString(), QString("Saved Skyline"));
+
+        // The saved copy is what a fresh start finds.
+        Backend again(dir.path(), false);
+        QCOMPARE(again.currentName(), QString("Skyline"));
+        QCOMPARE(again.param("layers.0.count").toDouble(), 32.0);
+    }
+
+    // The editor marks what has been changed since the save, down to the
+    // one setting, and stops marking it once it is saved or put back.
+    void backendKnowsWhatWasEdited()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        QVERIFY(backend.select("Neon Tunnel"));
+        QVERIFY(!backend.isEdited("feedback.decay"));
+        QVERIFY(!backend.isEdited("feedback"));
+        QVERIFY(!backend.isEdited("layers"));
+
+        backend.setParam("feedback.decay", 0.5);
+        QVERIFY(backend.isEdited("feedback.decay"));
+        QVERIFY(backend.isEdited("feedback"));
+        QVERIFY(!backend.isEdited("feedback.zoom"));
+        QVERIFY(!backend.isEdited("post"));
+
+        backend.setParam("layers.0.thickness", 9);
+        QVERIFY(backend.isEdited("layers.0.thickness"));
+        QVERIFY(backend.isEdited("layers.0"));
+        QVERIFY(backend.isEdited("layers"));
+        QVERIFY(!backend.isEdited("layers.0.color"));
+
+        backend.setParam("pixel", "rot = 0.01");
+        QVERIFY(backend.isEdited("pixel"));
+
+        backend.revert();
+        QVERIFY(!backend.isEdited("feedback.decay"));
+        QVERIFY(!backend.isEdited("layers.0"));
+        QVERIFY(!backend.isEdited("pixel"));
+
+        backend.setParam("post.bloom", 2);
+        QVERIFY(backend.isEdited("post.bloom"));
+        QVERIFY(backend.save());
+        QVERIFY(!backend.isEdited("post.bloom"));
+
+        // A preset that was never saved has nothing to differ from.
+        QVERIFY(backend.newPreset("Blank Slate"));
+        backend.setParam("feedback.decay", 0.7);
+        QVERIFY(!backend.isEdited("feedback.decay"));
+    }
+
+    void backendManagesLayersAndText()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        QVERIFY(backend.newPreset("Scratch"));
+        QVERIFY(backend.dirty());
+        QCOMPARE(backend.layers().size(), 1);
+        backend.addLayer("particles");
+        backend.addLayer("bars");
+        QCOMPARE(backend.layers().size(), 3);
+        backend.moveLayer(2, -2);
+        QCOMPARE(backend.layers().first().toMap().value("type").toString(), QString("bars"));
+        backend.duplicateLayer(0);
+        backend.removeLayer(3);
+        QCOMPARE(backend.layers().size(), 3);
+        QCOMPARE(backend.layers().at(1).toMap().value("type").toString(), QString("bars"));
+        QVERIFY(backend.problems().isEmpty());
+
+        QVERIFY(!backend.setPresetText("{ not json"));
+        QVERIFY(!backend.problemAt("json").isEmpty());
+        QCOMPARE(backend.layers().size(), 3);
+        QVERIFY(backend.setPresetText(
+            QString("{'name': 'Scratch', 'palette': '#000000, accent', 'layers': []}").replace('\'', '"')));
+        QCOMPARE(backend.layers().size(), 0);
+        QCOMPARE(backend.param("palette").toString(), QString("#000000, accent"));
+        QCOMPARE(backend.paletteColors().size(), 2);
+
+        QVERIFY(backend.saveAs("Scratch Two"));
+        QCOMPARE(backend.currentName(), QString("Scratch Two"));
+        QVERIFY(backend.deleteCurrent());
+        QVERIFY(backend.library().indexOf("Scratch Two") < 0);
+        QVERIFY(!backend.deleteCurrent()); // back on a built-in
+    }
+
+    void backendMovesThroughPresets()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const QString first = backend.currentName();
+        backend.next();
+        const QString second = backend.currentName();
+        QVERIFY(first != second);
+        backend.previous();
+        QCOMPARE(backend.currentName(), first);
+        backend.random();
+        QVERIFY(backend.currentName() != first);
+        QVERIFY(!backend.select("No Such Preset"));
+        QCOMPARE(backend.cyclePalette(), QString("theme"));
+        backend.setPaletteOverride("fire");
+        QCOMPARE(backend.paletteColors().first(), QString("#000000"));
+    }
+
+    // -------------------------------------------------------------- engine
+
+    void engineDrawsEveryPreset()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        const Library library(QDir::tempPath() + "/trance-tests-no-such-folder");
+        Analyzer analyzer;
+        std::vector<float> chunk(800 * 2);
+        qint64 position = 0;
+        QOpenGLFramebufferObject target(320, 200);
+        Engine engine;
+        engine.setTheme(presets::defaultThemeColors());
+        for (const auto &info : library.presets()) {
+            engine.setPreset(presets::compile(library.load(library.indexOf(info.name))), 0.5);
+            for (int frame = 0; frame < 90; ++frame) {
+                synthesize(chunk.data(), 800, position, 48000);
+                position += 800;
+                analyzer.push(chunk.data(), 800);
+                engine.render(analyzer.analyze(1.0 / 60), 1.0 / 60, target.handle(), 320, 200);
+            }
+            QVERIFY2(engine.error().isEmpty(), qPrintable(info.name + ": " + engine.error()));
+            // Every preset puts something on the screen within a second and a half.
+            const QImage image = target.toImage();
+            int lit = 0;
+            for (int y = 0; y < image.height(); y += 2)
+                for (int x = 0; x < image.width(); x += 2)
+                    lit += qGray(image.pixel(x, y)) > 24;
+            QVERIFY2(lit > 40, qPrintable(info.name + " is black"));
+        }
+    }
+
+    void engineRunsThePresetsOwnCode()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setPreset(presets::compile(fixture(
+            "{ 'name': 'Counter', 'init': 'count_frames = 100', 'frame': 'count_frames = count_frames "
+            "+ 1', 'layers': [ { 'type': 'shape', 'sides': 4, 'radius': 3, 'color': '#ff0000', "
+            "'color2': '#ff0000', 'alpha2': 1 } ], 'post': { 'bloom': 0, 'vignette': 0 }, 'shade': 'g "
+            "= r; r = 0' } ")), 0);
+        for (int frame = 0; frame < 5; ++frame)
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QVERIFY2(engine.error().isEmpty(), qPrintable(engine.error()));
+        QCOMPARE(engine.variable("count_frames"), 105.0);
+        // A red square covers the screen, and the shade code turns it green.
+        const QColor middle = target.toImage().pixelColor(32, 32);
+        QVERIFY2(middle.green() > 200 && middle.red() < 30, qPrintable(middle.name()));
+
+        // A preset that can't be compiled leaves the last one running.
+        CompiledPreset broken = presets::compile(QJsonObject{{"name", "Broken"}});
+        broken.warpShader = "this is not GLSL";
+        engine.setPreset(broken, 0);
+        engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QVERIFY(!engine.error().isEmpty());
+        QCOMPARE(engine.variable("count_frames"), 106.0);
+    }
+
+    // --------------------------------------------------------------- theme
+
+    // A change of preset runs both for its length: halfway through, the
+    // picture holds some of each, and at the end only the new one is left.
+    void engineChangesPresetsWithoutACut()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        const auto flood = [](const char *name, const char *color) {
+            return presets::compile(fixture(QByteArray("{ 'name': '") + name +
+                "', 'feedback': { 'decay': 0 }, 'layers': [ { 'type': 'shape', 'sides': 4, 'radius': 3, 'color': '" +
+                color + "', 'color2': '" + color + "', 'alpha2': 1 }, { 'type': 'wave', 'shape': 'circle' }, "
+                "{ 'type': 'particles', 'emit': 'wave', 'flow': 1, 'field': 1, 'streak': 0.05 }, "
+                "{ 'type': 'vectors' } ], 'background': { 'style': 'nebula' }, 'post': { 'bloom': 0, "
+                "'vignette': 0 } }"));
+        };
+        const CompiledPreset red = flood("Red", "#ff0000"), blue = flood("Blue", "#0000ff");
+        QVERIFY2(red.ok(), qPrintable(red.firstError()));
+
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setTransitionStyle(1); // an even dissolve, so every pixel is partway
+        engine.setPreset(red, 0);
+        for (int frame = 0; frame < 5; ++frame)
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QVERIFY2(engine.error().isEmpty(), qPrintable(engine.error()));
+        QVERIFY(!engine.changing());
+        QColor corner = target.toImage().pixelColor(4, 4);
+        QVERIFY2(corner.red() > 200 && corner.blue() < 30, qPrintable(corner.name()));
+
+        engine.setPreset(blue, 1.0);
+        for (int frame = 0; frame < 30; ++frame)
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QVERIFY(engine.changing());
+        corner = target.toImage().pixelColor(4, 4);
+        QVERIFY2(corner.red() > 30 && corner.blue() > 30, qPrintable(corner.name()));
+        for (int frame = 0; frame < 40; ++frame)
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QVERIFY(!engine.changing());
+        corner = target.toImage().pixelColor(4, 4);
+        QVERIFY2(corner.blue() > 200 && corner.red() < 30, qPrintable(corner.name()));
+
+        // Visitors drop in over it, and a title is written into it.
+        QList<CompiledPreset> pool;
+        for (const QJsonObject &visitor : Library::visitors()) {
+            const CompiledPreset compiled = presets::compile(visitor);
+            QVERIFY2(compiled.ok(), qPrintable(compiled.name + ": " + compiled.firstError()));
+            pool.append(compiled);
+        }
+        QVERIFY(pool.size() >= 5);
+        engine.setVisitors(pool, 1000);
+        QImage title(200, 40, QImage::Format_ARGB32_Premultiplied);
+        title.fill(Qt::white);
+        engine.showText(title);
+        int most = 0;
+        for (int frame = 0; frame < 400; ++frame) {
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+            most = qMax(most, engine.visitorCount());
+        }
+        QVERIFY2(engine.error().isEmpty(), qPrintable(engine.error()));
+        QVERIFY(most >= 1);
+        engine.setVisitors(pool, 0);
+        engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QCOMPARE(engine.visitorCount(), 0);
+    }
+
+    void presetsTakeBackgroundsAndInteractingLayers()
+    {
+        const CompiledPreset good = presets::compile(fixture(
+            "{ 'name': 'Both', 'background': { 'style': 'stars', 'intensity': '0.3 + bass_att' }, 'feedback': { "
+            "'darkenCenter': true }, 'layers': [ { 'type': 'bars' }, { 'type': 'particles', 'emit': 'bars', 'pull': "
+            "'-2*beat', 'edge': 'wrap' }, { 'type': 'vectors', 'cols': 12 } ], 'post': { 'colorShift': 'time*0.1', "
+            "'colorCurve': 2 } }"));
+        QVERIFY2(good.ok(), qPrintable(good.firstError()));
+        QVERIFY(good.compositeShader.contains("f_hash(cell"));
+        QVERIFY(!good.compositeShader.contains("%bg_"));
+        const CompiledPreset bad = presets::compile(fixture(
+            "{ 'name': 'Bad', 'background': { 'style': 'lava' }, 'layers': [ { 'type': 'particles', 'emit': "
+            "'nowhere' } ] }"));
+        QStringList paths;
+        for (const auto &problem : bad.problems)
+            paths << problem.path;
+        QVERIFY2(paths.contains("background.style") && paths.contains("layers.0.emit"), qPrintable(paths.join(' ')));
+    }
+
+    void mashupsHoldTogether()
+    {
+        QTemporaryDir directory;
+        Backend backend(directory.path(), false);
+        QVERIFY(backend.visitorPool().size() >= 5);
+        for (int round = 0; round < 12; ++round) {
+            QVERIFY(backend.mashup());
+            QVERIFY(backend.currentName().contains(" × "));
+            QVERIFY2(backend.problems().isEmpty() || !backend.problems().first().toMap().value("error").toBool(),
+                     qPrintable(backend.currentName()));
+            QVERIFY(!backend.dirty());
+        }
+        // A mash-up is nobody's until it is saved.
+        QVERIFY(!backend.currentIsYours());
+        QVERIFY(backend.save());
+        QVERIFY(backend.currentIsYours());
+    }
+
+    void captureListsWhatThereIsToHear()
+    {
+        const QByteArray dump = QByteArray(
+            "[ { 'id': 80, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': "
+            "'Stream/Output/Audio', 'application.name': 'Spotify', 'node.name': 'spotify', 'object.serial': 292 } } "
+            "}, { 'id': 81, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': "
+            "'Stream/Input/Audio', 'node.name': 'trance' } } }, { 'id': 58, 'type': 'PipeWire:Interface:Node', "
+            "'info': { 'props': { 'media.class': 'Audio/Sink', 'node.name': 'alsa_output.speaker', "
+            "'node.description': 'Speaker', 'object.serial': 58 } } }, { 'id': 60, 'type': "
+            "'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': 'Audio/Source', 'node.name': "
+            "'alsa_input.mic', 'node.description': 'Digital Microphone' } } }, { 'id': 3, 'type': "
+            "'PipeWire:Interface:Link', 'info': {} } ]").replace('\'', '"');
+        const auto nodes = AudioCapture::parseNodes(dump);
+        QCOMPARE(nodes.size(), 3);
+        QCOMPARE(nodes.first().application, QString("Spotify"));
+        QCOMPARE(nodes.first().serial, 292);
+        QStringList ids;
+        for (const auto &entry : AudioCapture::describe(nodes, "app:Firefox"))
+            ids << entry.toMap().value("id").toString();
+        // One output and one input are what "system" and "microphone" already
+        // mean, so neither is listed a second time.
+        QCOMPARE(ids, (QStringList{"system", "app:Spotify", "app:Firefox", "microphone"}));
+        QVERIFY(AudioCapture::isSource("app:Spotify"));
+        QVERIFY(AudioCapture::isSource("output:alsa_output.speaker"));
+        QVERIFY(!AudioCapture::isSource("app:"));
+        QVERIFY(!AudioCapture::isSource("speakers"));
+        // An empty answer from PipeWire still leaves the two that always work.
+        QCOMPARE(AudioCapture::describe(AudioCapture::parseNodes("not json"), "system").size(), 2);
+    }
+
+    // A laptop's sound card as PipeWire reports it: a node for every socket,
+    // most with nothing plugged in, all named after the chipset.
+    void captureLeavesOutWhatIsNotPluggedIn()
+    {
+        const auto node = [](int id, const char *mediaClass, const char *name, const char *description, int socket) {
+            return QString("{ 'id': %1, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': '%2', "
+                           "'node.name': '%3', 'node.description': 'Alder Lake Audio Controller %4', 'device.id': 48, "
+                           "'card.profile.device': %5 } } }")
+                .arg(id).arg(mediaClass, name, description).arg(socket);
+        };
+        const auto route = [](const char *direction, const char *available, int socket) {
+            return QString("{ 'direction': '%1', 'available': '%2', 'devices': [ %3 ] }").arg(direction, available).arg(socket);
+        };
+        const QString card = QString("{ 'id': 48, 'type': 'PipeWire:Interface:Device', 'info': { 'props': { "
+                                     "'device.description': 'Alder Lake Audio Controller', 'device.bus': 'pci' }, "
+                                     "'params': { 'EnumRoute': [ %1 ] } } }")
+                                 .arg(QStringList{route("Output", "no", 0), route("Output", "no", 1),
+                                                  route("Output", "unknown", 3), route("Input", "no", 4),
+                                                  route("Input", "unknown", 5), route("Output", "no", 6)}
+                                          .join(", "));
+        const QStringList laptop{node(55, "Audio/Sink", "hdmi2", "HDMI / DisplayPort 2 Output", 1),
+                                 node(56, "Audio/Sink", "hdmi1", "HDMI / DisplayPort 1 Output", 0),
+                                 node(58, "Audio/Sink", "speaker", "Speaker", 3),
+                                 node(59, "Audio/Source", "mic2", "Stereo Microphone", 4),
+                                 node(60, "Audio/Source", "mic1", "Digital Microphone", 5), card};
+        const auto parse = [](const QStringList &objects) {
+            return AudioCapture::parseNodes(("[ " + objects.join(", ") + " ]").replace('\'', '"').toUtf8());
+        };
+        const auto listed = [](const QVariantList &list) {
+            QStringList lines;
+            for (const auto &entry : list)
+                lines << entry.toMap().value("id").toString() + "=" + entry.toMap().value("label").toString();
+            return lines;
+        };
+
+        // Nothing plugged in: the speaker and the built-in microphone are
+        // the only things there, and they need no entries of their own.
+        auto nodes = parse(laptop);
+        QCOMPARE(nodes.size(), 5);
+        QVERIFY(!nodes[0].available);
+        QVERIFY(nodes[2].available);
+        QCOMPARE(nodes[2].label, QString("Speaker"));
+        QCOMPARE(listed(AudioCapture::describe(nodes, "system")),
+                 (QStringList{"system=Everything that's playing", "microphone=Microphone"}));
+
+        // A device that was chosen stays on the list, by its short name, and
+        // says so when it has been unplugged.
+        QCOMPARE(listed(AudioCapture::describe(nodes, "output:speaker")),
+                 (QStringList{"system=Everything that's playing", "output:speaker=Speaker", "microphone=Microphone"}));
+        QCOMPARE(listed(AudioCapture::describe(nodes, "output:hdmi1")).at(1),
+                 QString("output:hdmi1=HDMI / DisplayPort 1 Output (not connected)"));
+        QCOMPARE(listed(AudioCapture::describe(nodes, "input:gone")).last(), QString("input:gone=gone (not connected)"));
+
+        // A screen on HDMI 1 and a USB microphone make both a real choice.
+        QStringList docked = laptop;
+        docked.last().replace("'direction': 'Output', 'available': 'no', 'devices': [ 0 ]",
+                              "'direction': 'Output', 'available': 'yes', 'devices': [ 0 ]");
+        docked << QString("{ 'id': 70, 'type': 'PipeWire:Interface:Device', 'info': { 'props': { 'device.description': "
+                          "'Yeti Nano', 'device.bus': 'usb' } } }")
+               << QString("{ 'id': 71, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': "
+                          "'Audio/Source', 'node.name': 'yeti', 'node.description': 'Yeti Nano Analog Stereo', "
+                          "'device.id': 70, 'card.profile.device': 0 } } }");
+        nodes = parse(docked);
+        const QVariantList choice = AudioCapture::describe(nodes, "system");
+        QCOMPARE(listed(choice),
+                 (QStringList{"system=Everything that's playing", "output:hdmi1=HDMI / DisplayPort 1 Output",
+                              "output:speaker=Speaker", "microphone=Default microphone",
+                              "input:mic1=Digital Microphone", "input:yeti=Yeti Nano"}));
+        QCOMPARE(choice.at(1).toMap().value("section").toString(), QString("Outputs"));
+        QCOMPARE(choice.at(3).toMap().value("section").toString(), QString("Inputs"));
+        QVERIFY(choice.at(0).toMap().value("section").toString().isEmpty());
+    }
+
+    // What shows over the picture is the user's to ask for: nothing does
+    // until they have, and what they choose is remembered.
+    void backendKeepsThePictureClearUnlessAsked()
+    {
+        QTemporaryDir dir;
+        {
+            Backend backend(dir.path(), false);
+            QVERIFY(!backend.showNames());
+            QVERIFY(!backend.debug());
+            backend.setShowNames(true);
+            backend.setDebug(true);
+
+            const QVariantMap stats = backend.stats();
+            QCOMPARE(stats.value("waiting").toString(), QString());
+            QVERIFY(stats.value("nextIn").toDouble() > 0 && stats.value("nextIn").toDouble() <= backend.cycleSeconds());
+            QVERIFY(stats.value("layers").toInt() > 0);
+            QCOMPARE(stats.value("sampleRate").toInt(), 48000);
+            backend.setLocked(true);
+            QCOMPARE(backend.stats().value("waiting").toString(), QString("held"));
+            backend.setLocked(false);
+            backend.setEditing(true);
+            QCOMPARE(backend.stats().value("waiting").toString(), QString("editing"));
+            backend.setEditing(false);
+            backend.setCycleSeconds(0);
+            QCOMPARE(backend.stats().value("waiting").toString(), QString("never"));
+
+            // The levels are announced only while something is showing them.
+            QSignalSpy levels(&backend, &Backend::levelsChanged);
+            QTest::qWait(160);
+            QCOMPARE(levels.count(), 0);
+            backend.setMetering(true);
+            QTRY_VERIFY(levels.count() > 0);
+        }
+        Backend again(dir.path(), false);
+        QVERIFY(again.showNames());
+        QVERIFY(again.debug());
+
+        // How dark the glass is: clear unless asked, kept, and held in range.
+        QCOMPARE(again.glassOpacity(), 0.0);
+        again.setGlassOpacity(0.35);
+        again.setGlassOpacity(7);
+        QCOMPARE(again.glassOpacity(), 1.0);
+        again.setGlassOpacity(0.35);
+        Backend third(dir.path(), false);
+        QCOMPARE(third.glassOpacity(), 0.35);
+    }
+
+    void themeFallsBack()
+    {
+        QTemporaryDir dir;
+        Theme theme(dir.path());
+        QCOMPARE(theme.accent(), QString("#FFD60A"));
+        QCOMPARE(theme.accentForeground(), QString("black"));
+        QVERIFY(theme.colors().isEmpty());
+    }
+
+    void themeReadsEveryColor()
+    {
+        QTemporaryDir dir;
+        QDir(dir.path()).mkpath("theme");
+        write(dir.path() + "/theme/colors.toml", "mode = \"dark\"\naccent = \"#112233\"\nbright_red = '#FF7A93'\n");
+
+        Theme theme(dir.path());
+        QCOMPARE(theme.accent(), QString("#112233"));
+        QCOMPARE(theme.accentForeground(), QString("white"));
+        QCOMPARE(theme.colors().value("bright_red").name(), QString("#ff7a93"));
+        QCOMPARE(theme.colors().size(), 2);
+    }
+
+    void themeFollowsHyprlandRounding()
+    {
+        QTemporaryDir dir;
+        const QString response = dir.filePath("response.json"), command = dir.filePath("hyprctl");
+        write(command, "#!/bin/sh\ncat '" + response.toUtf8() + "'\n");
+        QVERIFY(QFile::setPermissions(command, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        write(response, "{\"int\":0}");
+
+        Theme theme(dir.path(), nullptr, command);
+        QCOMPARE(theme.radius(), 0);
+        write(response, "{\"int\":6}");
+        QTRY_COMPARE(theme.radius(), 6);
+    }
+
+    // ---------------------------------------------------------- translator
+
+    void translatorFallsBackToEnglish()
+    {
+        QTemporaryDir dir;
+        Translator translator(dir.path() + "/language", dir.path());
+        QCOMPARE(translator.language(), QString("en"));
+        QVERIFY(translator.translate("Main", "Save").isNull());
+    }
+
+    void translatorFollowsTheLanguageFile()
+    {
+        QTemporaryDir dir;
+        write(dir.path() + "/language", "pt-BR\n");
+        write(dir.path() + "/pt.json", R"({"Save": "Guardar", "Open": "Abrir"})");
+        write(dir.path() + "/pt-BR.json", R"({"Save": "Salvar"})");
+
+        Translator translator(dir.path() + "/language", dir.path());
+        QCOMPARE(translator.language(), QString("pt-BR"));
+        QCOMPARE(translator.translate("Main", "Save"), QString("Salvar"));
+        QCOMPARE(translator.translate("Main", "Open"), QString("Abrir"));
+        QVERIFY(translator.translate("Main", "Quit").isNull());
+    }
+
+    void translatorPicksPluralForms()
+    {
+        QTemporaryDir dir;
+        write(dir.path() + "/language", "ru\n");
+        write(dir.path() + "/en.json", R"({"%n clips": {"one": "%n clip", "other": "%n clips"}})");
+        write(dir.path() + "/ru.json", R"({"%n clips": {"one": "%n клип", "few": "%n клипа", "many": "%n клипов", "other": "%n клипа"}})");
+
+        Translator translator(dir.path() + "/language", dir.path());
+        QCOMPARE(translator.translate("Main", "%n clips", nullptr, 21), QString("%n клип"));
+        QCOMPARE(translator.translate("Main", "%n clips", nullptr, 22), QString("%n клипа"));
+        QCOMPARE(translator.translate("Main", "%n clips", nullptr, 25), QString("%n клипов"));
+        QCOMPARE(Translator::pluralCategory("ar", 11), QString("many"));
+        QCOMPARE(Translator::pluralCategory("ja", 1), QString("other"));
+    }
+
+    // Every shipped catalog is valid, keeps the %1 and %n placeholders, and
+    // translates only strings the app actually has.
+    void catalogsMatchTheApp()
+    {
+        QSet<QString> source;
+        const QRegularExpression call("\\b(?:qsTr|tr)\\(\"((?:[^\"\\\\]|\\\\.)*)\"");
+        QStringList files;
+        for (const auto &name : QDir(":/").entryList({"*.qml"}))
+            files << ":/" + name;
+        for (const auto &name : QDir(SOURCE_DIRECTORY).entryList({"*.cpp"}))
+            files << QString(SOURCE_DIRECTORY) + "/" + name;
+        for (const auto &path : files) {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            auto matches = call.globalMatch(QString::fromUtf8(file.readAll()));
+            while (matches.hasNext())
+                source.insert(matches.next().captured(1).replace("\\\"", "\""));
+        }
+        QVERIFY(source.size() > 60);
+        const QRegularExpression placeholder("%(\\d|n)");
+        auto placeholders = [&](const QString &text) {
+            QStringList found;
+            auto matches = placeholder.globalMatch(text);
+            while (matches.hasNext())
+                found << matches.next().captured(0);
+            found.sort();
+            return found;
+        };
+        const QStringList catalogs = QDir(":/i18n").entryList({"*.json"});
+        QVERIFY(catalogs.contains("en.json"));
+        for (const auto &name : catalogs) {
+            QFile file(":/i18n/" + name);
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            QJsonParseError error;
+            const QJsonObject catalog = QJsonDocument::fromJson(file.readAll(), &error).object();
+            QVERIFY2(error.error == QJsonParseError::NoError, qPrintable(name + ": " + error.errorString()));
+            for (auto it = catalog.begin(); it != catalog.end(); ++it) {
+                QVERIFY2(source.contains(it.key()), qPrintable(name + " translates a string the app lacks: " + it.key()));
+                const QStringList forms = it.value().isObject() ? it.value().toObject().toVariantMap().keys() : QStringList{""};
+                for (const auto &form : forms) {
+                    const QString text = it.value().isObject() ? it.value().toObject().value(form).toString()
+                                                               : it.value().toString();
+                    QVERIFY2(placeholders(text) == placeholders(it.key()) ||
+                                 (it.value().isObject() && placeholders(text).isEmpty()),
+                             qPrintable(name + ": placeholders differ in \"" + it.key() + "\""));
+                }
+            }
+            if (name != "en.json")
+                for (const auto &text : source)
+                    QVERIFY2(catalog.contains(text), qPrintable(name + " is missing: " + text));
+        }
+    }
+
+private:
+    // Test presets are written with single quotes, to stay readable in C++.
+    static QJsonObject fixture(const char *text)
+    {
+        return QJsonDocument::fromJson(QByteArray(text).replace('\'', '"')).object();
+    }
+
+    static double evaluate(const QString &source)
+    {
+        expr::Vars vars;
+        vars.declare("pi", M_PI);
+        expr::Program program;
+        QString error;
+        if (!program.parse(source, vars, &error))
+            qFatal("%s: %s", qPrintable(source), qPrintable(error));
+        return program.run(vars.values);
+    }
+
+    static QString parseError(const QString &source)
+    {
+        expr::Vars vars;
+        expr::Program program;
+        QString error;
+        return program.parse(source, vars, &error) ? QString() : error;
+    }
+
+    // Feeds the analyzer sixty frames a second and returns the last one.
+    template <typename Source>
+    static AudioFrame play(Analyzer &analyzer, double seconds, Source source)
+    {
+        std::vector<float> chunk(800 * 2);
+        AudioFrame frame;
+        for (int i = 0; i < int(seconds * 60); ++i) {
+            source(chunk.data(), 800, qint64(i) * 800);
+            analyzer.push(chunk.data(), 800);
+            frame = analyzer.analyze(1.0 / 60);
+        }
+        return frame;
+    }
+
+    static void write(const QString &path, const QByteArray &contents)
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(contents);
+    }
+};
+
+QTEST_MAIN(TranceTests)
+#include "trance_tests.moc"

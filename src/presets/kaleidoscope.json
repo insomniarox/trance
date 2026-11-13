@@ -1,0 +1,43 @@
+{
+  "name": "Kaleidoscope",
+  "author": "Trance",
+  "description": "Tumbling triangles and a waveform folded into eight mirrored wedges.",
+  "palette": "vapor",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": "1.01 + 0.02*bass_att",
+    "rot": 0.01,
+    "edge": "mirror"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 3,
+      "instances": 5,
+      "x": "0.55*cos(time*0.4 + n*1.3)",
+      "y": "0.4*sin(time*0.5 + n*1.7)",
+      "radius": "0.08 + 0.12*treb_att*(0.5 + 0.5*sin(n*2 + time))",
+      "angle": "time*(0.3 + 0.1*n)",
+      "color": "palette(n*0.2 + time*0.05)",
+      "alpha": 0.3,
+      "color2": "palette(n*0.2 + 0.3)",
+      "alpha2": 0,
+      "border": "white",
+      "borderAlpha": 0.9,
+      "borderWidth": 1.5,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "scale": 0.3,
+      "color": "palette(t + time*0.1)",
+      "thickness": 2
+    }
+  ],
+  "post": {
+    "kaleido": 8,
+    "kaleidoAngle": "time*0.05",
+    "bloom": 0.7
+  }
+}

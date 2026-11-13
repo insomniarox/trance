@@ -1,0 +1,29 @@
+{
+  "name": "Neon Tunnel",
+  "author": "Trance",
+  "description": "A waveform ring falling down a slowly turning tunnel.",
+  "palette": "neon",
+  "feedback": {
+    "decay": 0.965,
+    "zoom": "1.035 + 0.04*bass_att",
+    "rot": "0.012*sin(time*0.25)",
+    "warp": "0.6 + 0.5*treb_att",
+    "edge": "clamp"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.32 + 0.05*bass_att",
+      "scale": 0.25,
+      "smooth": 0.5,
+      "thickness": 4,
+      "color": "palette(t + time*0.08)",
+      "angle": "time*0.2"
+    }
+  ],
+  "post": {
+    "bloom": 1.1,
+    "vignette": 0.5
+  }
+}

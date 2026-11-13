@@ -1,0 +1,98 @@
+{
+  "name": "Concentric",
+  "author": "Trance",
+  "description": "Triangle, square, pentagon, hexagon, octagon, and a ring of points, one inside the next and falling inward for ever. Each figure swells, brightens and turns with a range of its own.",
+  "palette": "neon",
+  "frame": "a0 = a0 + dt*0.12*(0.4 + sub_att)\na1 = a1 + dt*-0.17*(0.4 + low_att)\na2 = a2 + dt*0.23*(0.4 + lowmid_att)\na3 = a3 + dt*-0.3*(0.4 + highmid_att)\na4 = a4 + dt*0.4*(0.4 + presence_att)\na5 = a5 + dt*0.6*(0.3 + air_att)",
+  "feedback": {
+    "decay": 0.94,
+    "zoom": "0.985 - 0.006*vol_att",
+    "rot": "0.008*sin(time*0.2)",
+    "hueshift": 0.01,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 3,
+      "radius": "0.95*(0.9 + 0.12*sub_att)",
+      "angle": "a0",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.00 + time*0.03)",
+      "borderAlpha": "clamp(0.3 + 0.5*sub_att, 0, 1)",
+      "borderWidth": "6*(0.6 + 0.6*sub)",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 4,
+      "radius": "0.8*(0.9 + 0.12*low_att)",
+      "angle": "a1",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.17 + time*0.03)",
+      "borderAlpha": "clamp(0.3 + 0.5*low_att, 0, 1)",
+      "borderWidth": "5*(0.6 + 0.6*low)",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 5,
+      "radius": "0.65*(0.9 + 0.12*lowmid_att)",
+      "angle": "a2",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.33 + time*0.03)",
+      "borderAlpha": "clamp(0.3 + 0.5*lowmid_att, 0, 1)",
+      "borderWidth": "4.2*(0.6 + 0.6*lowmid)",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 6,
+      "radius": "0.5*(0.9 + 0.12*highmid_att)",
+      "angle": "a3",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.50 + time*0.03)",
+      "borderAlpha": "clamp(0.3 + 0.5*highmid_att, 0, 1)",
+      "borderWidth": "3.5*(0.6 + 0.6*highmid)",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 8,
+      "radius": "0.36*(0.9 + 0.12*presence_att)",
+      "angle": "a4",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.67 + time*0.03)",
+      "borderAlpha": "clamp(0.3 + 0.5*presence_att, 0, 1)",
+      "borderWidth": "3*(0.6 + 0.6*presence)",
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 12,
+      "instances": 24,
+      "x": "0.22*cos(t*tau + a5)",
+      "y": "0.22*sin(t*tau + a5)",
+      "radius": "0.006 + 0.012*air",
+      "color": "palette(0.85 + 0.1*t)",
+      "alpha": 1,
+      "color2": "palette(0.85)",
+      "alpha2": 0,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "vignette": 0.4
+  }
+}

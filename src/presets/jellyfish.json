@@ -1,0 +1,105 @@
+{
+  "name": "Jellyfish",
+  "author": "Trance",
+  "description": "It glows with the rumble and beats its bell on the bass. Four tentacles trail behind, each rippling to a higher range than the last, and the cymbals stir the plankton.",
+  "palette": "vapor",
+  "frame": "bob = 0.22 + 0.07*sin(time*0.5)\npulse = 1 + 0.12*min(low_att, 2)\np0 = p0 + dt*2*(0.4 + 0.6*lowmid_att)\np1 = p1 + dt*3*(0.4 + 0.6*highmid_att)\np2 = p2 + dt*4*(0.4 + 0.6*presence_att)\np3 = p3 + dt*5*(0.4 + 0.6*air_att)",
+  "feedback": {
+    "decay": 0.92,
+    "dy": -0.0015,
+    "blur": 0.3,
+    "edge": "black"
+  },
+  "pixel": "dx = 0.0015*sin(y*4 + time*0.6)",
+  "background": {
+    "style": "gradient",
+    "intensity": 0.35,
+    "tint": 0,
+    "spread": 0.2,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 32,
+      "y": "bob + 0.12",
+      "radius": "0.16 + 0.08*sub_att",
+      "color": "palette(0.6)",
+      "alpha": "clamp(0.22 + 0.2*sub_att, 0, 1)",
+      "color2": "palette(0.6)",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": "4 + 3*low",
+      "color": "palette(0.5 + 0.2*t)",
+      "alpha": 0.9,
+      "point": "th = t*pi\nx = 0.42*pulse*cos(th)\ny = bob + 0.3*sin(th)*(1.15 - 0.15*pulse) + v*0.02"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": 2.5,
+      "color": "palette(0.72)",
+      "alpha": 0.7,
+      "point": "th = t*pi\nx = 0.42*pulse*cos(th)\ny = bob - 0.06*sin(th)*pulse"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": 3.2,
+      "color": "palette(0.30 + 0.3*t)",
+      "alpha": "clamp(0.35 + 0.4*lowmid_att, 0, 1)",
+      "point": "x = -0.3*pulse*(1 - 0.3*t) + (0.03 + 0.07*min(lowmid_att, 2))*t*sin(t*6 - p0)\ny = bob - t*0.95\na = a*(1 - 0.7*t)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": 2.7,
+      "color": "palette(0.40 + 0.3*t)",
+      "alpha": "clamp(0.35 + 0.4*highmid_att, 0, 1)",
+      "point": "x = -0.1*pulse*(1 - 0.3*t) + (0.03 + 0.07*min(highmid_att, 2))*t*sin(t*9 - p1)\ny = bob - t*1.15\na = a*(1 - 0.7*t)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": 2.2,
+      "color": "palette(0.50 + 0.3*t)",
+      "alpha": "clamp(0.35 + 0.4*presence_att, 0, 1)",
+      "point": "x = 0.1*pulse*(1 - 0.3*t) + (0.03 + 0.07*min(presence_att, 2))*t*sin(t*12 - p2)\ny = bob - t*1.05\na = a*(1 - 0.7*t)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": 1.8,
+      "color": "palette(0.60 + 0.3*t)",
+      "alpha": "clamp(0.35 + 0.4*air_att, 0, 1)",
+      "point": "x = 0.3*pulse*(1 - 0.3*t) + (0.03 + 0.07*min(air_att, 2))*t*sin(t*16 - p3)\ny = bob - t*0.85\na = a*(1 - 0.7*t)"
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 400,
+      "rate": "30 + 300*max(0, air - 1)",
+      "speed": 0.02,
+      "gravity": -0.03,
+      "field": 0.4,
+      "life": 5,
+      "size": 1.4,
+      "color": "white",
+      "alpha": 0.4
+    }
+  ],
+  "post": {
+    "bloom": 1.1,
+    "vignette": 0.6
+  }
+}

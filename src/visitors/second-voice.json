@@ -1,0 +1,17 @@
+{
+  "name": "Second Voice",
+  "init": "wx = (rand(2) - 1)*0.8\nwy = (rand(2) - 1)*0.5",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "x": "wx*aspect + 0.1*sin(time*0.4)",
+      "y": "wy + 0.1*cos(time*0.3)",
+      "radius": 0.12,
+      "scale": 0.15,
+      "thickness": 2,
+      "color": "palette(t + time*0.1)",
+      "alpha": 0.8
+    }
+  ]
+}

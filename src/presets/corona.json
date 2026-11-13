@@ -1,0 +1,105 @@
+{
+  "name": "Corona",
+  "author": "Trance",
+  "description": "A sun with the light blocked out, so only what leaps from its edge shows. Six arcs stand on the rim, one for each range, rising with it and throwing sparks into the dark.",
+  "palette": "fire",
+  "frame": "sp = sp + dt*0.05",
+  "feedback": {
+    "decay": 0.94,
+    "zoom": "1.012 + 0.008*vol_att",
+    "blur": 0.15,
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.4,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "2.5 + 2*sub",
+      "color": "white",
+      "alpha": 0.9,
+      "point": "an = sp + 0.000 + (t - 0.5)*0.9\nrr = 0.3 + (0.04 + 0.2*min(sub_att, 2))*sin(t*pi) + v*0.02\nx = rr*cos(an)\ny = rr*sin(an)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "2.5 + 2*low",
+      "color": "white",
+      "alpha": 0.9,
+      "point": "an = sp + 1.047 + (t - 0.5)*0.8\nrr = 0.3 + (0.04 + 0.2*min(low_att, 2))*sin(t*pi) + v*0.02\nx = rr*cos(an)\ny = rr*sin(an)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "2.5 + 2*lowmid",
+      "color": "white",
+      "alpha": 0.9,
+      "point": "an = sp + 2.094 + (t - 0.5)*0.7\nrr = 0.3 + (0.04 + 0.2*min(lowmid_att, 2))*sin(t*pi) + v*0.02\nx = rr*cos(an)\ny = rr*sin(an)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "2.5 + 2*highmid",
+      "color": "white",
+      "alpha": 0.9,
+      "point": "an = sp + 3.142 + (t - 0.5)*0.6\nrr = 0.3 + (0.04 + 0.2*min(highmid_att, 2))*sin(t*pi) + v*0.02\nx = rr*cos(an)\ny = rr*sin(an)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "2.5 + 2*presence",
+      "color": "white",
+      "alpha": 0.9,
+      "point": "an = sp + 4.189 + (t - 0.5)*0.5\nrr = 0.3 + (0.04 + 0.2*min(presence_att, 2))*sin(t*pi) + v*0.02\nx = rr*cos(an)\ny = rr*sin(an)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "2.5 + 2*air",
+      "color": "white",
+      "alpha": 0.9,
+      "point": "an = sp + 5.236 + (t - 0.5)*0.4\nrr = 0.3 + (0.04 + 0.2*min(air_att, 2))*sin(t*pi) + v*0.02\nx = rr*cos(an)\ny = rr*sin(an)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 1500,
+      "rate": "150 + 900*beat",
+      "speed": 0.1,
+      "pull": -1.2,
+      "flow": 1,
+      "life": 2.5,
+      "size": 2,
+      "color": "white",
+      "alpha": 0.7
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "radius": 0.3,
+      "color": "black",
+      "alpha": 1,
+      "color2": "black",
+      "alpha2": 1,
+      "border": "white",
+      "borderAlpha": 0.9,
+      "borderWidth": 3
+    }
+  ],
+  "post": {
+    "colorize": 0.9,
+    "colorCurve": 0.8,
+    "bloom": 1.3,
+    "vignette": 0.5
+  }
+}

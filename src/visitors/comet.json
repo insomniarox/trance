@@ -1,0 +1,19 @@
+{
+  "name": "Comet",
+  "init": "fx = 0.3 + rand(0.5)\nfy = 0.3 + rand(0.5)\nph = rand(6)",
+  "layers": [
+    {
+      "type": "particles",
+      "count": 500,
+      "rate": 180,
+      "x": "aspect*0.8*sin(time*fx + ph)",
+      "y": "0.8*cos(time*fy)",
+      "speed": 0.08,
+      "drag": 1,
+      "flow": 1,
+      "life": 1.6,
+      "size": 2.6,
+      "color": "palette(i*0.3 + time*0.1)"
+    }
+  ]
+}

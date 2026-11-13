@@ -1,0 +1,52 @@
+{
+  "name": "Galaxy",
+  "author": "Trance",
+  "description": "Thousands of stars swinging round a core that swells with the bass.",
+  "palette": "gold",
+  "feedback": {
+    "decay": 0.94,
+    "rot": 0.006,
+    "zoom": 0.998,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.6,
+    "tint": 0.5,
+    "spread": 0.2,
+    "scale": 1.6,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "point",
+      "count": 3500,
+      "rate": "700 + 1500*beat",
+      "area": 0.9,
+      "speed": 0.05,
+      "swirl": "1.4 + 1.2*bass_att",
+      "pull": "0.5 - 2.5*beat",
+      "drag": 0.9,
+      "life": 8,
+      "size": 3,
+      "color": "palette(0.42 + 0.35*i + 0.2*v)",
+      "alpha": 1
+    },
+    {
+      "type": "shape",
+      "sides": 40,
+      "radius": "0.06 + 0.05*bass_att",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "palette(0.6)",
+      "alpha2": 0,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 1.5,
+    "vignette": 0.45
+  }
+}

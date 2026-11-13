@@ -1,0 +1,86 @@
+{
+  "name": "Pendulum",
+  "author": "Trance",
+  "description": "Six pendulums on one beam, the longest and slowest for the rumble, the shortest and quickest for the cymbals. Each swings wider the louder its range, and they fall in and out of step.",
+  "palette": "aurora",
+  "init": "p0 = rand(6)\np1 = rand(6)\np2 = rand(6)\np3 = rand(6)\np4 = rand(6)\np5 = rand(6)",
+  "frame": "p0 = p0 + dt*1.97\na0 = (0.15 + 0.3*min(sub_att, 1.8))*sin(p0)\np1 = p1 + dt*2.12\na1 = (0.15 + 0.3*min(low_att, 1.8))*sin(p1)\np2 = p2 + dt*2.33\na2 = (0.15 + 0.3*min(lowmid_att, 1.8))*sin(p2)\np3 = p3 + dt*2.60\na3 = (0.15 + 0.3*min(highmid_att, 1.8))*sin(p3)\np4 = p4 + dt*3.00\na4 = (0.15 + 0.3*min(presence_att, 1.8))*sin(p4)\np5 = p5 + dt*3.68\na5 = (0.15 + 0.3*min(air_att, 1.8))*sin(p5)",
+  "feedback": {
+    "decay": 0.93,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.2,
+    "tint": 0,
+    "spread": 0.2,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 96,
+      "thickness": "2 + 2*sub",
+      "color": "palette(0.00 + time*0.01)",
+      "point": "bx = 1.75*sin(a0)\nby = 0.98 - 1.75*cos(a0)\nu = (t - 0.6)/0.4\nx = if(below(t, 0.6), bx*t/0.6, bx + 0.07*sin(u*tau))\ny = if(below(t, 0.6), 0.98 + (by - 0.98)*t/0.6, by - 0.07*cos(u*tau))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 96,
+      "thickness": "2 + 2*low",
+      "color": "palette(0.17 + time*0.01)",
+      "point": "bx = 1.5*sin(a1)\nby = 0.98 - 1.5*cos(a1)\nu = (t - 0.6)/0.4\nx = if(below(t, 0.6), bx*t/0.6, bx + 0.06*sin(u*tau))\ny = if(below(t, 0.6), 0.98 + (by - 0.98)*t/0.6, by - 0.06*cos(u*tau))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 96,
+      "thickness": "2 + 2*lowmid",
+      "color": "palette(0.33 + time*0.01)",
+      "point": "bx = 1.25*sin(a2)\nby = 0.98 - 1.25*cos(a2)\nu = (t - 0.6)/0.4\nx = if(below(t, 0.6), bx*t/0.6, bx + 0.052*sin(u*tau))\ny = if(below(t, 0.6), 0.98 + (by - 0.98)*t/0.6, by - 0.052*cos(u*tau))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 96,
+      "thickness": "2 + 2*highmid",
+      "color": "palette(0.50 + time*0.01)",
+      "point": "bx = 1.0*sin(a3)\nby = 0.98 - 1.0*cos(a3)\nu = (t - 0.6)/0.4\nx = if(below(t, 0.6), bx*t/0.6, bx + 0.045*sin(u*tau))\ny = if(below(t, 0.6), 0.98 + (by - 0.98)*t/0.6, by - 0.045*cos(u*tau))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 96,
+      "thickness": "2 + 2*presence",
+      "color": "palette(0.67 + time*0.01)",
+      "point": "bx = 0.75*sin(a4)\nby = 0.98 - 0.75*cos(a4)\nu = (t - 0.6)/0.4\nx = if(below(t, 0.6), bx*t/0.6, bx + 0.038*sin(u*tau))\ny = if(below(t, 0.6), 0.98 + (by - 0.98)*t/0.6, by - 0.038*cos(u*tau))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 96,
+      "thickness": "2 + 2*air",
+      "color": "palette(0.83 + time*0.01)",
+      "point": "bx = 0.5*sin(a5)\nby = 0.98 - 0.5*cos(a5)\nu = (t - 0.6)/0.4\nx = if(below(t, 0.6), bx*t/0.6, bx + 0.032*sin(u*tau))\ny = if(below(t, 0.6), 0.98 + (by - 0.98)*t/0.6, by - 0.032*cos(u*tau))"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 600,
+      "rate": "30 + 500*beat",
+      "speed": 0.1,
+      "gravity": 0.3,
+      "life": 1.5,
+      "size": 1.8,
+      "color": "palette(i)",
+      "alpha": 0.8
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "vignette": 0.5
+  }
+}

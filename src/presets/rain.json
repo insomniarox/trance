@@ -1,0 +1,41 @@
+{
+  "name": "Rain",
+  "author": "Trance",
+  "description": "Sparse and dark, made for glass mode.",
+  "palette": "theme",
+  "feedback": {
+    "decay": 0.9,
+    "dy": -0.01,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "particles",
+      "count": 900,
+      "rate": "60 + 400*vol_att",
+      "x": "(rand(2) - 1)*aspect",
+      "y": 1.05,
+      "angle": -1.5708,
+      "spread": 0.15,
+      "speed": 1.2,
+      "gravity": 0.8,
+      "drag": 0,
+      "life": 2.2,
+      "size": 2.5,
+      "color": "palette(i)"
+    },
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "count": 64,
+      "height": 0.22,
+      "color": "palette(t)",
+      "alpha": 0.7,
+      "peaks": false
+    }
+  ],
+  "post": {
+    "bloom": 0.7,
+    "vignette": 0.2
+  }
+}

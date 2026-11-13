@@ -1,0 +1,52 @@
+{
+  "name": "Tidewater",
+  "author": "Trance",
+  "description": "A wave dissolving into slow currents and shedding sparks that ride them, over drifting clouds. The currents are rolled anew each time it loads.",
+  "palette": "ocean",
+  "init": "ka = 2 + rand(3)\nkb = 2 + rand(3)\nph = rand(6)",
+  "frame": "sw = 0.5 + 0.5*bass_att",
+  "feedback": {
+    "decay": 0.975,
+    "edge": "wrap",
+    "blur": 0.15
+  },
+  "pixel": "dx = 0.004*sw*sin(y*kb + time*0.4 + ph) + 0.0015*sin(x*6 - time)\ndy = 0.004*sw*cos(x*ka - time*0.3 + ph)",
+  "background": {
+    "style": "nebula",
+    "intensity": "0.35 + 0.15*bass_att",
+    "tint": 0.15,
+    "spread": 0.35
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "color": "white",
+      "alpha": 0.85,
+      "thickness": 3,
+      "scale": "0.3 + 0.2*bass_att",
+      "smooth": 0.5,
+      "y": "0.15*sin(time*0.2)",
+      "angle": "0.2*sin(time*0.11)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 1400,
+      "rate": "120 + 900*beat",
+      "speed": 0.05,
+      "flow": 1,
+      "drag": 2,
+      "life": 4,
+      "size": 2.5,
+      "color": "palette(0.55 + 0.4*i)",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "colorize": 0.85,
+    "colorShift": "0.08*sin(time*0.1)",
+    "bloom": 0.7,
+    "vignette": 0.4
+  }
+}
