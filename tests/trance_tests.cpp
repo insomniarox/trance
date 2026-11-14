@@ -1227,7 +1227,7 @@ private slots:
         // the other announces what happens.
         QTemporaryDir dir;
         QByteArray answer = R"({"option": "decoration:rounding", "int": 0, "set": true })";
-        int asked = 0, closed = 0;
+        int asked = 0, closed = 0, late = 0;
         bool answering = true;
         QLocalServer requests, events;
         QVERIFY(requests.listen(dir.filePath(".socket.sock")));
@@ -1235,14 +1235,20 @@ private slots:
         connect(&requests, &QLocalServer::newConnection, &requests, [&] {
             QLocalSocket *client = requests.nextPendingConnection();
             connect(client, &QLocalSocket::disconnected, client, [&] { ++closed; });
-            connect(client, &QLocalSocket::readyRead, client, [&, client] {
-                QCOMPARE(client->readAll(), QByteArray("j/getoption decoration:rounding"));
-                ++asked;
-                if (!answering)
-                    return;
-                client->write(answer);
-                client->disconnectFromServer();
-            });
+            // Hyprland waits for the question the moment it takes the
+            // connection, and the whole desktop with it. So does this, on
+            // the thread Trance's own window code runs on: a question that
+            // needs that thread to be sent can't arrive, and is late.
+            if (!client->bytesAvailable() && !client->waitForReadyRead(1000)) {
+                ++late;
+                return;
+            }
+            QCOMPARE(client->readAll(), QByteArray("j/getoption decoration:rounding"));
+            ++asked;
+            if (!answering)
+                return;
+            client->write(answer);
+            client->disconnectFromServer();
         });
 
         Theme theme(dir.path(), nullptr, dir.path());
@@ -1289,6 +1295,7 @@ private slots:
         QCOMPARE(closed, 4);
         QTRY_COMPARE(closed, 5);
         QCOMPARE(theme.radius(), 12);
+        QCOMPARE(late, 0);
     }
 
 private:

@@ -38,6 +38,7 @@ private:
     void reload();
     void listenToHyprland();
     void refreshRounding();
+    void takeRounding(const QByteArray &reply);
 
     QString m_directory;
     QString m_accent = "#FFD60A";
@@ -47,5 +48,6 @@ private:
     QString m_hyprland;
     QLocalSocket m_hyprlandEvents;
     QTimer m_retry;
+    bool m_asking = false;
     int m_radius = 0;
 };
