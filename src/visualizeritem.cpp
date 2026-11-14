@@ -88,12 +88,19 @@ public:
         }
         const double dt = m_clock.isValid() ? m_clock.nsecsElapsed() / 1e9 : 1.0 / 60;
         m_clock.start();
+        // The time the engine takes to hand a frame to the graphics card;
+        // the card's own work runs on after it.
+        QElapsedTimer engineClock;
+        engineClock.start();
         m_engine.render(m_audio, dt, framebufferObject()->handle(), m_size.width(), m_size.height());
+        m_engineSeconds += engineClock.nsecsElapsed() / 1e9;
         QQuickOpenGLUtils::resetOpenGLState();
 
-        if (m_stats.graphics.isEmpty())
-            m_stats.graphics = QString::fromLatin1(
-                reinterpret_cast<const char *>(QOpenGLContext::currentContext()->functions()->glGetString(GL_RENDERER)));
+        if (m_stats.graphics.isEmpty()) {
+            QOpenGLFunctions *gl = QOpenGLContext::currentContext()->functions();
+            m_stats.graphics = QString::fromLatin1(reinterpret_cast<const char *>(gl->glGetString(GL_RENDERER)));
+            m_glVersion = QString::fromLatin1(reinterpret_cast<const char *>(gl->glGetString(GL_VERSION)));
+        }
 
         ++m_frames;
         m_elapsed += dt;
@@ -108,6 +115,15 @@ public:
             m_stats.pictureHeight = m_engine.pictureHeight();
             m_stats.blending = m_engine.changing();
             m_stats.visitors = m_engine.visitorCount();
+            m_stats.details = QVariantMap{{"engineMs", 1000 * m_engineSeconds / m_frames},
+                                          {"vertices", m_engine.vertexCount()},
+                                          {"particles", m_engine.particleCount()},
+                                          {"building", m_engine.building()},
+                                          {"changeProgress", m_engine.changeProgress()},
+                                          {"changePattern", m_engine.changePattern()},
+                                          {"visitorNames", m_engine.visitorNames()},
+                                          {"glVersion", m_glVersion}};
+            m_engineSeconds = 0;
             m_frames = 0;
             m_elapsed = 0;
             m_worst = 0;
@@ -129,7 +145,8 @@ private:
     QString m_palette, m_reportedError;
     VisualizerItem::Stats m_stats;
     int m_frames = 0;
-    double m_elapsed = 0, m_worst = 0;
+    double m_elapsed = 0, m_worst = 0, m_engineSeconds = 0;
+    QString m_glVersion;
     bool m_statsDue = false;
 };
 

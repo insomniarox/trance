@@ -283,6 +283,10 @@ private:
     Analyzer m_analyzer;
     AudioCapture *m_capture = nullptr;
     QElapsedTimer m_sinceAnalysis, m_sinceChange;
+    // When the last few beats landed, for a tempo in the debug overlay.
+    QElapsedTimer m_clock;
+    QList<qint64> m_beatTimes;
+    int m_lastBeats = 0;
     bool m_silent = true;
     QTimer m_tick;
 };

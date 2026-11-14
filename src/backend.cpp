@@ -12,6 +12,8 @@
 
 #include "theme.h"
 
+#include <algorithm>
+
 namespace {
 
 QString configPath(const QString &directory) {
@@ -149,6 +151,14 @@ double Backend::progress() const {
 
 void Backend::tick() {
     const AudioFrame &frame = m_analyzer.frame();
+    if (frame.beats != m_lastBeats) {
+        m_lastBeats = frame.beats;
+        if (!m_clock.isValid())
+            m_clock.start();
+        m_beatTimes << m_clock.elapsed();
+        while (m_beatTimes.size() > 9)
+            m_beatTimes.removeFirst();
+    }
     if (frame.silent != m_silent) {
         m_silent = frame.silent;
         emit audioChanged();
@@ -1019,6 +1029,38 @@ QVariantMap Backend::stats() const {
     QVariantList bands;
     for (int band = 0; band < AudioFrame::Bands; ++band)
         bands << QVariantMap{{"name", QString(bandInfo(band).name)}, {"level", frame.bandAtt[band]}};
+    // A tempo from the gaps between the last few beats: the middle one, so
+    // a missed or doubled beat doesn't throw it. Nothing until there are
+    // enough of them, or once they have stopped for a while.
+    double tempo = 0;
+    if (m_beatTimes.size() >= 5 && m_clock.elapsed() - m_beatTimes.last() < 3000) {
+        QList<qint64> gaps;
+        for (int i = 1; i < m_beatTimes.size(); ++i)
+            gaps << m_beatTimes[i] - m_beatTimes[i - 1];
+        std::sort(gaps.begin(), gaps.end());
+        const qint64 gap = gaps[gaps.size() / 2];
+        if (gap > 0)
+            tempo = 60000.0 / double(gap);
+    }
+    // What the preset is made of, kind by kind: "wireframe ×2, particles".
+    QStringList kinds;
+    QHash<QString, int> counts;
+    for (const auto &layer : m_json.value("layers").toArray()) {
+        const QString type = layer.toObject().value("type").toString();
+        if (!counts.contains(type))
+            kinds << type;
+        ++counts[type];
+    }
+    QStringList layerSummary;
+    for (const auto &kind : kinds)
+        layerSummary << (counts[kind] > 1 ? QString("%1 ×%2").arg(kind).arg(counts[kind]) : kind);
+    int errors = 0, warnings = 0;
+    for (const auto &problem : m_problems)
+        ++(problem.error ? errors : warnings);
+    if (!m_engineError.isEmpty())
+        ++errors;
+    const int index = m_library.indexOf(m_currentName);
+    const QString path = index >= 0 && !m_library.presets()[index].builtin ? m_library.presets()[index].path : QString();
     return {{"waiting", waiting},
             {"bands", bands},
             {"nextIn", qMax(0.0, m_cycleSeconds - m_sinceChange.elapsed() / 1000.0)},
@@ -1030,6 +1072,12 @@ QVariantMap Backend::stats() const {
             {"vol", frame.volAtt},
             {"beat", frame.beat},
             {"beats", frame.beats},
+            {"tempo", tempo},
+            {"layerSummary", layerSummary.join(", ")},
+            {"errors", errors},
+            {"warnings", warnings},
+            {"path", path},
+            {"sensitivity", m_sensitivity},
             {"source", sourceLabel()}};
 }
 

@@ -99,7 +99,7 @@ corners that follow the window rounding on Hyprland.
 | `P` or `/` | Browse and search presets |
 | `E` | Edit this preset: its motion, layers and look |
 | `S` | Settings: what applies to every preset |
-| `D` | Debug overlay: preset name, frame rate, sound |
+| `D` | Debug overlay: preset, frame rate and load, sound and levels |
 | `T` | Change the colors: theme, palettes, or the preset's own |
 | `G` | Glass: let the desktop show through |
 | `N` | Track titles: in the corner, in the picture, or off |
@@ -131,10 +131,13 @@ There are two panels, and they don't overlap:
 
 Nothing is written over the picture unless you ask for it. Preset names on
 a change are off by default (Settings > On screen), and `D` brings up a
-debug overlay with the preset's name, frames per second and frame time, the
-size the picture is drawn at, the graphics card, what is being listened to,
-and the levels by the names formulas use (`bass`, `mid`, `treb`, `vol`,
-`beat`).
+debug overlay, small and see-through over the picture: the preset, its
+layers, the file it came from and any problems in it; frame rate and frame
+time, how long the engine takes, how many vertices and particles it draws,
+the picture's size and the graphics card; how a change of preset is coming
+along and which visitors are in; what is being listened to, the tempo, the
+track, and the levels and the six ranges by the names formulas use
+(`bass`, `mid`, `treb`, `vol`, `beat`, `sub` … `air`).
 
 Moving the pointer over the picture brings up a row of buttons for the same
 things the keys do.

@@ -181,6 +181,33 @@ void Engine::showText(const QImage &image) {
 
 double Engine::variable(const QString &name) const { return m_scene ? m_scene->p.vars.get(name) : 0.0; }
 
+QString Engine::changePattern() const {
+    // transitionStyles() starts with "mixed", which picks one of the rest.
+    const QStringList styles = presets::transitionStyles();
+    return m_old ? styles.value(m_pattern + 1) : QString();
+}
+
+QStringList Engine::visitorNames() const {
+    QStringList names;
+    for (const auto &visitor : m_visitors)
+        names << visitor->p.name;
+    return names;
+}
+
+int Engine::particleCount() const {
+    size_t count = 0;
+    const auto add = [&count](const Scene *scene) {
+        if (scene)
+            for (const LayerState &layer : scene->layers)
+                count += layer.particles.size();
+    };
+    add(m_scene.get());
+    add(m_old.get());
+    for (const auto &visitor : m_visitors)
+        add(visitor.get());
+    return int(count);
+}
+
 float Engine::random() {
     m_random ^= m_random << 13;
     m_random ^= m_random >> 17;
@@ -704,6 +731,8 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     if (width < 1 || height < 1)
         return;
     dt = clampTo(dt, 1e-4, 0.1);
+    m_lastVertices = m_frameVertices;
+    m_frameVertices = 0;
     m_audio = audio;
     m_dt = dt;
     m_time += dt;
@@ -1147,6 +1176,7 @@ void Engine::flush(bool additive) {
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
     else
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
+    m_frameVertices += int(m_vertices.size() / 10);
     glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(m_vertices.size() * sizeof(float)), m_vertices.data(), GL_STREAM_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_vertices.size() / 10));
     m_vertices.clear();

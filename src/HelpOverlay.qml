@@ -32,7 +32,7 @@ Rectangle {
             [["T"], qsTr("Change the colors: theme, palettes, or the preset's own")],
             [["G"], qsTr("Glass: let the desktop show through")],
             [["N"], qsTr("Track titles: in the corner, in the picture, or off")],
-            [["D"], qsTr("Debug overlay: preset name, frame rate, sound")],
+            [["D"], qsTr("Debug overlay: preset, frame rate and load, sound and levels")],
             [["F"], qsTr("Full screen")]
         ] },
         { title: qsTr("Sound"), keys: [

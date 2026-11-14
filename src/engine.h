@@ -84,6 +84,16 @@ public:
     double variable(const QString &name) const;
     bool changing() const { return bool(m_old); }
     int visitorCount() const { return int(m_visitors.size()); }
+    // For the debug overlay: how far a change of preset has come (1 when
+    // none is under way) and the pattern it arrives in, who is visiting,
+    // how many sparks are alive, how many vertices the last frame drew, and
+    // whether a preset's shaders are still being built.
+    double changeProgress() const { return m_old ? double(m_blend) : 1.0; }
+    QString changePattern() const;
+    QStringList visitorNames() const;
+    int particleCount() const;
+    int vertexCount() const { return m_lastVertices; }
+    bool building() const { return m_awaitedId != 0; }
     // The size the picture is worked out at, which the quality setting and
     // the 1440-line limit make smaller than the window.
     int pictureWidth() const { return m_width; }
@@ -230,6 +240,7 @@ private:
     float m_aspect = 1;
 
     std::vector<float> m_vertices, m_uniforms;
+    int m_frameVertices = 0, m_lastVertices = 0;
     std::vector<Point> m_points;
     AudioFrame m_audio;
 

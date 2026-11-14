@@ -271,7 +271,7 @@ SidePanel {
                 }
                 Setting {
                     label: qsTr("Debug overlay")
-                    note: qsTr("The preset's name, frames per second, and what the music and the graphics card are doing.")
+                    note: qsTr("The preset and its file, frame rate and load, the graphics card, the tempo, and every level formulas can read.")
                     Toggle { checked: backend.debug; onToggled: backend.debug = checked }
                 }
             }

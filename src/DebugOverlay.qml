@@ -1,23 +1,23 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Controls.Material
 import QtQuick.Layouts
 
 // What is running right now, for when something looks or sounds wrong: the
-// preset, how fast it is being drawn and at what size, and what is arriving
-// from the music. Off unless asked for (D, or the settings).
-Rectangle {
+// preset and where it came from, how hard the drawing is working, what is
+// arriving from the music, and the colors. Off unless asked for (D, or the
+// settings). It sits straight on the picture with no panel behind it, small
+// and half see-through, and a faint outline keeps it readable over light.
+Item {
     id: overlay
     // The Visualizer whose drawing is being reported.
     property var view
     // The backend's side of it, asked for a few times a second.
     property var stats: backend.stats()
+    readonly property var details: view ? view.details : ({})
 
-    width: Math.min(grid.implicitWidth + 28, parent.width - 32)
-    height: grid.implicitHeight + 24
-    radius: Math.min(4, theme.radius)
-    color: "#d00a0a0e"
-    border.color: Ui.line
+    width: Math.min(grid.implicitWidth, parent.width - 32)
+    height: grid.implicitHeight
+    opacity: 0.78
 
     Timer {
         interval: 250
@@ -27,175 +27,214 @@ Rectangle {
         onTriggered: overlay.stats = backend.stats()
     }
 
-    function number(value, places) { return Number(value).toFixed(places) }
-    readonly property string presetLine: {
-        const parts = [backend.currentName]
-        parts.push(backend.currentIsYours ? qsTr("yours") : qsTr("built-in"))
-        parts.push(Ui.count(stats.layers, qsTr("1 layer"), qsTr("%1 layers")))
-        if (backend.dirty)
-            parts.push(qsTr("Unsaved changes"))
-        return parts.join("  ·  ")
+    readonly property int nameSize: 9
+    readonly property int valueSize: 10
+    readonly property color outline: "#b0000000"
+
+    function number(value, places) { return Number(value || 0).toFixed(places) }
+    function thousands(value) { return Number(value || 0).toLocaleString(Qt.locale("en_US"), "f", 0) }
+    function join(parts) { return parts.filter(function (p) { return p && String(p).length > 0 }).join("  ·  ") }
+
+    readonly property string presetLine: join([
+        backend.currentName,
+        backend.currentShadowsBuiltin ? qsTr("your copy of a built-in") : backend.currentIsYours ? qsTr("yours") : qsTr("built-in"),
+        backend.dirty ? qsTr("unsaved") : ""])
+    readonly property string layerLine: stats.layerSummary && stats.layerSummary.length > 0 ? stats.layerSummary : qsTr("no layers")
+    readonly property string problemLine: {
+        const parts = []
+        if (stats.errors > 0)
+            parts.push(Ui.count(stats.errors, qsTr("1 error"), qsTr("%1 errors")))
+        if (stats.warnings > 0)
+            parts.push(Ui.count(stats.warnings, qsTr("1 warning"), qsTr("%1 warnings")))
+        if (backend.problems.length > 0)
+            parts.push(backend.problems[0].message)
+        return join(parts)
     }
     readonly property string nextLine: {
         const waiting = stats.waiting
-        if (waiting === "never")
-            return qsTr("Never")
-        if (waiting === "held")
-            return qsTr("Held")
-        if (waiting === "editing")
-            return qsTr("Waiting while the editor is open")
-        if (waiting === "unsaved")
-            return qsTr("Waiting for unsaved changes")
+        if (waiting === "never") return qsTr("never")
+        if (waiting === "held") return qsTr("held")
+        if (waiting === "editing") return qsTr("waiting while the editor is open")
+        if (waiting === "unsaved") return qsTr("waiting for unsaved changes")
         const left = Math.ceil(stats.nextIn)
-        const when = left > 0 ? qsTr("In %1 s").arg(left) : qsTr("On the next beat")
-        return when + "  ·  " + (backend.shuffle ? qsTr("Shuffle") : qsTr("In order"))
+        return join([left > 0 ? qsTr("in %1 s").arg(left) : qsTr("on the next beat"),
+                     backend.shuffle ? qsTr("shuffle") : qsTr("in order"),
+                     qsTr("%1 s blend, %2").arg(number(backend.blendSeconds, 1)).arg(backend.transition)])
     }
+    readonly property string changeLine: join([
+        view && view.blending ? qsTr("%1 %2 %").arg(details.changePattern || "").arg(Math.round(100 * (details.changeProgress || 0))) : "",
+        details.building ? qsTr("building shaders") : ""])
     readonly property string drawingLine: view
-        ? qsTr("%1 frames a second").arg(Math.round(view.fps)) + "  ·  "
-          + qsTr("%1 ms a frame, %2 ms at worst").arg(number(view.frameMs, 1)).arg(number(view.worstMs, 1))
+        ? join([qsTr("%1 fps").arg(Math.round(view.fps)),
+                qsTr("%1 ms a frame").arg(number(view.frameMs, 1)),
+                qsTr("%1 ms worst").arg(number(view.worstMs, 1))])
         : ""
+    readonly property string engineLine: join([
+        qsTr("%1 ms in the engine").arg(number(details.engineMs, 2)),
+        qsTr("%1 vertices").arg(thousands(details.vertices)),
+        details.particles === 1 ? qsTr("1 particle") : qsTr("%1 particles").arg(thousands(details.particles))])
     readonly property string sizeLine: {
         if (!view)
             return ""
-        const drawn = view.pictureWidth + " × " + view.pictureHeight
-        const shown = view.pixelWidth + " × " + view.pixelHeight
-        return drawn === shown ? drawn : qsTr("%1, shown at %2").arg(drawn).arg(shown)
+        const drawn = view.pictureWidth + "×" + view.pictureHeight
+        const shown = view.pixelWidth + "×" + view.pixelHeight
+        return join([drawn === shown ? drawn : qsTr("%1 drawn, %2 shown").arg(drawn).arg(shown),
+                     qsTr("quality %1 %").arg(Math.round(100 * backend.quality)),
+                     backend.glass ? qsTr("glass %1 %").arg(Math.round(100 * backend.glassOpacity)) : ""])
     }
-    readonly property string soundLine: {
-        const parts = [stats.source, number(stats.sampleRate / 1000, 0) + " kHz"]
-        parts.push(backend.audioError.length > 0 ? backend.audioError : backend.silent ? qsTr("Silent") : qsTr("Playing"))
-        return parts.join("  ·  ")
+    readonly property string graphicsLine: view ? join([view.graphics, details.glVersion]) : ""
+    readonly property string visitorLine: {
+        const names = details.visitorNames || []
+        return names.length > 0 ? names.join(", ") : backend.visitors ? qsTr("none right now") : qsTr("off")
     }
-    readonly property string colorLine: backend.activePalette.length === 0 ? qsTr("Each preset's own")
-        : backend.colorDrift ? qsTr("%1, drifting").arg(backend.activePalette) : backend.activePalette
-    readonly property string sceneLine: {
-        const parts = [view && view.blending ? qsTr("Changing presets") : qsTr("One preset")]
-        parts.push(Ui.count(view ? view.visitors : 0, qsTr("1 visitor"), qsTr("%1 visitors")))
-        return parts.join("  ·  ")
-    }
+    readonly property string soundLine: join([
+        stats.source, number(stats.sampleRate / 1000, 0) + " kHz",
+        backend.audioError.length > 0 ? backend.audioError : backend.silent ? qsTr("silent") : qsTr("playing")])
+    readonly property string tempoLine: join([
+        stats.tempo > 0 ? qsTr("%1 BPM").arg(Math.round(stats.tempo)) : qsTr("no steady beat"),
+        stats.beats === 1 ? qsTr("1 beat") : qsTr("%1 beats").arg(thousands(stats.beats)),
+        qsTr("sensitivity ×%1").arg(number(stats.sensitivity, 2))])
+    readonly property string trackLine: join([nowPlaying.title, nowPlaying.artist])
+    readonly property string colorLine: join([
+        backend.activePalette.length === 0 ? qsTr("each preset's own") : backend.activePalette,
+        backend.colorDrift ? qsTr("drifting") : ""])
 
-    component Name: Label {
-        font.pixelSize: Ui.tiny
+    component Name: Text {
+        font.pixelSize: overlay.nameSize
         font.weight: Font.DemiBold
         font.capitalization: Font.AllUppercase
-        font.letterSpacing: 0.8
+        font.letterSpacing: 0.6
         color: Ui.textFaint
-        Layout.alignment: Qt.AlignBaseline
+        style: Text.Outline
+        styleColor: overlay.outline
+        Layout.alignment: Qt.AlignBaseline | Qt.AlignRight
     }
-    component Value: Label {
+    component Value: Text {
         font.family: Ui.mono
-        font.pixelSize: Ui.small
+        font.pixelSize: overlay.valueSize
         color: Ui.text
+        style: Text.Outline
+        styleColor: overlay.outline
         elide: Text.ElideRight
         Layout.fillWidth: true
-        Layout.maximumWidth: 460
+        Layout.maximumWidth: 420
         Layout.alignment: Qt.AlignBaseline
+    }
+    // A gap between groups of rows.
+    component Gap: Item { Layout.columnSpan: 2; implicitHeight: 3 }
+    // A name, a thin bar and the number, for one level as formulas know it.
+    component Meter: Row {
+        id: meter
+        property string label
+        property real value
+        // Levels sit around 1 and peak near 2; the beat runs 0 to 1.
+        property real full: 2
+        property int barWidth: 26
+        spacing: 4
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: meter.label
+            font.family: Ui.mono
+            font.pixelSize: overlay.valueSize
+            color: Ui.textDim
+            style: Text.Outline
+            styleColor: overlay.outline
+        }
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: meter.barWidth
+            height: 2
+            color: "#30ffffff"
+            Rectangle {
+                height: parent.height
+                width: parent.width * Math.max(0, Math.min(1, meter.value / meter.full))
+                color: meter.full === 1 ? "white" : theme.accent
+            }
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            width: 26
+            text: meter.value.toFixed(2)
+            font.family: Ui.mono
+            font.pixelSize: overlay.valueSize
+            color: Ui.text
+            style: Text.Outline
+            styleColor: overlay.outline
+        }
     }
 
     GridLayout {
         id: grid
-        x: 14
-        y: 12
-        width: Math.min(implicitWidth, overlay.parent.width - 60)
+        width: Math.min(implicitWidth, overlay.parent.width - 32)
         columns: 2
-        columnSpacing: 16
-        rowSpacing: 5
+        columnSpacing: 10
+        rowSpacing: 2
 
         Name { text: qsTr("Preset") }
         Value { text: overlay.presetLine }
+        Name { text: qsTr("Layers") }
+        Value { text: overlay.layerLine }
+        Name { text: qsTr("File"); visible: overlay.stats.path.length > 0 }
+        Value { text: overlay.stats.path; visible: overlay.stats.path.length > 0; elide: Text.ElideMiddle }
+        Name { text: qsTr("Problems"); visible: overlay.problemLine.length > 0; color: Ui.danger }
+        Value { text: overlay.problemLine; visible: overlay.problemLine.length > 0; color: Ui.danger }
         Name { text: qsTr("Next") }
         Value { text: overlay.nextLine }
-        Name { text: qsTr("Drawing") }
+        Name { text: qsTr("Changing"); visible: overlay.changeLine.length > 0 }
+        Value { text: overlay.changeLine; visible: overlay.changeLine.length > 0; color: Ui.warning }
+
+        Gap {}
+        Name { text: qsTr("Frame") }
         Value { text: overlay.drawingLine }
+        Name { text: qsTr("Load") }
+        Value { text: overlay.engineLine }
         Name { text: qsTr("Size") }
         Value { text: overlay.sizeLine }
         Name { text: qsTr("Graphics") }
-        Value { text: overlay.view ? overlay.view.graphics : "" }
+        Value { text: overlay.graphicsLine }
+        Name { text: qsTr("Visitors") }
+        Value { text: overlay.visitorLine }
+
+        Gap {}
         Name { text: qsTr("Sound") }
         Value { text: overlay.soundLine }
-        Name { text: qsTr("Levels") }
+        Name { text: qsTr("Tempo") }
+        Value { text: overlay.tempoLine }
+        Name { text: qsTr("Track"); visible: overlay.trackLine.length > 0 }
+        Value { text: overlay.trackLine; visible: overlay.trackLine.length > 0 }
         // By the names formulas use, so a number here can be typed there.
+        Name { text: qsTr("Levels") }
         Row {
-            spacing: 14
+            spacing: 10
             Layout.alignment: Qt.AlignVCenter
             Repeater {
                 model: ["bass", "mid", "treb", "vol", "beat"]
-                Row {
-                    id: level
+                Meter {
                     required property string modelData
-                    readonly property real value: overlay.stats[modelData] || 0
-                    spacing: 6
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: level.modelData
-                        font.family: Ui.mono
-                        font.pixelSize: Ui.small
-                        color: Ui.textDim
-                    }
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 34
-                        height: 4
-                        color: "#24ffffff"
-                        Rectangle {
-                            height: parent.height
-                            // Levels sit around 1 and peak near 2; the beat runs 0 to 1.
-                            width: parent.width * Math.max(0, Math.min(1, level.value / (level.modelData === "beat" ? 1 : 2)))
-                            color: level.modelData === "beat" ? "white" : theme.accent
-                        }
-                    }
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 30
-                        text: level.value.toFixed(2)
-                        font.family: Ui.mono
-                        font.pixelSize: Ui.small
-                        color: Ui.text
-                    }
+                    label: modelData
+                    value: overlay.stats[modelData] || 0
+                    full: modelData === "beat" ? 1 : 2
                 }
             }
         }
-        // The six narrow ranges, lowest first.
+        // The six narrow ranges, lowest first, smoothed as their _att twins.
         Name { text: qsTr("Bands") }
         Row {
-            spacing: 14
+            spacing: 10
             Layout.alignment: Qt.AlignVCenter
             Repeater {
                 model: overlay.stats.bands
-                Row {
-                    id: band
+                Meter {
                     required property var modelData
-                    spacing: 6
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: band.modelData.name
-                        font.family: Ui.mono
-                        font.pixelSize: Ui.small
-                        color: Ui.textDim
-                    }
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 22
-                        height: 4
-                        color: "#24ffffff"
-                        Rectangle {
-                            height: parent.height
-                            width: parent.width * Math.max(0, Math.min(1, band.modelData.level / 2))
-                            color: theme.accent
-                        }
-                    }
+                    label: modelData.name
+                    value: modelData.level
+                    barWidth: 18
                 }
             }
         }
+
+        Gap {}
         Name { text: qsTr("Colors") }
         Value { text: overlay.colorLine }
-        Name { text: qsTr("Scene") }
-        Value { text: overlay.sceneLine }
-        Name { text: qsTr("Problems"); visible: backend.problems.length > 0; color: Ui.danger }
-        Value {
-            visible: backend.problems.length > 0
-            color: Ui.danger
-            text: backend.problems.length > 0 ? backend.problems[0].message : ""
-        }
     }
 }

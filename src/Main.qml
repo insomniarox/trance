@@ -271,7 +271,7 @@ ApplicationWindow {
 
             DebugOverlay {
                 id: debug
-                anchors { left: parent.left; top: parent.top; margins: 16 }
+                anchors { left: parent.left; top: parent.top; margins: 14 }
                 visible: backend.debug
                 view: picture
             }

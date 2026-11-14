@@ -2,6 +2,7 @@
 
 #include <QQuickFramebufferObject>
 #include <QString>
+#include <QVariantMap>
 
 class Backend;
 class QOffscreenSurface;
@@ -21,6 +22,10 @@ class VisualizerItem : public QQuickFramebufferObject {
     Q_PROPERTY(QString graphics READ graphics NOTIFY statsChanged)
     Q_PROPERTY(bool blending READ blending NOTIFY statsChanged)
     Q_PROPERTY(int visitors READ visitors NOTIFY statsChanged)
+    // Everything else the debug overlay shows about the drawing, by name:
+    // engineMs, vertices, particles, building, changeProgress,
+    // changePattern, visitorNames, glVersion.
+    Q_PROPERTY(QVariantMap details READ details NOTIFY statsChanged)
 
 public:
     explicit VisualizerItem(QQuickItem *parent = nullptr);
@@ -33,6 +38,7 @@ public:
         QString graphics; // the graphics card, as its driver names it
         bool blending = false; // two presets are on the picture, changing over
         int visitors = 0;
+        QVariantMap details;
     };
     double fps() const { return m_stats.fps; }
     double frameMs() const { return m_stats.frameMs; }
@@ -44,6 +50,7 @@ public:
     QString graphics() const { return m_stats.graphics; }
     bool blending() const { return m_stats.blending; }
     int visitors() const { return m_stats.visitors; }
+    QVariantMap details() const { return m_stats.details; }
     void setStats(const Stats &stats);
 
     // The one backend every visualizer in the process shows.
