@@ -190,13 +190,19 @@ void Backend::tick() {
 QVariantList Backend::presets() const {
     QVariantList list;
     for (const auto &preset : m_library.presets())
-        list << QVariantMap{{"name", preset.name}, {"author", preset.author}, {"builtin", preset.builtin}};
+        list << QVariantMap{{"name", preset.name}, {"author", preset.author}, {"builtin", preset.builtin},
+                            {"shadowsBuiltin", preset.shadowsBuiltin}};
     return list;
 }
 
 bool Backend::currentIsYours() const {
     const int index = m_library.indexOf(m_currentName);
     return index >= 0 && !m_library.presets()[index].builtin;
+}
+
+bool Backend::currentShadowsBuiltin() const {
+    const int index = m_library.indexOf(m_currentName);
+    return index >= 0 && m_library.presets()[index].shadowsBuiltin;
 }
 
 void Backend::load(int index, double blend) {
@@ -755,7 +761,8 @@ bool Backend::deleteCurrent() {
         return false;
     }
     emit presetsChanged();
-    emit notice(tr("Deleted %1").arg(name));
+    emit notice(m_library.indexOf(name) >= 0 ? tr("Deleted your copy of %1; the built-in is back").arg(name)
+                                             : tr("Deleted %1").arg(name));
     // A built-in the deleted preset stood in for is back; show that,
     // otherwise whatever now sits in its place in the list.
     const int builtin = m_library.indexOf(name);

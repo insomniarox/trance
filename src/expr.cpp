@@ -94,11 +94,17 @@ double random01() {
     return double(state >> 11) / double(1ull << 53);
 }
 
-double latticeHash(int x, int y) {
-    uint32_t h = uint32_t(x) * 374761393u + uint32_t(y) * 668265263u;
-    h = (h ^ (h >> 13)) * 1274126177u;
-    h ^= h >> 16;
-    return double(h & 0xFFFFFF) / double(0x1000000);
+// The shader's f_hash, step for step and in the same single precision, so
+// that noise() in pixel code gives the CPU (which works out where particles
+// and motion vectors are carried) the same field the picture flows along.
+float latticeHash(float x, float y) {
+    const auto fract = [](float v) { return v - std::floor(v); };
+    float qx = fract(x * 0.1031f), qy = fract(y * 0.1031f), qz = fract(x * 0.1031f);
+    const float d = qx * (qy + 33.33f) + qy * (qz + 33.33f) + qz * (qx + 33.33f);
+    qx += d;
+    qy += d;
+    qz += d;
+    return fract((qx + qy) * qz);
 }
 
 // Division by zero is zero rather than infinity, so one bad frame of audio
@@ -798,10 +804,10 @@ float f_rand(float stream) { return f_hash(gl_FragCoord.xy + vec2(u_seed * 61.7 
 
 double noise(double x, double y) {
     const double fx = std::floor(x), fy = std::floor(y);
-    const int ix = int(fx), iy = int(fy);
     double tx = x - fx, ty = y - fy;
     tx = tx * tx * (3 - 2 * tx);
     ty = ty * ty * (3 - 2 * ty);
+    const float ix = float(fx), iy = float(fy);
     const double a = latticeHash(ix, iy), b = latticeHash(ix + 1, iy);
     const double c = latticeHash(ix, iy + 1), d = latticeHash(ix + 1, iy + 1);
     return (a + (b - a) * tx) + ((c + (d - c) * tx) - (a + (b - a) * tx)) * ty;

@@ -95,7 +95,7 @@ SidePanel {
                     }
                     Label {
                         visible: !entry.modelData.builtin
-                        text: qsTr("yours")
+                        text: entry.modelData.shadowsBuiltin ? qsTr("your copy") : qsTr("yours")
                         font.pixelSize: Ui.tiny
                         color: theme.accent
                     }

@@ -707,6 +707,44 @@ private slots:
         QCOMPARE(engine.variable("count_frames"), 106.0);
     }
 
+    // noise() is the same field on the CPU as in a shader, so particles and
+    // motion vectors, which work the flow out on the CPU, follow the picture
+    // when pixel code uses it.
+    void noiseIsTheSameOnTheCpuAndTheGpu()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setPreset(presets::compile(fixture(
+            "{ 'name': 'Noise', 'feedback': { 'decay': 0 }, 'shade': 'r = 0.6*noise(x*7 + 3.3, y*7 - 11.7); g = 0; b = 0', "
+            "'post': { 'bloom': 0, 'vignette': 0 } }")), 0);
+        engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QVERIFY2(engine.error().isEmpty(), qPrintable(engine.error()));
+        const QImage image = target.toImage();
+        double worst = 0;
+        for (int row = 2; row < 64; row += 7) {
+            for (int col = 3; col < 64; col += 7) {
+                // The image's first row is the top of the picture.
+                const double x = (col + 0.5) / 64 * 2 - 1, y = 1 - (row + 0.5) / 64 * 2;
+                const double expected = 0.6 * expr::noise(x * 7 + 3.3, y * 7 - 11.7);
+                worst = std::max(worst, std::abs(image.pixelColor(col, row).redF() - expected));
+            }
+        }
+        QVERIFY2(worst < 3.0 / 255, qPrintable(QString::number(worst * 255) + " levels apart"));
+    }
+
     // --------------------------------------------------------------- theme
 
     // A change of preset runs both for its length: halfway through, the

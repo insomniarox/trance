@@ -24,6 +24,7 @@ class Backend : public QObject {
     Q_PROPERTY(QVariantList presets READ presets NOTIFY presetsChanged)
     Q_PROPERTY(QString currentName READ currentName NOTIFY currentChanged)
     Q_PROPERTY(bool currentIsYours READ currentIsYours NOTIFY currentChanged)
+    Q_PROPERTY(bool currentShadowsBuiltin READ currentShadowsBuiltin NOTIFY currentChanged)
     Q_PROPERTY(bool dirty READ dirty NOTIFY presetChanged)
     Q_PROPERTY(int revision READ revision NOTIFY presetChanged)
     Q_PROPERTY(QVariantList layers READ layers NOTIFY layersChanged)
@@ -74,6 +75,9 @@ public:
     QVariantList presets() const;
     QString currentName() const { return m_currentName; }
     bool currentIsYours() const;
+    // Yours, and standing in for a built-in of the same name, which is
+    // hidden until yours is deleted.
+    bool currentShadowsBuiltin() const;
     bool dirty() const { return m_json != m_saved; }
     int revision() const { return m_revision; }
     QVariantList layers() const;

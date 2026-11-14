@@ -489,7 +489,9 @@ ApplicationWindow {
         Label {
             width: parent.width
             wrapMode: Text.WordWrap
-            text: qsTr("Delete %1? This can't be undone.").arg(backend.currentName)
+            text: backend.currentShadowsBuiltin
+                  ? qsTr("Delete your copy of %1? The built-in takes its place again. This can't be undone.").arg(backend.currentName)
+                  : qsTr("Delete %1? This can't be undone.").arg(backend.currentName)
         }
         footer: DialogButtonBox {
             Button {

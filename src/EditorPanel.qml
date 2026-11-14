@@ -11,6 +11,7 @@ SidePanel {
     id: panel
     title: qsTr("Preset")
     scope: backend.dirty ? qsTr("Unsaved changes")
+         : backend.currentShadowsBuiltin ? qsTr("Your copy, in place of the built-in. Delete it to get the built-in back.")
          : backend.currentIsYours ? qsTr("Yours, saved") : qsTr("Built-in. Changes are saved as your own copy.")
 
     // Which layer cards are folded open, by position.

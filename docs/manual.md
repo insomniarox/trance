@@ -72,7 +72,8 @@ setting back to its default.
 
 **In a file.** Your presets are in `~/.config/trance/presets/`, one `.json`
 each. Built-in presets can't be changed, but saving one makes your own copy
-under the same name.
+under the same name, which shows in its place (marked "your copy" in the
+list) until you delete it and the built-in comes back.
 
 **From the command line**, which is the quickest way to see what a change
 did without waiting for the music:

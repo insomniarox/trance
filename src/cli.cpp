@@ -97,11 +97,13 @@ int list(const QStringList &arguments) {
         QJsonArray array;
         for (const auto &preset : library.presets())
             array.append(QJsonObject{{"name", preset.name}, {"author", preset.author}, {"builtin", preset.builtin},
-                                     {"path", preset.path}});
+                                     {"shadowsBuiltin", preset.shadowsBuiltin}, {"path", preset.path}});
         print({{"presets", array}, {"directory", library.userDirectory()}});
     } else {
         for (const auto &preset : library.presets())
-            print(stdout, preset.builtin ? preset.name : preset.name + "  (yours)");
+            print(stdout, preset.builtin           ? preset.name
+                          : preset.shadowsBuiltin ? preset.name + "  (your copy, hiding the built-in)"
+                                                  : preset.name + "  (yours)");
     }
     return 0;
 }
