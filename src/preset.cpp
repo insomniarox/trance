@@ -162,6 +162,18 @@ const QHash<QString, QStringList> &palettes() {
         {"rose", {"#050003", "#2a0718", "#661537", "#b02d5c", "#e86d8e", "#ffb3c4", "#fff0f3"}},
         {"abyss", {"#000206", "#03122b", "#073d5c", "#00808a", "#1fc9b0", "#9effd8", "#ff7ad9"}},
         {"tropic", {"#ff5e5b", "#ff9f43", "#ffd166", "#06d6a0", "#00b4d8", "#3a86ff", "#c86bfa"}},
+        // Three more from black: a thermal camera's ironbow, a plasma that
+        // starts in deep indigo rather than black, and jade.
+        {"thermal", {"#000000", "#1a0a4a", "#5a0f7a", "#a51e6b", "#e04a2a", "#f79a1a", "#ffe066", "#ffffff"}},
+        {"nova", {"#0d0887", "#4c02a1", "#7e03a8", "#a92395", "#cc4778", "#e66c5c", "#f89540", "#fdc527",
+                  "#f0f921"}},
+        {"jade", {"#000503", "#01261a", "#045c3d", "#0f9465", "#4cc994", "#a8f0cc", "#f2fff8"}},
+        // Two bright cycles: seventies earth and teal, and a carnival.
+        {"retro", {"#e76f51", "#f4a261", "#e9c46a", "#8ab17d", "#2a9d8f", "#3d6f8e", "#b5557a"}},
+        {"carnival", {"#7b2cbf", "#c77dff", "#ffd60a", "#f77f00", "#2dc653", "#00b4d8"}},
+        // Every hue at about the same brightness, so a palette that keeps
+        // turning changes color without flickering lighter and darker.
+        {"phase", {"#b8860b", "#d2603f", "#d0477c", "#9c5ac8", "#4f83d1", "#24a3a0", "#62a83a"}},
         // Pale, down through night and back up through dusk: its two ends
         // meet, so palette(t + time*0.1) turns without a seam anywhere.
         {"twilight", {"#e2d9e2", "#a8b8d2", "#6f7fc0", "#5a4aa4", "#3b1a5e", "#2a0f2c", "#6e2347", "#b0545a",
@@ -662,7 +674,8 @@ QStringList paletteNames() {
     return {"theme",   "accent", "fire",   "ocean",    "neon",   "sunset", "aurora", "vapor",    "acid",
             "ice",     "gold",   "rainbow", "magma",   "inferno", "viridis", "lagoon", "forest",   "dusk",
             "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "sepia",    "steel",  "rose",
-            "abyss",   "tropic", "twilight", "mono"};
+            "abyss",   "tropic", "twilight", "thermal", "nova", "jade",    "retro",  "carnival", "phase",
+            "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }
