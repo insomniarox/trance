@@ -23,6 +23,7 @@
         <file alias="ControlBar.qml">ControlBar.qml</file>
         <file alias="HelpTip.qml">HelpTip.qml</file>
         <file alias="presets/aurora.json">presets/aurora.json</file>
+        <file alias="presets/borehole.json">presets/borehole.json</file>
         <file alias="presets/clockwork.json">presets/clockwork.json</file>
         <file alias="presets/concentric.json">presets/concentric.json</file>
         <file alias="presets/confetti.json">presets/confetti.json</file>
@@ -67,11 +68,13 @@
         <file alias="presets/pulse-grid.json">presets/pulse-grid.json</file>
         <file alias="presets/radar.json">presets/radar.json</file>
         <file alias="presets/rain.json">presets/rain.json</file>
+        <file alias="presets/ribbon.json">presets/ribbon.json</file>
         <file alias="presets/ridgeline.json">presets/ridgeline.json</file>
         <file alias="presets/ripple-tank.json">presets/ripple-tank.json</file>
         <file alias="presets/riptide.json">presets/riptide.json</file>
         <file alias="presets/rose-window.json">presets/rose-window.json</file>
         <file alias="presets/rosette.json">presets/rosette.json</file>
+        <file alias="presets/scroll.json">presets/scroll.json</file>
         <file alias="presets/seismograph.json">presets/seismograph.json</file>
         <file alias="presets/signal-garden.json">presets/signal-garden.json</file>
         <file alias="presets/skyline.json">presets/skyline.json</file>
@@ -82,11 +85,14 @@
         <file alias="presets/sunburst.json">presets/sunburst.json</file>
         <file alias="presets/synth-road.json">presets/synth-road.json</file>
         <file alias="presets/thunderhead.json">presets/thunderhead.json</file>
+        <file alias="presets/tide-pool.json">presets/tide-pool.json</file>
         <file alias="presets/tidewater.json">presets/tidewater.json</file>
         <file alias="presets/tri-wave.json">presets/tri-wave.json</file>
         <file alias="presets/undertow.json">presets/undertow.json</file>
+        <file alias="presets/urchin.json">presets/urchin.json</file>
         <file alias="presets/vectorscope.json">presets/vectorscope.json</file>
         <file alias="presets/vortex.json">presets/vortex.json</file>
+        <file alias="presets/whitecaps.json">presets/whitecaps.json</file>
         <file alias="presets/windmap.json">presets/windmap.json</file>
         <file alias="visitors/comet.json">visitors/comet.json</file>
         <file alias="visitors/fireflies.json">visitors/fireflies.json</file>

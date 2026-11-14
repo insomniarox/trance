@@ -1,0 +1,48 @@
+{
+  "name": "Scroll",
+  "author": "Trance",
+  "description": "A sheet of spectrum that rolls itself up into a tube and lies flat again, turning all the while, the way WhiteCap folds one figure into the next.",
+  "palette": "sunset",
+  "init": "ph = rand(6)\nrate = 0.14 + rand(0.08)",
+  "feedback": {
+    "decay": 0.7,
+    "blur": 0.25,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.18,
+    "tint": 0,
+    "spread": 0.3,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "sheet",
+      "form2": "tube",
+      "morph": "0.5 - 0.5*cos(time*rate + ph)",
+      "bins": 64,
+      "rows": 36,
+      "speed": 16,
+      "fade": 0.45,
+      "height": 0.4,
+      "width": 1.5,
+      "depth": 1.3,
+      "radius": 0.5,
+      "yaw": "ph + time*0.17",
+      "pitch": "0.4 + 0.2*sin(time*0.12)",
+      "roll": "0.15*sin(time*0.09 + ph)",
+      "distance": 3.4,
+      "thickness": 1.4,
+      "fog": 0.7,
+      "color": "palette(0.25 + 0.5*min(v, 1) + 0.25*i)",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "bloom": 0.85,
+    "bloomThreshold": 0.4,
+    "vignette": 0.45
+  }
+}

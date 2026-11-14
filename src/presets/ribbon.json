@@ -1,0 +1,46 @@
+{
+  "name": "Ribbon",
+  "author": "Trance",
+  "description": "Threads of the melody running back through time along a ribbon that twists as it goes, tighter when the bass leans on it.",
+  "palette": "vapor",
+  "init": "ph = rand(6)\ndir = rand() < 0.5 ? -1 : 1",
+  "frame": "twist = 1.1 + 0.5*sin(time*0.13 + ph) + 0.25*bass_att",
+  "feedback": {
+    "decay": 0.85,
+    "zoom": 1.006,
+    "blur": 0.4,
+    "hueshift": 0.01,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "sheet",
+      "style": "strands",
+      "bins": 40,
+      "rows": 56,
+      "speed": 22,
+      "low": 150,
+      "high": 2400,
+      "tilt": 4,
+      "fade": 0.3,
+      "height": 0.45,
+      "width": 0.55,
+      "depth": 2,
+      "yaw": "1.2 + 0.5*sin(time*0.1 + ph)",
+      "pitch": "0.25*sin(time*0.16)",
+      "roll": "dir*time*0.05",
+      "distance": 3.6,
+      "thickness": 1.6,
+      "fog": 0.6,
+      "color": "palette(0.1 + 0.8*t + 0.2*i)",
+      "alpha": "0.55 + 0.35*min(vol_att, 1)",
+      "point": "w = dir*z*twist\nx1 = x*cos(w) - y*sin(w)\ny = x*sin(w) + y*cos(w)\nx = x1\na = a*(0.35 + 0.65*min(v*1.5, 1))"
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "bloomThreshold": 0.4,
+    "vignette": 0.4
+  }
+}

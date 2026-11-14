@@ -15,7 +15,7 @@ theme.
 
 ![Presets with a part for each range of the sound](docs/gallery-layered.jpg)
 
-- **66 presets** built in, changing on the beat every 30 seconds (or held,
+- **72 presets** built in, changing on the beat every 30 seconds (or held,
   shuffled, or picked from a searchable list). A change is not a cut: for a
   few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next.
@@ -24,6 +24,13 @@ theme.
   `highmid`, `presence`, `air`), so each layer of a preset can move to its
   own. Two dozen presets are built that way, from Strata and Clockwork to
   Jellyfish, Corona, Prism and Gyroscope.
+- **Wireframes in space.** The last few seconds of the spectrum as a sheet
+  of lines, laid flat like a sea, rolled into a tube, spread into a ring or
+  wrapped round a ball, folding from one form into another while a camera
+  turns round it. It hears the music the way WhiteCap does, in even steps
+  of pitch and without decibels, so it shows what stands out where the bars
+  show everything, and the two never move alike. Whitecaps, Borehole, Tide
+  Pool, Urchin, Scroll and Ribbon are built on it.
 - **Everything works on everything else.** Flow fields bend the picture,
   waves and bars throw particles, the particles ride the flow, backgrounds
   fill the dark, and one palette colors all of it.
@@ -36,8 +43,8 @@ theme.
 - **Edit anything live.** Press `E`: every setting has a plain name, a
   slider, and an explanation when the pointer rests on it, and any number
   can instead be a formula of the music, such as `1.02 + 0.05*bass_att`.
-  What you have changed since the last save is marked in the accent color. Layers of waves, bars, shapes, terrain and
-  particles can be added, reordered and removed. Nothing is written until
+  What you have changed since the last save is marked in the accent color. Layers of waves, bars, shapes, terrain,
+  wireframes and particles can be added, reordered and removed. Nothing is written until
   you save, and your presets are kept apart from the built-in ones.
 - **Follows your theme.** Presets can use the theme's colors by name, and
   `T` recolors every preset with the theme's colors or one of 23 palettes. On
@@ -227,8 +234,10 @@ motion vectors, darken-center, and mash-ups. From SoundSpectrum's G-Force
 and WhiteCap: flow fields whose numbers are rolled anew each time they load,
 color maps that bend and drift on their own, waves that morph into each
 other, changes that glide instead of cut, particles that come and go by
-chance (the visitors), track titles drawn into the picture, and the spectrum
-as a landscape. Trance shares no code or presets with either.
+chance (the visitors), track titles drawn into the picture, the spectrum
+as a landscape, and WhiteCap's wireframe: a sheet of spectrum samples that
+formulas place in space, read in bins of even width that rise at once and
+sink slowly. Trance shares no code or presets with either.
 
 `src/engine.cpp` is the renderer (plain OpenGL 3.3, no window needed),
 `src/expr.cpp` the formula language (it runs formulas on the CPU and turns

@@ -1,0 +1,48 @@
+{
+  "name": "Tide Pool",
+  "author": "Trance",
+  "description": "Rings on still water. Each sound drops in at the middle and its ripple travels out to the rim, while the pool tips and turns under you.",
+  "palette": "lagoon",
+  "init": "ph = rand(6)",
+  "feedback": {
+    "decay": 0.78,
+    "blur": 0.35,
+    "edge": "black"
+  },
+  "background": {
+    "style": "nebula",
+    "intensity": 0.2,
+    "tint": 0.1,
+    "spread": 0.2,
+    "speed": 0.5
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "ring",
+      "style": "lines",
+      "bins": 96,
+      "rows": 36,
+      "speed": 14,
+      "low": 80,
+      "high": 3500,
+      "fade": 0.25,
+      "smooth": 0.5,
+      "height": "0.3 + 0.08*bass_att",
+      "radius": 1.5,
+      "yaw": "ph + time*0.09",
+      "pitch": "0.75 + 0.3*sin(time*0.13 + ph)",
+      "roll": "0.1*sin(time*0.2)",
+      "distance": 3.5,
+      "thickness": 1.5,
+      "fog": 0.55,
+      "color": "palette(0.35 + 0.5*min(v, 1) + 0.3*i)",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "bloom": 0.8,
+    "bloomThreshold": 0.4,
+    "vignette": 0.4
+  }
+}

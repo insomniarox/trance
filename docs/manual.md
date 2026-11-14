@@ -37,7 +37,7 @@ things, in this order:
    is zoomed, turned, slid and faded a little. This is the *feedback* step,
    and it is where all the motion comes from.
 3. **It draws the layers on top**, in the order they are listed: waves,
-   bars, shapes, a terrain, particles, vectors.
+   bars, shapes, a terrain, a wireframe, particles, vectors.
 4. **It finishes the picture** on its way to the screen: glow, color
    changes, mirrors, and a background wherever the picture is dark.
 
@@ -367,13 +367,13 @@ A layer's formulas can read everything in sections 3 and 4, plus a few
 numbers of the layer's own, which are different for each point, bar, copy or
 spark. Those are what make one layer a rainbow rather than one color:
 
-| Name | In a wave | In bars | In a shape | In a terrain | In particles | In vectors |
-|---|---|---|---|---|---|---|
-| `t` | 0 to 1 along the line | 0 to 1 across | 0 to 1 across the copies | 0 to 1 across | age, 0 to 1 | 0 to 1 across |
-| `i` | the point's number | the bar's number | the copy's number | distance, 0 front to 1 | a random number kept for life | 0 to 1 up |
-| `v` | the sound there | the bar's height | the spectrum at `t` | the height there | speed | how fast the picture moves there |
-| `v2` | the other channel | | the waveform at `t` | | | |
-| `n` `count` | | | the copy's number, and how many | | | |
+| Name | In a wave | In bars | In a shape | In a terrain | In a wireframe | In particles | In vectors |
+|---|---|---|---|---|---|---|---|
+| `t` | 0 to 1 along the line | 0 to 1 across | 0 to 1 across the copies | 0 to 1 across | 0 to 1, lowest pitch to highest | age, 0 to 1 | 0 to 1 across |
+| `i` | the point's number | the bar's number | the copy's number | distance, 0 front to 1 | age, 0 newest to 1 | a random number kept for life | 0 to 1 up |
+| `v` | the sound there | the bar's height | the spectrum at `t` | the height there | the height there | speed | how fast the picture moves there |
+| `v2` | the other channel | | the waveform at `t` | | | | |
+| `n` `count` | | | the copy's number, and how many | | | | |
 
 ### Wave
 
@@ -508,6 +508,115 @@ picture. Rows and speed together set how many seconds are on screen (rows
 divided by speed). In its color, `v` is the height and `i` the distance, so
 `palette(0.3 + 0.5*v)` colors the peaks differently from the plain.
 
+### Wireframe
+
+The last few seconds of the spectrum as a sheet of lines hung in space, the
+way SoundSpectrum's WhiteCap draws it. Pitch runs across the sheet and time
+along it: every line across is the spectrum as it was at one moment, the
+newest at one end. `"type": "wireframe"`.
+
+It answers three questions, and its settings fall into three groups.
+
+*What shape is the sheet in?*
+
+| In the editor | In the file | Default | Range | What it does |
+|---|---|---|---|---|
+| Form | `form` | `sheet` | | `sheet`, `tube`, `ring` or `sphere` |
+| Second form | `form2` | `sheet` | | The form it turns into |
+| Morph | `morph` | 0 | 0 to 1 | How far it is from the one to the other |
+| Width | `width` | 1.2 | 0.1 to 4 | Half the width of the flat sheet |
+| Length | `depth` | 1.2 | 0.1 to 4 | Half the length of the sheet or the tube |
+| Radius | `radius` | 0.6 | 0.05 to 3 | The size of the tube, ring or sphere |
+| Height | `height` | 0.5 | -2 to 2 | How far the loudest bin stands out |
+
+A `sheet` lies flat, with the sound standing up from it. A `tube` is the
+sheet rolled up, time running down its length. A `ring` is a disc with the
+newest sample at the hole in the middle, so the sound spreads outward like
+rings on a pond. A `sphere` wraps it round a ball, the newest sample at the
+top. On the three that close on themselves the pitch runs up one side and
+back down the other, so that the two edges of the sheet meet without a step;
+a sheet that morphs into one of them is laid out the same way.
+
+*Morph* is what makes it WhiteCap: `"form": "sheet", "form2": "tube",
+"morph": "0.5 - 0.5*cos(time*0.2)"` rolls the sheet up and lays it flat
+again, twice a minute. And when none of the four forms is the one you want,
+the *Point code* (`point`) moves every point after the form has placed it.
+It reads `t`, `i` and `v` and may change `x`, `y` and `z`, which are right,
+up and away from you before the camera turns anything. This twists the
+sheet along its length:
+
+```json
+"point": "w = z*1.5; x1 = x*cos(w) - y*sin(w); y = x*sin(w) + y*cos(w); x = x1"
+```
+
+*Where is it seen from?*
+
+| In the editor | In the file | Default | Range | What it does |
+|---|---|---|---|---|
+| Turn | `yaw` | 0 | | Turns it about its upright axis |
+| Tip | `pitch` | 0.5 | -1.57 to 1.57 | Tips it toward you: 0 is from the side, 1.57 from above |
+| Roll | `roll` | 0 | | Turns the view itself |
+| Distance | `distance` | 3 | 0.5 to 20 | How far away the camera stands |
+| Size | `size` | 1 | 0.1 to 4 | Scales the whole of it on screen |
+| X, Y | `x` `y` | 0 | | Where its middle is on screen |
+| Style | `style` | `mesh` | | `mesh`, `lines`, `strands` or `dots` |
+| Thickness | `thickness` | 1.4 | 0.5 to 10 | Line width in pixels |
+| Fog | `fog` | 0.6 | 0 to 1 | How much the far side is dimmed |
+
+A formula in *Turn* (`"time*0.2"`) is what shows that the thing is solid;
+held still, a wireframe reads as a flat drawing. *Distance* sets how strong
+the perspective is. From far away near and far are the same size; close up
+the near edge looms. Closer than the form is big, the camera is inside it: a
+tube with a `depth` of 3 seen from a `distance` of 1 is a tunnel whose walls
+are the music. *Style* chooses which lines of the mesh are drawn: `lines`
+are the samples, one spectrum after another, and `strands` are the bins,
+each a thread running back through time.
+
+*How does it hear?*
+
+| In the editor | In the file | Default | Range | What it does |
+|---|---|---|---|---|
+| Bins | `bins` | 48 | 8 to 128 | How many lines wide the sheet is |
+| Samples kept | `rows` | 32 | 4 to 64 | How many moments of the past it holds |
+| Samples a second | `speed` | 20 | 1 to 60 | How often a new one is taken |
+| Lowest pitch | `low` | 40 | 0 to 4000 | Where its stretch of the sound begins, in Hz |
+| Highest pitch | `high` | 5000 | 200 to 16000 | Where it ends, in Hz |
+| Treble weight | `tilt` | 10 | 0 to 30 | How much more the top of the stretch counts |
+| Smoothing | `smooth` | 0.35 | 0 to 0.95 | Rounds neighbouring bins into each other |
+| Fall time | `fade` | 0.35 | 0.02 to 3 | Seconds a bin takes to sink back |
+
+This is the part that sets a wireframe apart from every other layer. Bars, a
+terrain and a spectrum wave all read the same measurement, which is built to
+show *everything that is sounding*: its bands are spaced by octave, the way
+the ear hears pitch, and measured in decibels, which lifts quiet sounds up
+beside loud ones. A wireframe takes the measurement WhiteCap takes, which
+shows *what stands out*:
+
+- The stretch from *Lowest pitch* to *Highest pitch* is cut into *Bins* of
+  equal width in Hz, not in octaves. Bass takes up little room and the
+  space goes to the harmonics, so a voice or a lead draws a row of evenly
+  spaced ridges.
+- Each bin is the average of everything in it, and loudness is left as it
+  is. A sound twice as strong stands twice as tall. Quiet parts of the mix
+  lie nearly flat, and what is loud rises out of them alone.
+- Music is far stronger low down, so *Treble weight* counts the top of the
+  stretch for more. At 0 a kick drum is the only thing on the sheet.
+- The loudest bin of the last few seconds is given the height 1. A sudden
+  hit stands taller than that for a moment.
+- A bin rises at once and sinks over the *Fall time*. Short, and the sheet
+  flickers with every note; long, and held notes pile up into ridges while
+  a drum leaves a slope behind it.
+
+So put a wireframe beside bars in one preset and they will not move alike:
+the bars fill and empty across their whole width, while the wireframe stays
+calm and throws up a few sharp crests. *Lowest* and *Highest pitch* aim it:
+`"low": 150, "high": 1200` spreads a melody across the whole sheet, and
+`"low": 2000, "high": 12000` leaves only cymbals and the breath of a voice.
+
+Like a terrain it is its own memory, and needs nothing from the feedback: a
+low decay gives clean lines, a high one lets the turning form smear into a
+solid. Particles with `"emit": "wave"` are born along its newest sample.
+
 ### Particles
 
 Sparks. `"type": "particles"`.
@@ -540,7 +649,8 @@ questions.
 
 *Where are they born?* `point` is a fountain at X, Y. `wave` puts them
 along the wave layers listed **before** this one, mostly where the sound is
-loudest, so the line seems to shed them. `bars` puts them on the tips of the
+loudest, so the line seems to shed them (a wireframe counts: they come from
+its newest sample). `bars` puts them on the tips of the
 bars. `edges` starts them on the border heading for X, Y. `screen` is
 anywhere. *Birth rate* decides how many; tie it to the beat or to a range
 and the sparks become that instrument.

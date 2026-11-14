@@ -169,6 +169,50 @@ const QHash<QString, Entry> &entries() {
         {"terrain.color", {"Color", "A color, worked out for every point: t runs 0 to 1 across, v is the height there "
                                     "and i the distance, 0 at the front to 1 at the horizon."}},
 
+        // ------------------------------------------------------ wireframe
+        {"wireframe.form", {"Form", "Where in space the sheet of samples is put: sheet (laid flat), tube (rolled up, "
+                                    "time running down its length), ring (a disc, the newest sample at the hole in "
+                                    "the middle) or sphere (wrapped round a ball, pole to pole)."}},
+        {"wireframe.form2", {"Second form", "The form it turns into as Morph goes from 0 to 1."}},
+        {"wireframe.morph", {"Morph", "How far it is from the form to the second form: 0 is all the first, 1 all the "
+                                      "second. A slow formula here folds one into the other and back."}},
+        {"wireframe.bins", {"Bins", "How many lines wide the sheet is. Its stretch of the sound is cut into that many "
+                                    "bins of equal width, each the average of everything that falls in it."}},
+        {"wireframe.rows", {"Samples kept", "How many moments of the past the sheet holds, newest first."}},
+        {"wireframe.speed", {"Samples a second", "How often a new sample is taken, and so how fast the sheet moves "
+                                                 "along."}},
+        {"wireframe.low", {"Lowest pitch", "Where its stretch of the sound begins, in Hz. Raise it to leave the kick "
+                                           "out."}},
+        {"wireframe.high", {"Highest pitch", "Where its stretch of the sound ends, in Hz. A short stretch spreads a "
+                                             "few notes across the whole sheet."}},
+        {"wireframe.tilt", {"Treble weight", "How much more the top of the stretch counts than the bottom. Music is "
+                                             "far louder low down, so at 0 the bass stands alone on a flat sheet."}},
+        {"wireframe.smooth", {"Smoothing", "Rounds neighbouring bins into each other. 0 leaves every bin on its own."}},
+        {"wireframe.fade", {"Fall time", "Seconds a bin takes to sink back after something sounds in it. It rises at "
+                                         "once; a long fall lets held notes pile up into ridges."}},
+        {"wireframe.height", {"Height", "How far the loudest bin stands out from the form. Negative pushes inward."}},
+        {"wireframe.width", {"Width", "Half the width of the flat sheet."}},
+        {"wireframe.depth", {"Length", "Half the length of the flat sheet or the tube, newest sample to oldest."}},
+        {"wireframe.radius", {"Radius", "The size of the tube, the ring or the sphere."}},
+        {"wireframe.yaw", {"Turn", "Turns it about its upright axis, in radians. time*0.2 keeps it turning."}},
+        {"wireframe.pitch", {"Tip", "Tips it toward you, in radians. 0 looks at it from the side, 1.57 from "
+                                    "straight above."}},
+        {"wireframe.roll", {"Roll", "Turns the view itself, in radians, like tilting your head."}},
+        {"wireframe.distance", {"Distance", "How far away the camera stands. Close makes the near side loom and the "
+                                            "far side shrink; far away flattens it. Closer than the form's own "
+                                            "size puts the camera inside it."}},
+        {"wireframe.size", {"Size", "Scales the whole of it on screen."}},
+        {"wireframe.style", {"Style", "mesh (lines both ways), lines (one for each sample), strands (one for each "
+                                      "bin, running back through time) or dots."}},
+        {"wireframe.fog", {"Fog", "How much the far side is dimmed, so near and far can be told apart. 0 draws all "
+                                  "of it alike."}},
+        {"wireframe.color", {"Color", "A color, worked out for every point: t runs 0 to 1 from the lowest pitch to "
+                                      "the highest, i 0 to 1 from the newest sample to the oldest, and v is the "
+                                      "height there."}},
+        {"wireframe.point", {"Point code", "Runs for every point, after the form has placed it. Reads t, i and v, "
+                                           "and may change x, y and z (right, up and away, before the camera) and r, "
+                                           "g, b and a."}},
+
         // -------------------------------------------------------- vectors
         {"vectors.cols", {"Columns", "How many strokes across the screen."}},
         {"vectors.rows", {"Rows", "How many strokes up the screen."}},
@@ -181,7 +225,7 @@ const QHash<QString, Entry> &entries() {
         {"particles.count", {"Most alive", "The most sparks alive at once. No more are born until some die."}},
         {"particles.rate", {"Birth rate", "Sparks born every second. 50 + 2000*beat bursts on the beat."}},
         {"particles.emit", {"Born at", "point (at X, Y), wave (along the waves drawn before this layer, mostly where "
-                                       "they are loud), bars (on the tips of the bars), edges (the screen's border, "
+                                       "they are loud, or along a wireframe's newest sample), bars (on the tips of the bars), edges (the screen's border, "
                                        "heading for X, Y) or screen (anywhere)."}},
         {"particles.x", {"X", "The birth point, and the point that pull and swirl work around."}},
         {"particles.y", {"Y", "The birth point, and the point that pull and swirl work around."}},
@@ -225,6 +269,8 @@ const QHash<QString, Entry> &entries() {
         {"type.bars", {"Bars", "The spectrum as bars, bass to treble."}},
         {"type.shape", {"Shape", "A polygon or many copies of one, each of which can follow its own slice of the sound."}},
         {"type.terrain", {"Terrain", "The spectrum as a landscape scrolling away to a horizon."}},
+        {"type.wireframe", {"Wireframe", "The spectrum's last few seconds as a sheet of lines in space, flat or rolled "
+                                         "into a form, with a camera turning round it."}},
         {"type.vectors", {"Vectors", "A grid of strokes showing which way the picture is flowing."}},
         {"type.particles", {"Particles", "Sparks that can be born on a wave or the bars and ride the flow."}},
     };

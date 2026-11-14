@@ -14,8 +14,8 @@
 // window and the headless `trance render` share it.
 //
 // Each frame, MilkDrop-style: last frame's picture is warped and faded into
-// a new buffer, the layers (waves, bars, shapes, terrain, particles) are
-// drawn on top, and that buffer goes to the screen through the post pass.
+// a new buffer, the layers (waves, bars, shapes, terrain, wireframes,
+// particles) are drawn on top, and that buffer goes to the screen through the post pass.
 //
 // A change of preset is not a cut. For its length both presets run on the
 // one picture: the motion and the look hand over place by place, the layers
@@ -103,16 +103,18 @@ private:
     struct LayerState {
         std::vector<Particle> particles;
         double owed = 0; // fractional particles still to be born
-        std::vector<float> history; // terrain rows, newest first
+        std::vector<float> history; // terrain and wireframe rows, newest first
         int rows = 0, cols = 0;
         double phase = 0;
         std::vector<float> peaks;
+        Bins bins; // a wireframe's own reading of the spectrum
     };
     struct Slots {
         int time, dt, frame, fps, bass, mid, treb, vol, bassAtt, midAtt, trebAtt, volAtt, beat, beats, aspect,
             progress, t, i, v, v2, n, count, x, y, r, g, b, a, radius, angle, size, r2, g2, b2, a2, warpSpeed,
             rad, ang, zoom, zoomexp, rot, warp, warpScale, cx, cy, dx, dy, sx, sy, bgSpeed;
         int band[AudioFrame::Bands], bandAtt[AudioFrame::Bands];
+        int z;
     };
     // A wave as it is about to be drawn, kept apart from the drawing so two
     // of them can be blended into one.
@@ -174,6 +176,7 @@ private:
     void drawBars(const Block &layer, LayerState &state);
     void drawShape(const Block &layer);
     void drawTerrain(const Block &layer, LayerState &state);
+    void drawWireframe(const Block &layer, LayerState &state);
     void drawParticles(const Block &layer, LayerState &state);
     void drawVectors(const Block &layer);
     void darkenCenter();

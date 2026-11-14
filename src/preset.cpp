@@ -86,6 +86,23 @@ const QHash<QString, QList<Field>> &allFields() {
             number("depth", 3, 0.2, 10), number("thickness", 1.6, 0.5, 10), color("color", "palette(t)"),
             number("alpha", 0.9, 0, 1), toggle("additive", true),
         }},
+        // SoundSpectrum's WhiteCap: the last few seconds of the spectrum as
+        // a sheet of lines hung in space. It reads the spectrum its own way
+        // (bins, low to fade), a form says where in space each point of the
+        // sheet goes, and a camera looks at the result.
+        {"wireframe", {
+            toggle("enabled", true), choice("form", {"sheet", "tube", "ring", "sphere"}),
+            choice("form2", {"sheet", "tube", "ring", "sphere"}), number("morph", 0, 0, 1),
+            integer("bins", 48, 8, 128), integer("rows", 32, 4, 64), number("speed", 20, 1, 60),
+            number("low", 40, 0, 4000), number("high", 5000, 200, 16000), number("tilt", 10, 0, 30),
+            number("smooth", 0.35, 0, 0.95), number("fade", 0.35, 0.02, 3), number("height", 0.5, -2, 2),
+            number("width", 1.2, 0.1, 4), number("depth", 1.2, 0.1, 4), number("radius", 0.6, 0.05, 3),
+            number("yaw", 0, -3.1416, 3.1416), number("pitch", 0.5, -1.5708, 1.5708),
+            number("roll", 0, -3.1416, 3.1416), number("distance", 3, 0.5, 20), number("size", 1, 0.1, 4),
+            number("x", 0, -2, 2), number("y", 0, -1, 1), choice("style", {"mesh", "lines", "strands", "dots"}),
+            number("thickness", 1.4, 0.5, 10), color("color", "palette(t)"), number("alpha", 0.9, 0, 1),
+            number("fog", 0.6, 0, 1), toggle("additive", true), code("point"),
+        }},
         // MilkDrop's motion vectors: a grid of short strokes showing which
         // way the picture is flowing at each place.
         {"vectors", {
@@ -625,7 +642,7 @@ const QList<Field> &fields(const QString &section) {
     return it == allFields().constEnd() ? none : *it;
 }
 
-QStringList layerTypes() { return {"wave", "bars", "shape", "terrain", "particles", "vectors"}; }
+QStringList layerTypes() { return {"wave", "bars", "shape", "terrain", "wireframe", "particles", "vectors"}; }
 
 QStringList transitionStyles() { return {"mixed", "dissolve", "center", "edges", "sweep", "clouds", "wipe"}; }
 
@@ -688,6 +705,8 @@ QJsonObject starterLayer(const QString &type) {
                 {"color", "palette(time*0.1)"}, {"alpha", 0.6}, {"borderAlpha", 1}};
     if (type == "terrain")
         return {{"type", "terrain"}, {"color", "palette(t)"}};
+    if (type == "wireframe")
+        return {{"type", "wireframe"}, {"yaw", "time*0.2"}, {"color", "palette(0.15 + 0.6*v + 0.2*i)"}};
     if (type == "particles")
         return {{"type", "particles"}, {"rate", "60 + 600*beat"}, {"color", "palette(i)"}, {"flow", 1}};
     if (type == "vectors")
@@ -766,8 +785,8 @@ CompiledPreset compile(const QJsonObject &json) {
     p.vars.declare("pi", M_PI);
     p.vars.declare("tau", 2 * M_PI);
     // ...and what it hands a layer's own code for each point or instance.
-    for (const char *name : {"t", "i", "v", "v2", "n", "count", "x", "y", "r", "g", "b", "a", "radius", "angle",
-                             "size", "r2", "g2", "b2", "a2"})
+    for (const char *name : {"t", "i", "v", "v2", "n", "count", "x", "y", "z", "r", "g", "b", "a", "radius",
+                             "angle", "size", "r2", "g2", "b2", "a2"})
         p.vars.declare(name);
     // Feedback settings are variables, so the frame code can push them
     // around and the pixel code can bend them across the screen.

@@ -349,7 +349,7 @@ std::unique_ptr<Engine::Scene> Engine::makeScene(const CompiledPreset &preset, b
                      vars.find("b2"), vars.find("a2"), vars.find("warpSpeed"), vars.find("rad"), vars.find("ang"),
                      vars.find("zoom"), vars.find("zoomexp"), vars.find("rot"), vars.find("warp"),
                      vars.find("warpScale"), vars.find("cx"), vars.find("cy"), vars.find("dx"), vars.find("dy"),
-                     vars.find("sx"), vars.find("sy"), vars.find("bg.speed"), {}, {}};
+                     vars.find("sx"), vars.find("sy"), vars.find("bg.speed"), {}, {}, vars.find("z")};
     for (int band = 0; band < AudioFrame::Bands; ++band) {
         scene->s.band[band] = vars.find(bandInfo(band).name);
         scene->s.bandAtt[band] = vars.find(QString(bandInfo(band).name) + "_att");
@@ -1019,6 +1019,8 @@ void Engine::drawLayers(Scene &scene, bool stashWaves, bool morphWaves) {
             drawShape(layer);
         } else if (layer.type == "terrain") {
             drawTerrain(layer, state);
+        } else if (layer.type == "wireframe") {
+            drawWireframe(layer, state);
         } else if (layer.type == "particles") {
             drawParticles(layer, state);
         } else if (layer.type == "vectors") {
@@ -1574,6 +1576,213 @@ void Engine::drawTerrain(const Block &layer, LayerState &state) {
                 m_points.push_back(grid[size_t(row) * size_t(cols) + size_t(col)]);
             polyline(m_points, false, halfWidth * 0.7f);
         }
+    }
+}
+
+// SoundSpectrum's WhiteCap: the last few seconds of the spectrum as a sheet
+// of lines hung in space. Across the sheet runs pitch, along it runs time,
+// and a form says where in space each point of it goes: laid flat, rolled
+// into a tube, spread into a ring or wrapped round a ball. The sheet can be
+// partway between two forms, the layer's own code can move any point, and a
+// camera turns the whole of it. The heights come from Bins, not from the
+// spectrum the other layers read.
+void Engine::drawWireframe(const Block &layer, LayerState &state) {
+    auto &V = m_c->p.vars.values;
+    const Slots &m_s = m_c->s;
+    enum Form { Sheet, Tube, Ring, Sphere };
+    static const QStringList formNames = {"sheet", "tube", "ring", "sphere"};
+    const int form = int(formNames.indexOf(layer.choice("form")));
+    const int form2 = int(formNames.indexOf(layer.choice("form2")));
+    const int across = clampTo(int(layer.num("bins", V)), 8, 128), rows = clampTo(int(layer.num("rows", V)), 4, 64);
+    const QString style = layer.choice("style");
+    const float morph = form == form2 ? 0.f : clampTo(float(layer.num("morph", V)), 0.f, 1.f);
+    const float height = float(layer.num("height", V)), width = float(layer.num("width", V));
+    const float depth = float(layer.num("depth", V)), radius = float(layer.num("radius", V));
+    const float yaw = float(layer.num("yaw", V)), pitch = float(layer.num("pitch", V));
+    const float roll = float(layer.num("roll", V));
+    const float distance = std::max(0.2f, float(layer.num("distance", V))), size = float(layer.num("size", V));
+    const float x0 = float(layer.num("x", V)), y0 = float(layer.num("y", V));
+    const float halfWidth = float(layer.num("thickness", V)) / 1080.f, alpha = float(layer.num("alpha", V));
+    const float fog = clampTo(float(layer.num("fog", V)), 0.f, 1.f);
+    const ColorSpec *color = layer.color("color");
+    const expr::Program *code = layer.program("point");
+
+    // A form that closes on itself would show a step where the top of the
+    // range meets the bottom, so for those the sheet is bass at both edges
+    // and treble down the middle, and the two edges meet as equals.
+    const bool folded = form != Sheet || form2 != Sheet;
+    const int bins = folded ? across / 2 + 1 : across;
+    if (state.rows != rows || state.cols != bins) {
+        state.rows = rows;
+        state.cols = bins;
+        state.history.assign(size_t(rows) * size_t(bins), 0.f);
+        state.phase = 0;
+    }
+    Bins::Settings reading;
+    reading.count = bins;
+    reading.low = layer.num("low", V);
+    reading.high = layer.num("high", V);
+    reading.tilt = layer.num("tilt", V);
+    reading.smooth = layer.num("smooth", V);
+    reading.fade = layer.num("fade", V);
+    const std::vector<float> &live = state.bins.update(m_audio, reading, m_dt);
+    state.phase += m_dt * layer.num("speed", V);
+    int pushes = 0;
+    while (state.phase >= 1 && pushes++ < rows) {
+        std::copy_backward(state.history.begin(), state.history.end() - bins, state.history.end());
+        std::copy(live.begin(), live.end(), state.history.begin());
+        state.phase -= 1;
+    }
+    state.phase = std::fmod(state.phase, 1.0);
+
+    // Where a form puts the point that is `s` of the way across the sheet
+    // and `age` of the way back in time, standing `h` high.
+    const auto place = [&](int which, float s, float age, float h, float out[3]) {
+        const float turn = (s * 2 - 1) * Pi;
+        switch (which) {
+        case Tube:
+            out[0] = (radius + h) * std::sin(turn);
+            out[1] = (radius + h) * std::cos(turn);
+            out[2] = (age * 2 - 1) * depth;
+            break;
+        case Ring: {
+            // The newest sample is the hole in the middle; it spreads outward.
+            const float reach = radius * (0.15f + 0.85f * age);
+            out[0] = reach * std::sin(turn);
+            out[1] = h;
+            out[2] = reach * std::cos(turn);
+            break;
+        }
+        case Sphere: {
+            // Pole to pole, leaving a small cap open at each.
+            const float down = Pi * (0.08f + 0.84f * age), ring = (radius + h) * std::sin(down);
+            out[0] = ring * std::sin(turn);
+            out[1] = (radius + h) * std::cos(down);
+            out[2] = ring * std::cos(turn);
+            break;
+        }
+        default:
+            out[0] = (s * 2 - 1) * width;
+            out[1] = h;
+            out[2] = (age * 2 - 1) * depth;
+        }
+    };
+
+    // Every point as the camera sees it, before perspective: x right, y up,
+    // z away. Row 0 is the live reading; the kept rows slide back from it by
+    // the phase, so the sheet moves smoothly between one sample and the next.
+    struct Seen {
+        float x, y, z, r, g, b, a;
+    };
+    static thread_local std::vector<Seen> grid;
+    grid.resize(size_t(rows + 1) * size_t(across));
+    const float cy = std::cos(yaw), sy = std::sin(yaw), cp = std::cos(pitch), sp = std::sin(pitch);
+    const float cr = std::cos(roll), sr = std::sin(roll);
+    float nearest = 1e9f, farthest = -1e9f;
+    for (int row = 0; row <= rows; ++row) {
+        const float age = row == 0 ? 0.f : (float(row - 1) + float(state.phase)) / float(rows);
+        const float *values = row == 0 ? live.data() : &state.history[size_t(row - 1) * size_t(bins)];
+        // The oldest row thins out as it leaves instead of vanishing.
+        const float rowAlpha = row == rows ? alpha * (1 - float(state.phase)) : alpha;
+        for (int col = 0; col < across; ++col) {
+            const float s = float(col) / float(across - 1);
+            const float t = folded ? 1 - std::abs(s * 2 - 1) : s;
+            const float at = t * float(bins - 1);
+            const int below = std::min(int(at), bins - 2);
+            const float value = values[below] + (values[below + 1] - values[below]) * (at - float(below));
+            V[m_s.t] = t;
+            V[m_s.i] = age;
+            V[m_s.v] = value;
+            float rgb[3], p[3];
+            evalColor(color, rgb);
+            place(form, s, age, value * height, p);
+            if (morph > 0) {
+                float q[3];
+                place(form2, s, age, value * height, q);
+                for (int c = 0; c < 3; ++c)
+                    p[c] += (q[c] - p[c]) * morph;
+            }
+            float a = rowAlpha;
+            if (code) {
+                V[m_s.x] = p[0];
+                V[m_s.y] = p[1];
+                V[m_s.z] = p[2];
+                V[m_s.r] = rgb[0];
+                V[m_s.g] = rgb[1];
+                V[m_s.b] = rgb[2];
+                V[m_s.a] = a;
+                code->run(V);
+                p[0] = float(V[m_s.x]);
+                p[1] = float(V[m_s.y]);
+                p[2] = float(V[m_s.z]);
+                rgb[0] = float(V[m_s.r]);
+                rgb[1] = float(V[m_s.g]);
+                rgb[2] = float(V[m_s.b]);
+                a = float(V[m_s.a]);
+            }
+            // Turned about the upright axis, tipped toward the viewer, rolled.
+            const float x1 = p[0] * cy + p[2] * sy, z1 = p[2] * cy - p[0] * sy;
+            const float y2 = p[1] * cp + z1 * sp, z2 = z1 * cp - p[1] * sp;
+            grid[size_t(row) * size_t(across) + size_t(col)] =
+                Seen{x1 * cr - y2 * sr, x1 * sr + y2 * cr, z2, rgb[0], rgb[1], rgb[2], a};
+            nearest = std::min(nearest, z2);
+            farthest = std::max(farthest, z2);
+        }
+    }
+
+    // Onto the screen. What is nearer than the lens can see is cut off
+    // there, and the far side of the form is dimmed by the fog.
+    const float lens = 0.05f, span = std::max(farthest - nearest, 1e-4f);
+    const auto project = [&](const Seen &p) {
+        const float k = size * distance / (distance + p.z);
+        const float dim = 1 - fog * (p.z - nearest) / span;
+        return Point{x0 + p.x * k, y0 + p.y * k, p.r * dim, p.g * dim, p.b * dim, p.a};
+    };
+    const auto cut = [&](const Seen &a, const Seen &b) {
+        const float f = (lens - distance - a.z) / (b.z - a.z);
+        return Seen{a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, lens - distance,       a.r + (b.r - a.r) * f,
+                    a.g + (b.g - a.g) * f, a.b + (b.b - a.b) * f, a.a + (b.a - a.a) * f};
+    };
+    const auto line = [&](int first, int step, int count, float half) {
+        m_points.clear();
+        for (int k = 0; k < count; ++k) {
+            const Seen &here = grid[size_t(first + k * step)];
+            const bool shown = distance + here.z >= lens;
+            if (k > 0) {
+                const Seen &before = grid[size_t(first + (k - 1) * step)];
+                if (shown != (distance + before.z >= lens))
+                    m_points.push_back(project(shown ? cut(before, here) : cut(here, before)));
+            }
+            if (shown) {
+                m_points.push_back(project(here));
+            } else {
+                polyline(m_points, false, half);
+                m_points.clear();
+            }
+        }
+        polyline(m_points, false, half);
+    };
+    if (style == "dots") {
+        for (const Seen &p : grid)
+            if (distance + p.z >= lens)
+                dot(project(p), halfWidth * 1.5f * std::min(4.f, distance / (distance + p.z)));
+    }
+    if (style == "mesh" || style == "lines")
+        for (int row = 0; row <= rows; ++row)
+            line(row * across, 1, across, halfWidth);
+    if (style == "mesh" || style == "strands")
+        for (int col = 0; col < across; ++col)
+            line(col, across, rows + 1, style == "mesh" ? halfWidth * 0.7f : halfWidth);
+
+    // Particles born "at the wave" can be born along the newest sample too.
+    for (int col = 0; col < across; ++col) {
+        const Seen &p = grid[size_t(col)];
+        if (distance + p.z < lens)
+            continue;
+        const Point on = project(p);
+        const float s = float(col) / float(across - 1);
+        const float at = (folded ? 1 - std::abs(s * 2 - 1) : s) * float(bins - 1);
+        m_c->waveSpots.push_back(Spot{on.x, on.y, live[size_t(std::min(int(at + 0.5f), bins - 1))]});
     }
 }
 

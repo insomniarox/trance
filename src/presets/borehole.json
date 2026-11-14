@@ -1,0 +1,43 @@
+{
+  "name": "Borehole",
+  "author": "Trance",
+  "description": "Inside a tube whose walls are the last few seconds of the music: every ring is one moment of the spectrum, sliding away down the shaft.",
+  "palette": "cyber",
+  "init": "dir = rand() < 0.5 ? -1 : 1",
+  "feedback": {
+    "decay": 0.8,
+    "zoom": 0.985,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "tube",
+      "bins": 64,
+      "rows": 48,
+      "speed": 18,
+      "low": 60,
+      "high": 4000,
+      "fade": 0.3,
+      "height": -0.45,
+      "radius": 1,
+      "depth": 4.5,
+      "yaw": "0.12*sin(time*0.23)",
+      "pitch": "0.1*sin(time*0.31)",
+      "roll": "dir*time*0.07",
+      "distance": 4.4,
+      "size": 0.42,
+      "thickness": 1.4,
+      "fog": 0.92,
+      "color": "palette(0.3 + 0.55*min(v, 1) + 0.25*i)",
+      "alpha": 0.95
+    }
+  ],
+  "post": {
+    "bloom": 1,
+    "bloomThreshold": 0.45,
+    "chroma": 0.6,
+    "vignette": 0.5
+  }
+}

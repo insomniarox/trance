@@ -172,6 +172,28 @@ position); the code may change `x y radius angle r g b a r2 g2 b2 a2`.
 `width`, `y` (front edge), `horizon`, `depth`, `thickness`, `color` (with
 `t` across, `v` height, `i` distance 0–1), `alpha`.
 
+**wireframe** hangs the spectrum's last few seconds in space as a sheet of
+lines, with pitch across it and time along it (SoundSpectrum's WhiteCap).
+`form` (`sheet`, `tube`, `ring`, `sphere`), `form2` and `morph` (0–1 from
+the one form to the other), `width` and `depth` (sheet; `depth` is also the
+tube's length), `radius` (tube, ring, sphere), `height`. The camera: `yaw`
+(turn; `"time*0.2"` keeps it turning), `pitch` (tip toward you), `roll`,
+`distance` (close exaggerates depth; inside the form's size it is a tunnel),
+`size`, `x`, `y`. Drawing: `style` (`mesh`, `lines`, `strands`, `dots`),
+`thickness`, `fog` (dims the far side), `color` (with `t` pitch 0–1, `i` age
+0–1, `v` height), `alpha`, and `point`: code per point with `t i v`, which
+may change `x y z` (right, up, away, before the camera) and `r g b a`.
+When either form closes on itself (all but `sheet`), pitch runs up one half
+of the sheet and back down the other, so the edges meet without a step.
+
+It reads the sound its own way, so it moves differently from everything
+else: `bins` of equal width in Hz between `low` and `high` (each the average
+of what falls in it), loudness as it is instead of in decibels, `tilt`
+weighting the top of that stretch up, `smooth` between neighbours, and the
+loudest bin of late made 1. A bin rises at once and sinks over `fade`
+seconds. Bars and terrain show everything that is sounding; this shows what
+stands out. `rows` samples are kept, `speed` taken a second.
+
 **particles** emits sparks.
 `count` (most alive at once), `rate` (per second; `"50 + 2000*beat"` bursts
 on the beat), `x`, `y`, `area`, `speed`, `angle`, `spread`, `gravity`, `drag`
@@ -180,7 +202,8 @@ random number fixed per particle, `v` speed), `alpha`. And what makes them
 part of the picture:
 
 - `emit`: where they are born. `point` (at `x`, `y`, within `area`), `wave`
-  (along the wave layers drawn before this one, mostly where they are loud),
+  (along the wave layers drawn before this one, mostly where they are loud,
+  or along a wireframe's newest sample),
   `bars` (on the tips of the bars), `edges` (the screen's border, heading
   for `x`, `y`), `screen` (anywhere).
 - `flow`: 1 carries them exactly as the feedback carries the picture, so

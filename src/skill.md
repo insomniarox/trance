@@ -7,8 +7,8 @@ description: Write, check, render and switch presets for Trance, the Linux music
 
 Trance is a music visualizer. A preset is a JSON file: feedback settings that
 bend last frame's picture, layers drawn on top (waves, bars, shapes, terrain,
-particles), and post effects. Any number can be a formula of the music
-(`"1.02 + 0.05*bass_att"`).
+wireframes, particles), and post effects. Any number can be a formula of the
+music (`"1.02 + 0.05*bass_att"`).
 
 Read the format before writing a preset; it is short and complete. The
 manual says the same at length, with the reasoning behind each setting and a
@@ -41,6 +41,13 @@ trance render "Night Drive" -o look.png --sheet 6 --seconds 8
   `sub`, `low`, `lowmid`, `highmid`, `presence`, `air` (and `_att` for the
   smoothed ones) sit beside `bass`, `mid` and `treb`. `trance show Strata`
   and `trance show Clockwork` do this with one layer per range.
+- A `wireframe` layer is the one thing in three dimensions, and it reads the
+  sound differently from every other layer (even steps of pitch between
+  `low` and `high`, no decibels), so it is the quickest way to make a preset
+  that doesn't look or move like the rest. Give `yaw` a formula such as
+  `time*0.2` or it reads as flat. `trance show Whitecaps` is the plain
+  sheet, `trance show Scroll` morphs two forms, `trance show Ribbon` bends
+  one with `point` code, and `trance show Borehole` puts the camera inside.
 - Additive layers with a `decay` near 1 and a `zoom` above 1 pile up to
   white. Lower `alpha` or `decay` when a render looks blown out.
 - The best presets combine the parts: a flow in `pixel`, a `background`, a

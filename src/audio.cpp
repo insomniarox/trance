@@ -140,6 +140,11 @@ const AudioFrame &Analyzer::analyze(double dt) {
     }
 
     transform(1, m_magnitude);
+    static_assert(AudioFrame::RawSize == FftSize / 2, "raw is the whole transform");
+    for (int bin = 0; bin < AudioFrame::RawSize; ++bin)
+        m_frame.raw[bin] = float(m_magnitude[size_t(bin)] * gain);
+    m_frame.rawStep = float(m_rate) / FftSize;
+    m_frame.sensitivity = float(m_sensitivity);
     // The bottom two narrow ranges are 40 and 140 Hz wide, less than the
     // usual 43 ms of sound can tell apart, so they get twice as long a
     // listen. Everything faster than a bass line keeps the short one.
@@ -219,6 +224,66 @@ const AudioFrame &Analyzer::analyze(double dt) {
     }
     m_lastBass = bass;
     return m_frame;
+}
+
+const std::vector<float> &Bins::update(const AudioFrame &frame, const Settings &settings, double dt) {
+    const int count = std::clamp(settings.count, 2, AudioFrame::RawSize);
+    if (int(m_held.size()) != count) {
+        m_held.assign(size_t(count), 0.f);
+        m_now.assign(size_t(count), 0.f);
+    }
+    const double step = std::max(double(frame.rawStep), 1e-3);
+    const double top = step * (AudioFrame::RawSize - 1);
+    const double low = std::clamp(settings.low, 0.0, top - step);
+    const double high = std::clamp(settings.high, low + step, top);
+    float loudest = 0;
+    for (int bin = 0; bin < count; ++bin) {
+        const double from = (low + (high - low) * bin / count) / step;
+        const double to = (low + (high - low) * (bin + 1) / count) / step;
+        double value = 0;
+        if (to - from < 1.0) {
+            // Narrower than the transform can tell apart: read between its steps.
+            const double center = 0.5 * (from + to);
+            const int below = std::min(int(center), AudioFrame::RawSize - 2);
+            const double t = center - below;
+            value = frame.raw[below] * (1 - t) + frame.raw[below + 1] * t;
+        } else {
+            // Each step of the transform is half a step wide either side of
+            // its own pitch, and counts for as much of it as lies in the bin.
+            const int first = int(from + 0.5), last = std::min(AudioFrame::RawSize - 1, int(to + 0.5));
+            for (int k = first; k <= last; ++k)
+                value += frame.raw[k] * std::max(0.0, std::min(to, k + 0.5) - std::max(from, k - 0.5));
+            value /= to - from;
+        }
+        value *= 1 + std::max(0.0, settings.tilt) * (bin + 0.5) / count;
+        m_now[size_t(bin)] = frame.silent ? 0.f : float(value);
+    }
+    // Forward then backward, so smoothing doesn't shift a peak sideways.
+    const float smooth = float(std::clamp(settings.smooth, 0.0, 0.95));
+    if (smooth > 0) {
+        for (int bin = 1; bin < count; ++bin)
+            m_now[size_t(bin)] = m_now[size_t(bin)] * (1 - smooth) + m_now[size_t(bin - 1)] * smooth;
+        for (int bin = count - 2; bin >= 0; --bin)
+            m_now[size_t(bin)] = m_now[size_t(bin)] * (1 - smooth) + m_now[size_t(bin + 1)] * smooth;
+    }
+    for (float value : m_now)
+        loudest = std::max(loudest, value);
+    // The loudest bin of the last few seconds is what 1 means. It is
+    // followed up quickly but not at once, which is what lets a hit stand
+    // taller than the passage it lands in.
+    const double heard = loudest / std::max(double(frame.sensitivity), 1e-6);
+    if (heard > m_level)
+        m_level += (heard - m_level) * std::min(1.0, dt / 0.12);
+    else
+        m_level *= std::exp(-dt / 4.0);
+    // The floor keeps the hiss of a pause from being raised into a storm.
+    m_level = std::max(m_level, 0.004);
+    const float keep = float(std::exp(-dt / std::max(settings.fade, 0.01)));
+    for (int bin = 0; bin < count; ++bin) {
+        const float value = std::min(2.f, float(m_now[size_t(bin)] / m_level));
+        m_held[size_t(bin)] = std::max(value, m_held[size_t(bin)] * keep);
+    }
+    return m_held;
 }
 
 void synthesize(float *out, int frames, qint64 startFrame, int rate) {

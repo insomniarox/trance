@@ -195,6 +195,107 @@ private slots:
         QVERIFY2(preset.ok(), qPrintable(preset.firstError()));
     }
 
+    // The wireframe's reading of the spectrum is a different measurement
+    // from the one bars and terrain share, so the two don't move alike.
+    void binsReadTheSpectrumTheirOwnWay()
+    {
+        // Two tones, the higher at half the strength of the lower.
+        const auto tones = [](float *out, int frames, qint64 start) {
+            for (int i = 0; i < frames; ++i) {
+                const double t = double(start + i) / 48000.0;
+                out[i * 2] = out[i * 2 + 1] =
+                    float(0.4 * std::sin(2 * M_PI * 1050.0 * t) + 0.2 * std::sin(2 * M_PI * 3050.0 * t));
+            }
+        };
+        Analyzer analyzer;
+        Bins bins;
+        Bins::Settings settings;
+        settings.count = 50;
+        settings.low = 0;
+        settings.high = 5000;
+        settings.tilt = 0;
+        settings.smooth = 0;
+        std::vector<float> chunk(800 * 2), heard;
+        qint64 position = 0;
+        const auto step = [&](int frames, bool sound) {
+            for (int i = 0; i < frames; ++i) {
+                if (sound)
+                    tones(chunk.data(), 800, position);
+                else
+                    std::fill(chunk.begin(), chunk.end(), 0.f);
+                position += 800;
+                analyzer.push(chunk.data(), 800);
+                heard = bins.update(analyzer.analyze(1.0 / 60), settings, 1.0 / 60);
+            }
+        };
+        step(120, true);
+        const AudioFrame frame = analyzer.frame();
+
+        // The transform is handed over as it is: even steps from 0 Hz.
+        int loudest = 0;
+        for (int i = 0; i < AudioFrame::RawSize; ++i)
+            if (frame.raw[i] > frame.raw[loudest])
+                loudest = i;
+        QVERIFY2(std::abs(loudest * frame.rawStep - 1050) < frame.rawStep, qPrintable(QString::number(loudest)));
+
+        // Bins are equal widths of it, 100 Hz each here, and the loudest is 1.
+        QCOMPARE(int(heard.size()), 50);
+        for (int bin = 0; bin < 50; ++bin)
+            QVERIFY2(bin == 10 || bin == 30 || heard[size_t(bin)] < 0.1f,
+                     qPrintable(QString("bin %1: %2").arg(bin).arg(heard[size_t(bin)])));
+        QVERIFY2(std::abs(heard[10] - 1.f) < 0.1f, qPrintable(QString::number(heard[10])));
+        // Half the strength stands half as tall. The spectrum the other
+        // layers read is in decibels, where it is nearly as tall.
+        QVERIFY2(std::abs(heard[30] / heard[10] - 0.5f) < 0.08f, qPrintable(QString::number(heard[30])));
+        const auto band = [](double hz) {
+            return int(AudioFrame::SpectrumSize * std::log(hz / 30.0) / std::log(16000.0 / 30.0));
+        };
+        float lower = 0, higher = 0;
+        for (int k = -2; k <= 2; ++k) {
+            lower = std::max(lower, frame.spectrum[band(1050) + k]);
+            higher = std::max(higher, frame.spectrum[band(3050) + k]);
+        }
+        QVERIFY2(higher / lower > 0.8f, qPrintable(QString("%1 %2").arg(lower).arg(higher)));
+        // And the two are laid out differently: evenly here, by octave there.
+        QVERIFY(band(1050) > AudioFrame::SpectrumSize / 2);
+
+        // The top of the stretch can be weighted up.
+        settings.tilt = 10;
+        step(60, true);
+        QVERIFY2(heard[30] > heard[10], qPrintable(QString("%1 %2").arg(heard[10]).arg(heard[30])));
+        settings.tilt = 0;
+        step(300, true);
+
+        // A bin sinks back over its fall time instead of dropping.
+        settings.fade = 0.5;
+        step(1, true);
+        const float before = heard[10];
+        step(30, false);
+        QVERIFY2(heard[10] > before * 0.25f && heard[10] < before * 0.6f, qPrintable(QString::number(heard[10])));
+        step(240, false);
+        QVERIFY(heard[10] < 0.02f);
+
+        // Quiet and loud sources fill it alike, and silence leaves it flat.
+        for (const float volume : {0.02f, 0.9f}) {
+            Analyzer other;
+            Bins reading;
+            float peak = 0;
+            for (int i = 0; i < 4 * 60; ++i) {
+                synthesize(chunk.data(), 800, qint64(i) * 800, 48000);
+                for (float &sample : chunk)
+                    sample *= volume;
+                other.push(chunk.data(), 800);
+                const std::vector<float> &values = reading.update(other.analyze(1.0 / 60), Bins::Settings(), 1.0 / 60);
+                if (i >= 3 * 60)
+                    peak = std::max(peak, *std::max_element(values.begin(), values.end()));
+            }
+            QVERIFY2(peak > 0.6f && peak <= 2.f, qPrintable(QString("volume %1 peak %2").arg(volume).arg(peak)));
+        }
+        Bins quiet;
+        const std::vector<float> &nothing = quiet.update(AudioFrame(), Bins::Settings(), 1.0 / 60);
+        QCOMPARE(*std::max_element(nothing.begin(), nothing.end()), 0.f);
+    }
+
     void analyzerKnowsSilence()
     {
         Analyzer analyzer;
@@ -667,6 +768,90 @@ private slots:
         engine.setVisitors(pool, 0);
         engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
         QCOMPARE(engine.visitorCount(), 0);
+    }
+
+    // The wireframe layer: every form and style draws, a camera inside the
+    // form is no trouble, and its code moves points in three dimensions.
+    void engineDrawsWireframes()
+    {
+        const CompiledPreset starter = presets::compile(QJsonObject{
+            {"name", "Starter"}, {"layers", QJsonArray{presets::starterLayer("wireframe")}}});
+        QVERIFY2(starter.problems.isEmpty(), qPrintable(starter.firstError()));
+        const CompiledPreset bad = presets::compile(fixture(
+            "{ 'name': 'Bad', 'layers': [ { 'type': 'wireframe', 'form': 'cube', 'point': 'z = z + depthh' } ] }"));
+        QStringList paths;
+        for (const auto &problem : bad.problems)
+            paths << problem.path;
+        QVERIFY2(paths.contains("layers.0.form") && paths.contains("layers.0.point"), qPrintable(paths.join(' ')));
+
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        QOpenGLFramebufferObject target(320, 200);
+        const auto lit = [&] {
+            const QImage image = target.toImage();
+            int count = 0;
+            for (int y = 0; y < image.height(); y += 2)
+                for (int x = 0; x < image.width(); x += 2)
+                    count += qGray(image.pixel(x, y)) > 24;
+            return count;
+        };
+        const QStringList layers = {
+            "{ 'type': 'wireframe', 'form': 'sheet', 'style': 'mesh', 'yaw': 'time' }",
+            "{ 'type': 'wireframe', 'form': 'tube', 'style': 'lines', 'bins': 128, 'rows': 64 }",
+            "{ 'type': 'wireframe', 'form': 'ring', 'style': 'strands', 'bins': 8, 'rows': 4 }",
+            "{ 'type': 'wireframe', 'form': 'sphere', 'style': 'dots', 'thickness': 4 }",
+            "{ 'type': 'wireframe', 'form': 'sheet', 'form2': 'sphere', 'morph': '0.5 + 0.5*sin(time*9)' }",
+            // From inside: most of the tube is behind the camera.
+            "{ 'type': 'wireframe', 'form': 'tube', 'depth': 4, 'radius': 1, 'pitch': 0, 'distance': 0.5 }",
+            "{ 'type': 'wireframe', 'low': 9000, 'high': 100, 'speed': 60, 'point': 'z = z + 0.3*sin(x*4); a = a*(1 - i)' }",
+        };
+        Engine engine;
+        engine.setTheme(presets::defaultThemeColors());
+        for (const QString &layer : layers) {
+            const CompiledPreset preset = presets::compile(fixture(
+                ("{ 'name': 'Wire', 'feedback': { 'decay': 0 }, 'layers': [ " + layer +
+                 ", { 'type': 'particles', 'emit': 'wave' } ], 'post': { 'bloom': 0 } }").toUtf8()));
+            QVERIFY2(preset.problems.isEmpty(), qPrintable(layer + ": " + preset.firstError()));
+            Analyzer analyzer;
+            std::vector<float> chunk(800 * 2);
+            engine.setPreset(preset, 0);
+            for (int frame = 0; frame < 60; ++frame) {
+                synthesize(chunk.data(), 800, qint64(frame) * 800, 48000);
+                analyzer.push(chunk.data(), 800);
+                engine.render(analyzer.analyze(1.0 / 60), 1.0 / 60, target.handle(), 320, 200);
+            }
+            QVERIFY2(engine.error().isEmpty(), qPrintable(engine.error()));
+            QVERIFY2(lit() > 40, qPrintable(layer + " is black"));
+        }
+
+        // The form is there in silence too, lying flat, and its code can
+        // lift it off the screen's plane: a sheet seen edge-on is one line
+        // until z is turned into height.
+        const auto edgeOn = [](const char *code) {
+            return presets::compile(fixture(QByteArray(
+                "{ 'name': 'Edge', 'feedback': { 'decay': 0 }, 'layers': [ { 'type': 'wireframe', 'pitch': 0, "
+                "'fog': 0, 'color': 'white', 'point': '") + code + "' } ], 'post': { 'bloom': 0, 'vignette': 0 } }"));
+        };
+        engine.setPreset(edgeOn(""), 0);
+        for (int frame = 0; frame < 3; ++frame)
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 320, 200);
+        const int flat = lit();
+        QVERIFY2(flat > 20 && flat < 600, qPrintable(QString::number(flat)));
+        engine.setPreset(edgeOn("y = z*0.5"), 0);
+        for (int frame = 0; frame < 3; ++frame)
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 320, 200);
+        QVERIFY2(lit() > flat * 3, qPrintable(QString("%1 then %2").arg(flat).arg(lit())));
     }
 
     void presetsTakeBackgroundsAndInteractingLayers()
