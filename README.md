@@ -15,7 +15,7 @@ theme.
 
 ![Presets with a part for each range of the sound](docs/gallery-layered.jpg)
 
-- **72 presets** built in, changing on the beat every 30 seconds (or held,
+- **77 presets** built in, changing on the beat every 30 seconds (or held,
   shuffled, or picked from a searchable list). A change is not a cut: for a
   few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next.
@@ -29,8 +29,9 @@ theme.
   wrapped round a ball, folding from one form into another while a camera
   turns round it. It hears the music the way WhiteCap does, in even steps
   of pitch and without decibels, so it shows what stands out where the bars
-  show everything, and the two never move alike. Whitecaps, Borehole, Tide
-  Pool, Urchin, Scroll and Ribbon are built on it.
+  show everything, and the two never move alike. A dozen presets are built
+  on it, from Whitecaps and Borehole to Vinyl, Counterpoint and a
+  Seismograph whose pens draw back across the paper in perspective.
 - **Everything works on everything else.** Flow fields bend the picture,
   waves and bars throw particles, the particles ride the flow, backgrounds
   fill the dark, and one palette colors all of it.

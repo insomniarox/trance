@@ -1,0 +1,46 @@
+{
+  "name": "Corkscrew",
+  "author": "Trance",
+  "description": "A tube of spectrum wound into a spiral that tightens with the bass, turning end over end, and now and then swelling into a ball and back.",
+  "palette": "rose",
+  "init": "ph = rand(6)\ndir = rand() < 0.5 ? -1 : 1\nrate = 0.08 + rand(0.05)",
+  "frame": "wind = dir*(1.8 + 0.8*bass_att)",
+  "feedback": {
+    "decay": 0.7,
+    "zoom": 1.004,
+    "blur": 0.3,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "tube",
+      "form2": "sphere",
+      "morph": "pow(0.5 - 0.5*cos(time*rate + ph), 3)",
+      "style": "mesh",
+      "bins": 40,
+      "rows": 40,
+      "speed": 15,
+      "low": 60,
+      "high": 4500,
+      "fade": 0.3,
+      "height": 0.3,
+      "radius": 0.45,
+      "depth": 1.6,
+      "yaw": "time*0.21 + ph",
+      "pitch": "0.5*sin(time*0.13)",
+      "roll": "time*0.05",
+      "distance": 3.4,
+      "thickness": 1.1,
+      "fog": 0.75,
+      "color": "palette(0.25 + 0.5*min(v, 1) + 0.25*i)",
+      "alpha": 0.7,
+      "point": "w = z*wind\nx1 = x*cos(w) - y*sin(w)\ny = x*sin(w) + y*cos(w)\nx = x1"
+    }
+  ],
+  "post": {
+    "bloom": 0.7,
+    "bloomThreshold": 0.5,
+    "vignette": 0.45
+  }
+}

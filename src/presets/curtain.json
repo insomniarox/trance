@@ -1,0 +1,52 @@
+{
+  "name": "Curtain",
+  "author": "Trance",
+  "description": "Threads of light hanging from the dark like an aurora seen from beneath, each one a pitch, rippling as the music passes along it.",
+  "palette": "abyss",
+  "init": "ph = rand(6)\ndir = rand() < 0.5 ? -1 : 1",
+  "feedback": {
+    "decay": 0.82,
+    "dy": -0.002,
+    "blur": 0.4,
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.25,
+    "tint": 0.3,
+    "spread": 0.2,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "style": "strands",
+      "bins": 40,
+      "rows": 36,
+      "speed": 12,
+      "low": 100,
+      "high": 7000,
+      "tilt": 14,
+      "smooth": 0.3,
+      "fade": 0.4,
+      "height": -0.55,
+      "width": 1.9,
+      "depth": 0.9,
+      "yaw": "dir*time*0.05 + ph",
+      "pitch": "-0.35 + 0.1*sin(time*0.08)",
+      "roll": "0.08*sin(time*0.13)",
+      "distance": 3,
+      "y": 0.55,
+      "thickness": 1.8,
+      "fog": 0.5,
+      "color": "palette(0.3 + 0.55*min(v*1.2, 1))",
+      "alpha": "0.6 + 0.3*min(treb_att, 1)",
+      "point": "y = y - 0.9*i*i"
+    }
+  ],
+  "post": {
+    "bloom": 1.1,
+    "bloomThreshold": 0.35,
+    "vignette": 0.4
+  }
+}

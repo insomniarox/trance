@@ -1,0 +1,49 @@
+{
+  "name": "Dunes",
+  "author": "Trance",
+  "description": "Sand blown into ridges by the music and left to settle: every grain a point, and a held note leaves a dune that takes seconds to sink.",
+  "palette": "sepia",
+  "init": "ph = rand(6)",
+  "feedback": {
+    "decay": 0.6,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.14,
+    "tint": 0.35,
+    "spread": 0.35,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "style": "dots",
+      "bins": 96,
+      "rows": 48,
+      "speed": 9,
+      "low": 50,
+      "high": 3000,
+      "smooth": 0.6,
+      "fade": 1.6,
+      "height": 0.5,
+      "width": 2,
+      "depth": 1.8,
+      "yaw": "ph + 0.25*sin(time*0.05)",
+      "pitch": "0.3 + 0.06*sin(time*0.09)",
+      "distance": 2.8,
+      "y": -0.3,
+      "thickness": 2.2,
+      "fog": 0.55,
+      "color": "palette(0.5 + 0.45*min(v, 1))",
+      "alpha": 1
+    }
+  ],
+  "post": {
+    "bloom": 0.8,
+    "bloomThreshold": 0.45,
+    "vignette": 0.5,
+    "grain": 0.04
+  }
+}
