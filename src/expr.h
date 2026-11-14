@@ -94,4 +94,7 @@ QString glslPrelude();
 // Smooth value noise in 0..1, the CPU twin of the shader's f_noise.
 double noise(double x, double y);
 
+// Every function formulas can call, in the order the docs list them.
+QStringList functionNames();
+
 } // namespace expr

@@ -32,4 +32,7 @@ QtObject {
     readonly property int row: 44       // the least height of a line of settings
     readonly property int pad: 16       // from a panel's edge to what is in it
     readonly property string mono: "monospace"
+
+    // "1 layer", "3 layers": many has a %1 for the count.
+    function count(n, one, many) { return n === 1 ? one : many.arg(n) }
 }

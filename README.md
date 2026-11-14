@@ -2,8 +2,8 @@
 
 ![Trance showing the Neon Tunnel preset with the editor open](docs/screenshot.png)
 
-A music visualizer for [Omarchy](https://omarchy.org). It listens to whatever
-your speakers are playing and draws it: feedback tunnels in the spirit of
+A music visualizer for the Linux desktop. It listens to whatever your
+speakers are playing and draws it: feedback tunnels in the spirit of
 MilkDrop, flow fields and spectrum landscapes in the spirit of SoundSpectrum's
 G-Force and WhiteCap, and plain analyzers when that's all you want. Every
 preset can be changed while it runs, and the colors can follow your desktop
@@ -13,17 +13,17 @@ theme.
 
 ![Twelve presets where flow, waves, particles and backgrounds work on each other](docs/gallery-interacting.jpg)
 
-![Fifteen presets with a part for each range of the sound](docs/gallery-layered.jpg)
+![Presets with a part for each range of the sound](docs/gallery-layered.jpg)
 
-- **58 presets** built in, changing on the beat every 30 seconds (or held,
+- **66 presets** built in, changing on the beat every 30 seconds (or held,
   shuffled, or picked from a searchable list). A change is not a cut: for a
   few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next.
 - **A layer for every part of the sound.** Besides bass, mid and treble,
   formulas can follow six narrower ranges (`sub`, `low`, `lowmid`,
   `highmid`, `presence`, `air`), so each layer of a preset can move to its
-  own. Fifteen presets are built that way, from Strata and Clockwork to
-  Jellyfish, Corona and Seismograph.
+  own. Two dozen presets are built that way, from Strata and Clockwork to
+  Jellyfish, Corona, Prism and Gyroscope.
 - **Everything works on everything else.** Flow fields bend the picture,
   waves and bars throw particles, the particles ride the flow, backgrounds
   fill the dark, and one palette colors all of it.
@@ -40,10 +40,11 @@ theme.
   particles can be added, reordered and removed. Nothing is written until
   you save, and your presets are kept apart from the built-in ones.
 - **Follows your theme.** Presets can use the theme's colors by name, and
-  `T` recolors every preset with the theme's colors or one of eleven palettes. A
-  theme switch shows up immediately.
-- **Glass.** `G` makes black see-through, so Hyprland's blur and your
-  desktop show behind the picture. A slider in the settings says how dark
+  `T` recolors every preset with the theme's colors or one of 23 palettes. On
+  [Omarchy](https://omarchy.org) those are the desktop theme's colors, and a
+  theme switch shows up immediately; elsewhere a built-in set stands in.
+- **Glass.** `G` makes black see-through, so your desktop, and your
+  compositor's blur if it has one, show behind the picture. A slider in the settings says how dark
   the glass is, from clear to solid.
 - **Track titles** from whatever player is running (Spotify, a browser, mpv)
   when the song changes: in the corner, or written into the picture for the
@@ -55,15 +56,27 @@ theme.
 bin/install
 ```
 
-This builds the package and installs it with pacman, after which Trance is in
-the app launcher (`Super + Space`). To try it without installing:
+On Arch and Omarchy this builds a package and installs it with pacman; on
+any other distribution it builds and runs `sudo make install` into
+`/usr/local`. Either way Trance is then in the app launcher. To try it
+without installing:
 
 ```sh
 bin/build && build/trance
 ```
 
-It needs Omarchy's usual Qt 6 packages and `pipewire-audio`, all of which
-Omarchy already has.
+It needs:
+
+- Qt 6.5 or newer, with Qt Quick, Quick Controls and the Wayland platform
+  plugin (on Arch: `qt6-base qt6-declarative qt6-wayland`, which Omarchy
+  already has), and a C++17 compiler with `make` to build it.
+- PipeWire with its `pw-cat` and `pw-dump` tools, which is how it hears the
+  music. Most current distributions play sound through PipeWire already.
+- A graphics driver with OpenGL 3.3.
+
+Track titles come from any player that speaks MPRIS. Two things are only
+there on the desktops that have them: the theme's colors on Omarchy, and
+corners that follow the window rounding on Hyprland.
 
 ## Shortcuts
 
@@ -84,6 +97,7 @@ Omarchy already has.
 | `M` | Listen to the microphone instead |
 | `+` `-` | More or less sensitive to the music |
 | `F` or `F11` | Full screen (also a double-click) |
+| `Ctrl+Tab` | In the editor: the next tab |
 | `Ctrl+S` | Save the preset |
 | `Ctrl+Shift+S` | Save it under a new name |
 | `Ctrl+N` | New preset |
@@ -140,8 +154,9 @@ trance source system      # back to everything
 
 ## Key bindings
 
-A running Trance can be steered from the command line,
-so it can be bound to keys in `~/.config/hypr/bindings.lua`:
+A running Trance can be steered from the command line, so it can be bound to
+keys wherever your desktop keeps its bindings. On Omarchy that is
+`~/.config/hypr/bindings.lua`:
 
 ```lua
 o.bind("SUPER + ALT + period", "Trance: next preset", hl.dsp.exec_cmd("trance next"))
@@ -202,6 +217,9 @@ bin/build    # qmake6 + make into build/trance
 bin/test     # the test suite, offscreen
 ```
 
+What is known to be missing or rough is in
+[docs/known-issues.md](docs/known-issues.md).
+
 ## Where the ideas come from
 
 From MilkDrop: the feedback loop, per-pixel code, custom waves and shapes,
@@ -219,5 +237,5 @@ the per-pixel ones into GLSL), `src/preset.cpp` the preset format, and
 
 ## License
 
-MIT. Theme and language following are adapted from Omacut and Monologue by
-David Heinemeier Hansson.
+MIT. Theme following is adapted from Omacut and Monologue by David
+Heinemeier Hansson.

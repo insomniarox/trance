@@ -94,9 +94,12 @@ QStringList paletteNames();
 QStringList paletteStops(const QString &name);
 QStringList themeColorNames();
 QStringList variableNames();
-QStringList functionNames();
 QVariantMap schema();
 QJsonObject starterLayer(const QString &type);
+// Whether the preset's feedback carries the picture anywhere: a zoom, a
+// turn, a slide, a stretch, a warp, or pixel code. Without any of these
+// whatever is drawn stays where it was put and only fades.
+bool moves(const QJsonObject &json);
 QJsonObject blank(const QString &name);
 
 // Colors Omarchy themes define, with stand-ins for when there is no theme.

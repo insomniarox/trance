@@ -1,0 +1,111 @@
+{
+  "name": "Prism",
+  "author": "Trance",
+  "description": "White light goes in and six colors come out, red for the rumble down to violet for the cymbals. Each ray is as wide and as bright as its range is loud.",
+  "palette": "rainbow",
+  "feedback": {
+    "decay": 0.86,
+    "dx": 0.004,
+    "blur": 0.35,
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.3,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "2 + 2*vol",
+      "color": "white",
+      "alpha": 0.9,
+      "point": "x = -aspect*1.05 + (aspect*1.05 - 0.14)*t\ny = -0.18 + 0.18*t + v*0.03*(1 - t)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "3 + 6*min(sub_att, 2)",
+      "color": "palette(0.00)",
+      "alpha": "clamp(0.25 + 0.5*sub_att, 0, 1)",
+      "point": "x = 0.14 + (aspect*1.05 - 0.14)*t\ny = 0.02 + (0.22)*(x - 0.14) + v*0.02*t*sub_att"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "3 + 6*min(low_att, 2)",
+      "color": "palette(0.14)",
+      "alpha": "clamp(0.25 + 0.5*low_att, 0, 1)",
+      "point": "x = 0.14 + (aspect*1.05 - 0.14)*t\ny = 0.02 + (0.13)*(x - 0.14) + v*0.02*t*low_att"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "3 + 6*min(lowmid_att, 2)",
+      "color": "palette(0.29)",
+      "alpha": "clamp(0.25 + 0.5*lowmid_att, 0, 1)",
+      "point": "x = 0.14 + (aspect*1.05 - 0.14)*t\ny = 0.02 + (0.04)*(x - 0.14) + v*0.02*t*lowmid_att"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "3 + 6*min(highmid_att, 2)",
+      "color": "palette(0.43)",
+      "alpha": "clamp(0.25 + 0.5*highmid_att, 0, 1)",
+      "point": "x = 0.14 + (aspect*1.05 - 0.14)*t\ny = 0.02 + (-0.05)*(x - 0.14) + v*0.02*t*highmid_att"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "3 + 6*min(presence_att, 2)",
+      "color": "palette(0.57)",
+      "alpha": "clamp(0.25 + 0.5*presence_att, 0, 1)",
+      "point": "x = 0.14 + (aspect*1.05 - 0.14)*t\ny = 0.02 + (-0.14)*(x - 0.14) + v*0.02*t*presence_att"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 64,
+      "thickness": "3 + 6*min(air_att, 2)",
+      "color": "palette(0.71)",
+      "alpha": "clamp(0.25 + 0.5*air_att, 0, 1)",
+      "point": "x = 0.14 + (aspect*1.05 - 0.14)*t\ny = 0.02 + (-0.23)*(x - 0.14) + v*0.02*t*air_att"
+    },
+    {
+      "type": "shape",
+      "sides": 3,
+      "y": -0.03,
+      "radius": 0.32,
+      "color": "black",
+      "alpha": 0.55,
+      "color2": "black",
+      "alpha2": 0.55,
+      "border": "white",
+      "borderAlpha": 0.9,
+      "borderWidth": 2.5
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 500,
+      "rate": "20 + 400*beat",
+      "speed": 0.05,
+      "flow": 1,
+      "life": 1.5,
+      "size": 1.6,
+      "color": "palette(i)",
+      "alpha": 0.7
+    }
+  ],
+  "post": {
+    "bloom": 1.2,
+    "vignette": 0.5
+  }
+}

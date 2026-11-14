@@ -12,6 +12,9 @@ Popup {
     property string detail
     // The item it is showing for, so a later item can't close it by leaving.
     property Item owner: null
+    // If what it was showing for goes away (the editor closing with the
+    // pointer still on a name), so does the tip.
+    onOwnerChanged: if (!owner) { wait.stop(); close() }
 
     function show(item, title, body, detail) {
         owner = item

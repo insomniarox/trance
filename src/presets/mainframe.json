@@ -1,0 +1,90 @@
+{
+  "name": "Mainframe",
+  "author": "Trance",
+  "description": "Six traces on a circuit board, each carrying pulses of light that run faster the louder its range, between chips that light up with their own slice of the spectrum.",
+  "palette": "cyber",
+  "frame": "q0 = q0 + dt*0.30*(0.3 + sub_att)\nq1 = q1 + dt*0.42*(0.3 + low_att)\nq2 = q2 + dt*0.54*(0.3 + lowmid_att)\nq3 = q3 + dt*0.66*(0.3 + highmid_att)\nq4 = q4 + dt*0.78*(0.3 + presence_att)\nq5 = q5 + dt*0.90*(0.3 + air_att)",
+  "feedback": {
+    "decay": 0.82,
+    "zoom": 1.003,
+    "blur": 0.1,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 256,
+      "thickness": "2.6 + 1.5*sub",
+      "color": "palette(0.45)",
+      "alpha": "clamp(0.6 + 0.4*sub_att, 0, 1)",
+      "point": "s = t*10*0.9999\nseg = floor(s)\nf = s - seg\nx = -1.7 + (0.34)*(floor((seg + 1)/2) + if(equal(mod(seg, 2), 0), f, 0))\ny = -0.9 + (0.3)*(floor(seg/2) + if(equal(mod(seg, 2), 1), f, 0))\na = a*(0.35 + 0.65*smoothstep(0.6, 1, fract(t*3 - q0)))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 256,
+      "thickness": "2.6 + 1.5*low",
+      "color": "palette(0.55)",
+      "alpha": "clamp(0.6 + 0.4*low_att, 0, 1)",
+      "point": "s = t*10*0.9999\nseg = floor(s)\nf = s - seg\nx = 1.7 + (-0.34)*(floor((seg + 1)/2) + if(equal(mod(seg, 2), 0), f, 0))\ny = 0.9 + (-0.3)*(floor(seg/2) + if(equal(mod(seg, 2), 1), f, 0))\na = a*(0.35 + 0.65*smoothstep(0.6, 1, fract(t*3 - q1)))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 256,
+      "thickness": "2.6 + 1.5*lowmid",
+      "color": "palette(0.65)",
+      "alpha": "clamp(0.6 + 0.4*lowmid_att, 0, 1)",
+      "point": "s = t*8*0.9999\nseg = floor(s)\nf = s - seg\nx = -1.7 + (0.42)*(floor((seg + 1)/2) + if(equal(mod(seg, 2), 0), f, 0))\ny = 0.9 + (-0.22)*(floor(seg/2) + if(equal(mod(seg, 2), 1), f, 0))\na = a*(0.35 + 0.65*smoothstep(0.6, 1, fract(t*3 - q2)))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 256,
+      "thickness": "2.6 + 1.5*highmid",
+      "color": "palette(0.75)",
+      "alpha": "clamp(0.6 + 0.4*highmid_att, 0, 1)",
+      "point": "s = t*8*0.9999\nseg = floor(s)\nf = s - seg\nx = 1.7 + (-0.42)*(floor((seg + 1)/2) + if(equal(mod(seg, 2), 0), f, 0))\ny = -0.9 + (0.22)*(floor(seg/2) + if(equal(mod(seg, 2), 1), f, 0))\na = a*(0.35 + 0.65*smoothstep(0.6, 1, fract(t*3 - q3)))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 256,
+      "thickness": "2.6 + 1.5*presence",
+      "color": "palette(0.85)",
+      "alpha": "clamp(0.6 + 0.4*presence_att, 0, 1)",
+      "point": "s = t*6*0.9999\nseg = floor(s)\nf = s - seg\nx = -1.7 + (0.57)*(floor((seg + 1)/2) + if(equal(mod(seg, 2), 0), f, 0))\ny = 0.0 + (0.15)*(floor(seg/2) + if(equal(mod(seg, 2), 1), f, 0))\na = a*(0.35 + 0.65*smoothstep(0.6, 1, fract(t*3 - q4)))"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 256,
+      "thickness": "2.6 + 1.5*air",
+      "color": "palette(0.95)",
+      "alpha": "clamp(0.6 + 0.4*air_att, 0, 1)",
+      "point": "s = t*6*0.9999\nseg = floor(s)\nf = s - seg\nx = 1.7 + (-0.57)*(floor((seg + 1)/2) + if(equal(mod(seg, 2), 0), f, 0))\ny = 0.1 + (-0.15)*(floor(seg/2) + if(equal(mod(seg, 2), 1), f, 0))\na = a*(0.35 + 0.65*smoothstep(0.6, 1, fract(t*3 - q5)))"
+    },
+    {
+      "type": "shape",
+      "sides": 4,
+      "instances": 12,
+      "x": "(floor(noise(n*3.7, 1)*9) - 4)*0.36",
+      "y": "(floor(noise(n*5.1, 2)*5) - 2)*0.36",
+      "radius": "0.04 + 0.06*v",
+      "color": "palette(0.5 + 0.3*t)",
+      "alpha": "0.35 + 0.65*v",
+      "color2": "palette(0.5 + 0.3*t)",
+      "alpha2": 0.1,
+      "border": "palette(0.6 + 0.3*t)",
+      "borderAlpha": 0.9,
+      "borderWidth": 1.5
+    }
+  ],
+  "post": {
+    "bloom": 1.4,
+    "bloomThreshold": 0.4,
+    "scanlines": 0.2,
+    "vignette": 0.4
+  }
+}

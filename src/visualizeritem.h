@@ -4,6 +4,7 @@
 #include <QString>
 
 class Backend;
+class QOffscreenSurface;
 
 // The picture, as a Qt Quick item: `Visualizer { anchors.fill: parent }`.
 // It draws continuously with the engine, into whatever size it is given.
@@ -48,6 +49,10 @@ public:
     // The one backend every visualizer in the process shows.
     static void setBackend(Backend *backend);
     static Backend *backend();
+    // A surface made on the GUI thread, for the thread that builds shaders
+    // to make its context current on. Without one, shaders are built on
+    // the thread that draws. It must outlive every window.
+    static void setBuildSurface(QOffscreenSurface *surface);
 
 signals:
     void statsChanged();

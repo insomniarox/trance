@@ -1,0 +1,52 @@
+{
+  "name": "Radar",
+  "author": "Trance",
+  "description": "A sweep going round a dark screen. Each blip is a pitch: it flares as the sweep passes if that pitch is sounding, and fades until the sweep comes round again.",
+  "palette": "phosphor",
+  "frame": "sw = sw - dt*(0.9 + 0.5*low_att)",
+  "feedback": {
+    "decay": 0.965,
+    "blur": 0.15,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 4,
+      "radius": "0.95*(n + 1)/4",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.45)",
+      "borderAlpha": 0.35,
+      "borderWidth": 1.2,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 12,
+      "instances": 18,
+      "color": "palette(0.8)",
+      "alpha": 1,
+      "color2": "palette(0.6)",
+      "alpha2": 0,
+      "additive": true,
+      "code": "an = noise(n*7.3, 1)*tau\nrd = 0.15 + 0.75*noise(n*3.1, 2)\nx = rd*cos(an)\ny = rd*sin(an)\nradius = 0.012 + 0.03*v\na = clamp(1 - mod(an - sw, tau)/tau*2.2, 0, 1)*(0.3 + 0.9*v)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 3,
+      "color": "palette(0.75)",
+      "point": "x = 0.95*t*cos(sw)\ny = 0.95*t*sin(sw)"
+    }
+  ],
+  "post": {
+    "bloom": 1.1,
+    "scanlines": 0.25,
+    "grain": 0.06,
+    "vignette": 0.7
+  }
+}

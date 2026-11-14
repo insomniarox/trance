@@ -42,7 +42,6 @@ class Backend : public QObject {
     Q_PROPERTY(double quality READ quality WRITE setQuality NOTIFY settingsChanged)
     Q_PROPERTY(bool glass READ glass WRITE setGlass NOTIFY settingsChanged)
     Q_PROPERTY(double glassOpacity READ glassOpacity WRITE setGlassOpacity NOTIFY settingsChanged)
-    Q_PROPERTY(bool showTitles READ showTitles WRITE setShowTitles NOTIFY settingsChanged)
     Q_PROPERTY(QString titleStyle READ titleStyle WRITE setTitleStyle NOTIFY settingsChanged)
     Q_PROPERTY(QString source READ source WRITE setSource NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList sources READ sources NOTIFY sourcesChanged)
@@ -95,7 +94,6 @@ public:
     // How dark the glass is: 0 is clear wherever the picture is black, 1 is
     // solid, which looks the same as no glass at all.
     double glassOpacity() const { return m_glassOpacity; }
-    bool showTitles() const { return m_titleStyle != "off"; }
     // Where a new track's name appears: "corner" (over the picture),
     // "picture" (drawn into it, for the flow to carry off), or "off".
     QString titleStyle() const { return m_titleStyle; }
@@ -122,7 +120,6 @@ public:
     void setQuality(double quality);
     void setGlass(bool glass);
     void setGlassOpacity(double opacity);
-    void setShowTitles(bool show);
     void setTitleStyle(const QString &style);
     void setSource(const QString &source);
     void setBlendSeconds(double seconds);
@@ -266,7 +263,7 @@ private:
     QString m_transition = "mixed";
     bool m_mashups = false, m_visitors = true, m_colorDrift = false;
     QString m_driftPalette; // null until the drift first moves
-    QElapsedTimer m_sinceDrift;
+    QElapsedTimer m_sinceDrift, m_sinceSources;
     double m_driftAfter = 30;
     QList<CompiledPreset> m_visitorPool;
     QImage m_titleImage;

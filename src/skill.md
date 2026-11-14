@@ -1,6 +1,6 @@
 ---
 name: trance
-description: Write, check, render and switch presets for Trance, the Omarchy music visualizer. Use when asked to make or change a visualizer preset, to match the visualizer to a theme or a song, to render a preset to an image, or to control a running Trance (next preset, lock).
+description: Write, check, render and switch presets for Trance, the Linux music visualizer. Use when asked to make or change a visualizer preset, to match the visualizer to a theme or a song, to render a preset to an image, or to control a running Trance (next preset, lock).
 ---
 
 # Trance

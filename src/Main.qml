@@ -24,6 +24,9 @@ ApplicationWindow {
     // that is showing, "settings" for the app, or "" for neither.
     property string sidePanel: ""
     readonly property bool editorVisible: sidePanel === "editor"
+    // The editor's tab, kept here because the editor itself only exists
+    // while it is open.
+    property int editorTab: 0
     readonly property bool settingsVisible: sidePanel === "settings"
     property var pendingAction: null
     // Dialogs get a set width. Left to size themselves, one whose text is
@@ -117,8 +120,8 @@ ApplicationWindow {
     Shortcut { sequence: "S"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.toggleSide("settings") }
     Shortcut { sequence: "Ctrl+,"; context: Qt.ApplicationShortcut; onActivated: win.toggleSide("settings") }
     Shortcut { sequence: "D"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: backend.debug = !backend.debug }
-    Shortcut { sequence: "Ctrl+Tab"; context: Qt.ApplicationShortcut; enabled: win.editorVisible; onActivated: editor.cycleTab(1) }
-    Shortcut { sequence: "Ctrl+Shift+Tab"; context: Qt.ApplicationShortcut; enabled: win.editorVisible; onActivated: editor.cycleTab(-1) }
+    Shortcut { sequence: "Ctrl+Tab"; context: Qt.ApplicationShortcut; enabled: win.editorVisible; onActivated: win.editorTab = (win.editorTab + 1) % editor.item.tabNames.length }
+    Shortcut { sequence: "Ctrl+Shift+Tab"; context: Qt.ApplicationShortcut; enabled: win.editorVisible; onActivated: win.editorTab = (win.editorTab + editor.item.tabNames.length - 1) % editor.item.tabNames.length }
     Shortcut {
         sequences: ["F", "F11"]; context: Qt.ApplicationShortcut; enabled: !win.typing
         onActivated: win.toggleFullScreen()
@@ -204,14 +207,10 @@ ApplicationWindow {
         }
     }
 
-    // Right-to-left languages mirror the window; the Translator sets the
-    // application's layout direction.
     Item {
         id: content
         anchors.fill: parent
         focus: true
-        LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
-        LayoutMirroring.childrenInherit: true
 
         PresetBrowser {
             id: browser
@@ -221,13 +220,21 @@ ApplicationWindow {
             onCloseRequested: win.browserVisible = false
         }
 
-        // This preset's own settings.
-        EditorPanel {
+        // This preset's own settings. The panel is only made while it is
+        // open: it has a control for every setting of the preset, and kept
+        // around out of sight it would rebuild them all at every change of
+        // preset, which is a stumble in the picture each time.
+        Loader {
             id: editor
-            visible: win.editorVisible
+            active: win.editorVisible
+            visible: active
             width: Math.min(440, parent.width * 0.5)
             anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
-            onCloseRequested: win.sidePanel = ""
+            sourceComponent: EditorPanel {
+                tab: win.editorTab
+                onTabPicked: function (index) { win.editorTab = index }
+                onCloseRequested: win.sidePanel = ""
+            }
         }
 
         // The app's settings, the same whatever preset is showing.
@@ -266,7 +273,7 @@ ApplicationWindow {
                 id: debug
                 anchors { left: parent.left; top: parent.top; margins: 16 }
                 visible: backend.debug
-                picture: picture
+                view: picture
             }
 
             // Short messages, and preset names when those are wanted.

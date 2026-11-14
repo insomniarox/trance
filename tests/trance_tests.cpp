@@ -3,6 +3,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocalServer>
+#include <QLocalSocket>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
@@ -19,7 +21,6 @@
 #include "library.h"
 #include "preset.h"
 #include "theme.h"
-#include "translator.h"
 
 class TranceTests : public QObject {
     Q_OBJECT
@@ -72,6 +73,7 @@ private slots:
     {
         QCOMPARE(parseError("1 +"), QString("Unfinished expression"));
         QCOMPARE(parseError("sine(2)"), QString("Unknown function 'sine'"));
+        QCOMPARE(parseError("lerp(1, 2, 0.5)"), QString("Unknown function 'lerp'; mix(a, b, t) does the same"));
         QCOMPARE(parseError("min(1)"), QString("min() takes 2 argument(s), not 1"));
         QCOMPARE(parseError("(1 + 2"), QString("Missing ')'"));
         QCOMPARE(parseError("2 $ 3"), QString("Unexpected '$'"));
@@ -330,6 +332,23 @@ private slots:
         QVERIFY(library.presets()[library.indexOf("Neon Tunnel")].builtin);
         QVERIFY(!library.remove("Neon Tunnel", &error));
         QCOMPARE(error, QString("Built-in presets can't be deleted"));
+    }
+
+    // Names that come down to the same file name each get a file of their
+    // own; saving the second never writes over the first.
+    void librarySavesLookalikeNamesApart()
+    {
+        QTemporaryDir dir;
+        Library library(dir.path());
+        QString error;
+        const QString first = library.save(fixture("{ 'name': 'Night!', 'layers': [] }"), &error);
+        const QString second = library.save(fixture("{ 'name': 'Night?', 'layers': [] }"), &error);
+        QVERIFY2(!first.isEmpty() && !second.isEmpty(), qPrintable(error));
+        QVERIFY(first != second);
+        QVERIFY(library.indexOf("Night!") >= 0 && library.indexOf("Night?") >= 0);
+        // Saving one of them again goes back to its own file.
+        QCOMPARE(library.save(fixture("{ 'name': 'Night?', 'layers': [], 'palette': 'fire' }"), &error), second);
+        QCOMPARE(library.find("Night!", &error).value("palette").toString(), QString());
     }
 
     void libraryExplainsABrokenFile()
@@ -686,6 +705,129 @@ private slots:
         QVERIFY(backend.currentIsYours());
     }
 
+    // A mash-up takes its motion from one preset and its layers from
+    // another. A preset that only moves through its layers has no motion to
+    // lend, and is never asked for it.
+    void mashupsBorrowMotionOnlyFromPresetsThatMove()
+    {
+        QVERIFY(presets::moves(fixture("{ 'feedback': { 'zoom': 1.02 } }")));
+        QVERIFY(presets::moves(fixture("{ 'feedback': { 'rot': '0.01*sin(time)' } }")));
+        QVERIFY(presets::moves(fixture("{ 'feedback': { 'decay': 0.9 }, 'pixel': 'dx = 0.01' }")));
+        QVERIFY(!presets::moves(fixture("{ 'feedback': { 'decay': 0.9, 'blur': 0.3, 'zoom': 1 } }")));
+        QVERIFY(!presets::moves(fixture("{ 'layers': [] }")));
+
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        QStringList still;
+        for (int i = 0; i < backend.library().presets().size(); ++i)
+            if (!presets::moves(backend.library().load(i)))
+                still << backend.library().presets()[i].name;
+        QVERIFY(still.contains("Pendulum"));
+        QVERIFY(still.contains("Clockwork"));
+        for (int i = 0; i < 60; ++i) {
+            if (!backend.mashup())
+                continue;
+            const QString lender = backend.currentName().section(" × ", 0, 0);
+            QVERIFY2(!still.contains(lender), qPrintable(backend.currentName()));
+        }
+    }
+
+    // With somewhere else to build shaders, a preset comes on when they are
+    // ready and the one showing carries on until then; one overtaken before
+    // it was ready never shows.
+    void engineWaitsForShadersBuiltElsewhere()
+    {
+        QOffscreenSurface surface;
+        surface.create();
+        QOpenGLContext context;
+        QVERIFY(context.create());
+        QVERIFY(context.makeCurrent(&surface));
+        struct Slow : ProgramBuilder, QOpenGLExtraFunctions {
+            struct Asked { int id; QString warp, composite; };
+            QList<Asked> asked;
+            QList<int> ready;
+            void request(int id, const QString &warp, const QString &composite) override { asked.append({id, warp, composite}); }
+            bool take(Result *result) override {
+                if (ready.isEmpty())
+                    return false;
+                const int id = ready.takeFirst();
+                for (const Asked &job : asked) {
+                    if (job.id != id)
+                        continue;
+                    result->id = id;
+                    result->warp = Engine::buildProgram(this, false, Engine::screenVertexShader(), job.warp, &result->error);
+                    result->composite = Engine::buildProgram(this, false, Engine::screenVertexShader(), job.composite, &result->error);
+                }
+                return true;
+            }
+        } builder;
+        builder.initializeOpenGLFunctions();
+        {
+            Engine engine;
+            engine.setProgramBuilder(&builder);
+            QOpenGLFramebufferObject target(160, 90);
+            Analyzer analyzer;
+            auto draw = [&] { engine.render(analyzer.analyze(1.0 / 60), 1.0 / 60, target.handle(), 160, 90); };
+            const auto preset = [](const char *name, const char *init) {
+                return presets::compile(fixture(QByteArray("{ 'name': '") + name + "', 'init': '" + init +
+                                                "', 'layers': [ { 'type': 'wave' } ] }"));
+            };
+            engine.setPreset(preset("First", "mark = 1"), 0);
+            draw();
+            draw();
+            QCOMPARE(builder.asked.size(), 1);
+            QCOMPARE(engine.variable("mark"), 0.0); // nothing showing yet
+            builder.ready << builder.asked[0].id;
+            draw();
+            QCOMPARE(engine.variable("mark"), 1.0);
+
+            // The same preset with only a number changed needs no shaders
+            // built: it is there on the next frame, and what its code had
+            // built up carries over.
+            engine.setPreset(presets::compile(fixture(
+                "{ 'name': 'First', 'init': 'mark = 1', 'feedback': { 'zoom': 1.05 }, 'layers': [ { 'type': 'wave' } ] }")), 0);
+            draw();
+            QCOMPARE(builder.asked.size(), 1);
+            QCOMPARE(engine.variable("zoom"), 1.05);
+            QCOMPARE(engine.variable("mark"), 1.0);
+
+            // Two more in quick succession with different shaders: only the
+            // later one arrives.
+            engine.setPreset(preset("Second", "mark = 2"), 0);
+            draw();
+            engine.setPreset(presets::compile(fixture(
+                "{ 'name': 'Third', 'init': 'mark = 3', 'pixel': 'dx = 0.01', 'layers': [ { 'type': 'wave' } ] }")), 0);
+            draw();
+            QCOMPARE(builder.asked.size(), 3);
+            QCOMPARE(engine.variable("mark"), 1.0);
+            builder.ready << builder.asked[1].id << builder.asked[2].id;
+            draw();
+            QCOMPARE(engine.variable("mark"), 3.0);
+            QVERIFY(engine.error().isEmpty());
+
+            // A slider dragged while a change is being built: each tick
+            // joins the build under way instead of starting another, and
+            // the change still fades in rather than cutting.
+            engine.setPreset(preset("Fourth", "mark = 4"), 4);
+            draw();
+            QCOMPARE(builder.asked.size(), 4);
+            for (const char *zoom : {"1.01", "1.02", "1.03"}) {
+                engine.setPreset(presets::compile(fixture(QByteArray("{ 'name': 'Fourth', 'init': 'mark = 4', "
+                                                                     "'feedback': { 'zoom': ") + zoom +
+                                                          " }, 'layers': [ { 'type': 'wave' } ] }")), 0);
+                draw();
+            }
+            QCOMPARE(builder.asked.size(), 4);
+            QCOMPARE(engine.variable("mark"), 3.0);
+            builder.ready << builder.asked[3].id;
+            draw();
+            QCOMPARE(engine.variable("mark"), 4.0);
+            QCOMPARE(engine.variable("zoom"), 1.03);
+            QVERIFY(engine.changing());
+        }
+        context.doneCurrent();
+    }
+
     void captureListsWhatThereIsToHear()
     {
         const QByteArray dump = QByteArray(
@@ -815,6 +957,15 @@ private slots:
             backend.setCycleSeconds(0);
             QCOMPARE(backend.stats().value("waiting").toString(), QString("never"));
 
+            // What is being listened to goes by its plain name until
+            // PipeWire has said whether it is there.
+            QCOMPARE(backend.sourceLabel(), QString("Everything that's playing"));
+            backend.setSource("app:Spotify");
+            QCOMPARE(backend.sourceLabel(), QString("Spotify"));
+            backend.setSource("output:alsa_output.speaker");
+            QCOMPARE(backend.sourceLabel(), QString("alsa_output.speaker"));
+            backend.setSource("system");
+
             // The levels are announced only while something is showing them.
             QSignalSpy levels(&backend, &Backend::levelsChanged);
             QTest::qWait(160);
@@ -834,6 +985,12 @@ private slots:
         again.setGlassOpacity(0.35);
         Backend third(dir.path(), false);
         QCOMPARE(third.glassOpacity(), 0.35);
+
+        // Settings from before there were title styles: titles turned off
+        // stay off.
+        QTemporaryDir older;
+        write(older.path() + "/settings.ini", "[General]\nshowTitles=false\n");
+        QCOMPARE(Backend(older.path(), false).titleStyle(), QString("off"));
     }
 
     void themeFallsBack()
@@ -860,108 +1017,40 @@ private slots:
 
     void themeFollowsHyprlandRounding()
     {
+        // A stand-in Hyprland: one socket answers questions and hangs up,
+        // the other announces what happens.
         QTemporaryDir dir;
-        const QString response = dir.filePath("response.json"), command = dir.filePath("hyprctl");
-        write(command, "#!/bin/sh\ncat '" + response.toUtf8() + "'\n");
-        QVERIFY(QFile::setPermissions(command, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
-        write(response, "{\"int\":0}");
+        QByteArray answer = R"({"option": "decoration:rounding", "int": 0, "set": true })";
+        int asked = 0;
+        QLocalServer requests, events;
+        QVERIFY(requests.listen(dir.filePath(".socket.sock")));
+        QVERIFY(events.listen(dir.filePath(".socket2.sock")));
+        connect(&requests, &QLocalServer::newConnection, &requests, [&] {
+            QLocalSocket *client = requests.nextPendingConnection();
+            connect(client, &QLocalSocket::readyRead, client, [&, client] {
+                QCOMPARE(client->readAll(), QByteArray("j/getoption decoration:rounding"));
+                ++asked;
+                client->write(answer);
+                client->disconnectFromServer();
+            });
+        });
 
-        Theme theme(dir.path(), nullptr, command);
+        Theme theme(dir.path(), nullptr, dir.path());
+        QSignalSpy changed(&theme, &Theme::changed);
+        QTRY_COMPARE(asked, 1);
         QCOMPARE(theme.radius(), 0);
-        write(response, "{\"int\":6}");
+
+        // It asks again only when Hyprland says its config was reloaded.
+        answer.replace("\"int\": 0", "\"int\": 6");
+        QTRY_VERIFY(events.hasPendingConnections());
+        QLocalSocket *listener = events.nextPendingConnection();
+        listener->write("activewindow>>kitty,zsh\n");
+        QTest::qWait(100);
+        QCOMPARE(asked, 1);
+        listener->write("configreloaded>>\n");
         QTRY_COMPARE(theme.radius(), 6);
-    }
-
-    // ---------------------------------------------------------- translator
-
-    void translatorFallsBackToEnglish()
-    {
-        QTemporaryDir dir;
-        Translator translator(dir.path() + "/language", dir.path());
-        QCOMPARE(translator.language(), QString("en"));
-        QVERIFY(translator.translate("Main", "Save").isNull());
-    }
-
-    void translatorFollowsTheLanguageFile()
-    {
-        QTemporaryDir dir;
-        write(dir.path() + "/language", "pt-BR\n");
-        write(dir.path() + "/pt.json", R"({"Save": "Guardar", "Open": "Abrir"})");
-        write(dir.path() + "/pt-BR.json", R"({"Save": "Salvar"})");
-
-        Translator translator(dir.path() + "/language", dir.path());
-        QCOMPARE(translator.language(), QString("pt-BR"));
-        QCOMPARE(translator.translate("Main", "Save"), QString("Salvar"));
-        QCOMPARE(translator.translate("Main", "Open"), QString("Abrir"));
-        QVERIFY(translator.translate("Main", "Quit").isNull());
-    }
-
-    void translatorPicksPluralForms()
-    {
-        QTemporaryDir dir;
-        write(dir.path() + "/language", "ru\n");
-        write(dir.path() + "/en.json", R"({"%n clips": {"one": "%n clip", "other": "%n clips"}})");
-        write(dir.path() + "/ru.json", R"({"%n clips": {"one": "%n клип", "few": "%n клипа", "many": "%n клипов", "other": "%n клипа"}})");
-
-        Translator translator(dir.path() + "/language", dir.path());
-        QCOMPARE(translator.translate("Main", "%n clips", nullptr, 21), QString("%n клип"));
-        QCOMPARE(translator.translate("Main", "%n clips", nullptr, 22), QString("%n клипа"));
-        QCOMPARE(translator.translate("Main", "%n clips", nullptr, 25), QString("%n клипов"));
-        QCOMPARE(Translator::pluralCategory("ar", 11), QString("many"));
-        QCOMPARE(Translator::pluralCategory("ja", 1), QString("other"));
-    }
-
-    // Every shipped catalog is valid, keeps the %1 and %n placeholders, and
-    // translates only strings the app actually has.
-    void catalogsMatchTheApp()
-    {
-        QSet<QString> source;
-        const QRegularExpression call("\\b(?:qsTr|tr)\\(\"((?:[^\"\\\\]|\\\\.)*)\"");
-        QStringList files;
-        for (const auto &name : QDir(":/").entryList({"*.qml"}))
-            files << ":/" + name;
-        for (const auto &name : QDir(SOURCE_DIRECTORY).entryList({"*.cpp"}))
-            files << QString(SOURCE_DIRECTORY) + "/" + name;
-        for (const auto &path : files) {
-            QFile file(path);
-            QVERIFY(file.open(QIODevice::ReadOnly));
-            auto matches = call.globalMatch(QString::fromUtf8(file.readAll()));
-            while (matches.hasNext())
-                source.insert(matches.next().captured(1).replace("\\\"", "\""));
-        }
-        QVERIFY(source.size() > 60);
-        const QRegularExpression placeholder("%(\\d|n)");
-        auto placeholders = [&](const QString &text) {
-            QStringList found;
-            auto matches = placeholder.globalMatch(text);
-            while (matches.hasNext())
-                found << matches.next().captured(0);
-            found.sort();
-            return found;
-        };
-        const QStringList catalogs = QDir(":/i18n").entryList({"*.json"});
-        QVERIFY(catalogs.contains("en.json"));
-        for (const auto &name : catalogs) {
-            QFile file(":/i18n/" + name);
-            QVERIFY(file.open(QIODevice::ReadOnly));
-            QJsonParseError error;
-            const QJsonObject catalog = QJsonDocument::fromJson(file.readAll(), &error).object();
-            QVERIFY2(error.error == QJsonParseError::NoError, qPrintable(name + ": " + error.errorString()));
-            for (auto it = catalog.begin(); it != catalog.end(); ++it) {
-                QVERIFY2(source.contains(it.key()), qPrintable(name + " translates a string the app lacks: " + it.key()));
-                const QStringList forms = it.value().isObject() ? it.value().toObject().toVariantMap().keys() : QStringList{""};
-                for (const auto &form : forms) {
-                    const QString text = it.value().isObject() ? it.value().toObject().value(form).toString()
-                                                               : it.value().toString();
-                    QVERIFY2(placeholders(text) == placeholders(it.key()) ||
-                                 (it.value().isObject() && placeholders(text).isEmpty()),
-                             qPrintable(name + ": placeholders differ in \"" + it.key() + "\""));
-                }
-            }
-            if (name != "en.json")
-                for (const auto &text : source)
-                    QVERIFY2(catalog.contains(text), qPrintable(name + " is missing: " + text));
-        }
+        QCOMPARE(asked, 2);
+        QCOMPARE(changed.count(), 1);
     }
 
 private:

@@ -221,22 +221,29 @@ void Engine::initialize() {
     m_initialized = true;
 }
 
+QString Engine::screenVertexShader() { return QString::fromLatin1(ScreenVertex); }
+
 GLuint Engine::build(const QString &vertex, const QString &fragment, QString *error) {
-    const QByteArray header = m_es ? "#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n"
+    return buildProgram(this, m_es, vertex, fragment, error);
+}
+
+unsigned Engine::buildProgram(QOpenGLExtraFunctions *gl, bool es, const QString &vertex, const QString &fragment,
+                              QString *error) {
+    const QByteArray header = es ? "#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n"
                                    : "#version 330 core\n";
     auto compile = [&](GLenum type, const QString &source) -> GLuint {
-        const GLuint shader = glCreateShader(type);
+        const GLuint shader = gl->glCreateShader(type);
         const QByteArray text = header + source.toUtf8();
         const char *data = text.constData();
-        glShaderSource(shader, 1, &data, nullptr);
-        glCompileShader(shader);
+        gl->glShaderSource(shader, 1, &data, nullptr);
+        gl->glCompileShader(shader);
         GLint ok = 0;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+        gl->glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
         if (!ok) {
             char log[2048] = {};
-            glGetShaderInfoLog(shader, sizeof(log) - 1, nullptr, log);
+            gl->glGetShaderInfoLog(shader, sizeof(log) - 1, nullptr, log);
             *error = QString::fromUtf8(log).trimmed();
-            glDeleteShader(shader);
+            gl->glDeleteShader(shader);
             return 0;
         }
         return shader;
@@ -245,22 +252,22 @@ GLuint Engine::build(const QString &vertex, const QString &fragment, QString *er
     const GLuint fs = vs ? compile(GL_FRAGMENT_SHADER, fragment) : 0;
     if (!vs || !fs) {
         if (vs)
-            glDeleteShader(vs);
+            gl->glDeleteShader(vs);
         return 0;
     }
-    const GLuint program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-    glDeleteShader(vs);
-    glDeleteShader(fs);
+    const GLuint program = gl->glCreateProgram();
+    gl->glAttachShader(program, vs);
+    gl->glAttachShader(program, fs);
+    gl->glLinkProgram(program);
+    gl->glDeleteShader(vs);
+    gl->glDeleteShader(fs);
     GLint ok = 0;
-    glGetProgramiv(program, GL_LINK_STATUS, &ok);
+    gl->glGetProgramiv(program, GL_LINK_STATUS, &ok);
     if (!ok) {
         char log[2048] = {};
-        glGetProgramInfoLog(program, sizeof(log) - 1, nullptr, log);
+        gl->glGetProgramInfoLog(program, sizeof(log) - 1, nullptr, log);
         *error = QString::fromUtf8(log).trimmed();
-        glDeleteProgram(program);
+        gl->glDeleteProgram(program);
         return 0;
     }
     return program;
@@ -309,12 +316,14 @@ void Engine::releaseTarget(Target &target) {
 
 // Everything one preset needs to run. A visitor is a scene too, but only
 // its layers are drawn, so it gets no shaders and no palette of its own.
-std::unique_ptr<Engine::Scene> Engine::makeScene(const CompiledPreset &preset, bool shaders, QString *error) {
+std::unique_ptr<Engine::Scene> Engine::makeScene(const CompiledPreset &preset, bool shaders, QString *error,
+                                                 GLuint warp, GLuint composite) {
     auto scene = std::make_unique<Scene>();
     scene->p = preset;
     if (shaders) {
-        scene->warp = build(ScreenVertex, scene->p.warpShader, error);
-        scene->composite = scene->warp ? build(ScreenVertex, scene->p.compositeShader, error) : 0;
+        scene->warp = warp ? warp : build(ScreenVertex, scene->p.warpShader, error);
+        scene->composite = composite ? composite
+                                     : scene->warp ? build(ScreenVertex, scene->p.compositeShader, error) : 0;
         if (!scene->warp || !scene->composite) {
             destroyScene(scene);
             return nullptr;
@@ -380,26 +389,85 @@ void Engine::destroyScene(std::unique_ptr<Scene> &scene) {
     scene.reset();
 }
 
-// Brings in the preset given to setPreset(): as the start of a change from
-// the one showing, or, with no blend time, in its place.
-void Engine::adoptPending() {
+// Takes up the preset given to setPreset(). Its shaders are built here and
+// now, or handed to the builder, in which case the preset comes on when
+// collectBuilt() finds them ready.
+void Engine::startPending() {
     m_hasPending = false;
-    QString error;
-    std::unique_ptr<Scene> scene = makeScene(m_pending, true, &error);
+    // The same preset with a number changed, as a slider sends many times a
+    // second. Numbers live in the variable table, not in the shaders, so
+    // those come out word for word the same and the ones already running
+    // are handed on: nothing is built and the change shows this frame.
+    if (m_scene && m_pendingBlend <= 0 && m_awaitedId == 0 && m_scene->p.name == m_pending.name &&
+        m_scene->p.warpShader == m_pending.warpShader && m_scene->p.compositeShader == m_pending.compositeShader) {
+        QString error;
+        std::unique_ptr<Scene> scene = makeScene(m_pending, true, &error, m_scene->warp, m_scene->composite);
+        m_scene->warp = m_scene->composite = 0;
+        adopt(std::move(scene), 0, error);
+        m_pending = CompiledPreset();
+        return;
+    }
+    if (m_builder) {
+        // An edit to the preset still being built keeps the change it came
+        // with: a fade asked for does not become a cut.
+        const bool waiting = m_awaitedId != 0;
+        const double blend = waiting && m_pending.name == m_awaited.name ? std::max(m_pendingBlend, m_awaitedBlend)
+                                                                          : m_pendingBlend;
+        // With the same shaders, what is being built serves this one too. A
+        // fresh request each slider tick would overtake every build before
+        // it landed, and nothing would show until the dragging stopped.
+        const bool sameShaders = waiting && m_awaited.warpShader == m_pending.warpShader &&
+                                 m_awaited.compositeShader == m_pending.compositeShader;
+        m_awaited = std::move(m_pending);
+        m_awaitedBlend = blend;
+        if (!sameShaders) {
+            m_awaitedId = ++m_lastRequest;
+            m_builder->request(m_awaitedId, m_awaited.warpShader, m_awaited.compositeShader);
+        }
+    } else {
+        QString error;
+        std::unique_ptr<Scene> scene = makeScene(m_pending, true, &error);
+        adopt(std::move(scene), m_pendingBlend, error);
+    }
     m_pending = CompiledPreset();
+}
+
+void Engine::collectBuilt() {
+    ProgramBuilder::Result built;
+    while (m_builder && m_builder->take(&built)) {
+        if (built.id != m_awaitedId) {
+            // Overtaken by a later preset before it was ready.
+            if (built.warp)
+                glDeleteProgram(built.warp);
+            if (built.composite)
+                glDeleteProgram(built.composite);
+            continue;
+        }
+        m_awaitedId = 0;
+        QString error = built.error;
+        std::unique_ptr<Scene> scene =
+            built.warp ? makeScene(m_awaited, true, &error, built.warp, built.composite) : nullptr;
+        adopt(std::move(scene), m_awaitedBlend, error);
+        m_awaited = CompiledPreset();
+    }
+}
+
+// Brings a preset in: as the start of a change from the one showing, or,
+// with no blend time, in its place.
+void Engine::adopt(std::unique_ptr<Scene> scene, double blendSeconds, const QString &error) {
     if (!scene) {
         m_error = error;
         return;
     }
     m_error.clear();
 
-    if (m_scene && m_pendingBlend > 0) {
+    if (m_scene && blendSeconds > 0) {
         // A change that is cut short loses its older half: the preset that
         // was arriving becomes the one that is leaving.
         destroyScene(m_old);
         m_old = std::move(m_scene);
         m_blend = 0;
-        m_blendRate = float(1.0 / m_pendingBlend);
+        m_blendRate = float(1.0 / blendSeconds);
         const int patterns = int(presets::transitionStyles().size()) - 1;
         if (m_transitionStyle >= 1 && m_transitionStyle <= patterns) {
             m_pattern = m_transitionStyle - 1;
@@ -649,12 +717,11 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     glDisable(GL_BLEND);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    // The picture is computed at the window's size times the quality
-    // setting, and never taller than 1440 lines: past that the cost climbs
-    // much faster than anything the eye can see in a feedback image.
-    double scale = clampTo(m_quality, 0.25, 1.0);
-    if (height * scale > 1440)
-        scale = 1440.0 / height;
+    // The picture is computed at the window's size, but never taller than
+    // 1440 lines: past that the cost climbs much faster than anything the
+    // eye can see in a feedback image. The quality setting scales what is
+    // left, so that it lightens the load on a large screen too.
+    const double scale = std::min(1.0, 1440.0 / height) * clampTo(m_quality, 0.25, 1.0);
     const int innerWidth = std::max(16, int(std::lround(width * scale)));
     const int innerHeight = std::max(16, int(std::lround(height * scale)));
     const bool resized = innerWidth != m_width || innerHeight != m_height;
@@ -678,9 +745,14 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     }
     for (Target &bloom : m_bloom)
         ensureTarget(bloom, std::max(8, m_width / 4), std::max(8, m_height / 4), m_wide, GL_LINEAR);
+    // The two buffers a change of preset needs are kept ready all along.
+    // Making them when a change begins is a pause exactly there.
+    ensureTarget(m_other, m_width, m_height, m_wide, GL_LINEAR);
+    ensureTarget(m_snapshot, m_width, m_height, false, GL_LINEAR);
 
     if (m_hasPending)
-        adoptPending();
+        startPending();
+    collectBuilt();
     if (!m_scene) {
         glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
         glViewport(0, 0, width, height);
@@ -698,15 +770,10 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
             m_blend = 1;
             destroyScene(m_old);
         } else {
-            mix = 1 - std::pow(1 - m_blend, 1.5f);
+            // It sets off gently, moves steadily through the middle and
+            // glides into place, so neither end of a slow change is a jolt.
+            mix = m_blend * m_blend * (3 - 2 * m_blend);
         }
-    }
-    if (m_old) {
-        ensureTarget(m_other, m_width, m_height, m_wide, GL_LINEAR);
-        ensureTarget(m_snapshot, m_width, m_height, false, GL_LINEAR);
-    } else if (m_other.fbo) {
-        releaseTarget(m_other);
-        releaseTarget(m_snapshot);
     }
 
     if (m_old)

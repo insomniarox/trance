@@ -26,7 +26,7 @@ Rectangle {
         width: 1
         color: Ui.line
         anchors { top: parent.top; bottom: parent.bottom }
-        x: panel.pictureOnLeft !== panel.LayoutMirroring.enabled ? 0 : parent.width - 1
+        x: panel.pictureOnLeft ? 0 : parent.width - 1
     }
 
     ColumnLayout {

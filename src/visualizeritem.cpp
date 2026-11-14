@@ -1,6 +1,8 @@
 #include "visualizeritem.h"
 
 #include <QElapsedTimer>
+#include <QOffscreenSurface>
+#include <memory>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOpenGLFramebufferObject>
@@ -9,10 +11,12 @@
 
 #include "backend.h"
 #include "engine.h"
+#include "shaderworker.h"
 
 namespace {
 
 Backend *sharedBackend = nullptr;
+QOffscreenSurface *buildSurface = nullptr;
 
 class VisualizerRenderer : public QQuickFramebufferObject::Renderer {
 public:
@@ -70,6 +74,18 @@ public:
     }
 
     void render() override {
+        // The first time through, with the drawing context current: set up
+        // the thread that gets the next preset's shaders ready.
+        if (!m_workerTried) {
+            m_workerTried = true;
+            if (buildSurface) {
+                m_worker = std::make_unique<ShaderWorker>(buildSurface);
+                if (m_worker->usable())
+                    m_engine.setProgramBuilder(m_worker.get());
+                else
+                    m_worker.reset();
+            }
+        }
         const double dt = m_clock.isValid() ? m_clock.nsecsElapsed() / 1e9 : 1.0 / 60;
         m_clock.start();
         m_engine.render(m_audio, dt, framebufferObject()->handle(), m_size.width(), m_size.height());
@@ -100,7 +116,11 @@ public:
     }
 
 private:
+    // The engine goes last and the worker first, so nothing the engine was
+    // handed is gone while it still stands.
     Engine m_engine;
+    std::unique_ptr<ShaderWorker> m_worker;
+    bool m_workerTried = false;
     AudioFrame m_audio;
     QSize m_size;
     QElapsedTimer m_clock;
@@ -138,4 +158,5 @@ void VisualizerItem::setStats(const Stats &stats) {
 }
 
 void VisualizerItem::setBackend(Backend *backend) { sharedBackend = backend; }
+void VisualizerItem::setBuildSurface(QOffscreenSurface *surface) { buildSurface = surface; }
 Backend *VisualizerItem::backend() { return sharedBackend; }

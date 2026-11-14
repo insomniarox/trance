@@ -592,11 +592,18 @@ The theme's colors are `accent`, `foreground`, `background`, `selection`,
 `muted`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `magenta`,
 `brown`, and `bright_red` to `bright_magenta`.
 
-**The palette** is the top-level `"palette"`: a name (`theme`, `accent`,
-`fire`, `ocean`, `neon`, `sunset`, `aurora`, `vapor`, `acid`, `ice`, `gold`,
-`rainbow`, `mono`) or your own list, `["#000000", "accent", "#ffffff"]`. It
-is a strip of colors that blends from each to the next and then round to the
-first again. `palette(0)` is its start, `palette(0.5)` halfway along, and
+**The palette** is the top-level `"palette"`: a name or your own list,
+`["#000000", "accent", "#ffffff"]`. The names are:
+
+| | |
+|---|---|
+| `theme` `accent` | Built from the desktop theme, and follow it live |
+| `fire` `ocean` `ice` `gold` `magma` `inferno` `viridis` `lagoon` `forest` `dusk` `arctic` `amethyst` `copper` `phosphor` | Run from dark to bright, which is what Colorize wants |
+| `neon` `sunset` `aurora` `vapor` `acid` `rainbow` `cyber` `candy` | Bright all the way round, for coloring layers apart |
+| `mono` | Black to white |
+
+A palette is a strip of colors that blends from each to the next and then
+round to the first again. `palette(0)` is its start, `palette(0.5)` halfway along, and
 because it is a loop the number can keep growing.
 
 That loop is why nearly every color in a built-in preset is a

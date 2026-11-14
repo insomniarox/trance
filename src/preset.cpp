@@ -123,6 +123,20 @@ const QHash<QString, QStringList> &palettes() {
         {"ice", {"#000000", "#0b132b", "#1c2541", "#3a506b", "#5bc0be", "#c9f9ff", "#ffffff"}},
         {"gold", {"#000000", "#3d2b00", "#b8860b", "#ffd60a", "#fff7cc"}},
         {"rainbow", {"#ff0040", "#ff8a00", "#ffe600", "#3dff00", "#00e5ff", "#2a5cff", "#b400ff"}},
+        // Three from the plotting world, where a color map has to read
+        // evenly from dark to bright: they suit colorize.
+        {"magma", {"#000004", "#3b0f70", "#8c2981", "#de4968", "#fe9f6d", "#fcfdbf"}},
+        {"inferno", {"#000004", "#420a68", "#932667", "#dd513a", "#fca50a", "#fcffa4"}},
+        {"viridis", {"#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"}},
+        {"lagoon", {"#00141a", "#004e64", "#00a5cf", "#25a18e", "#7ae582", "#eafff5"}},
+        {"forest", {"#06140a", "#1b4332", "#2d6a4f", "#52b788", "#b7e4c7", "#ffd166"}},
+        {"dusk", {"#0b0c2a", "#2a1b5e", "#6b2d8a", "#c0478f", "#ff8e72", "#ffd9a0"}},
+        {"arctic", {"#01060f", "#0a2540", "#1f6f8b", "#99d5c9", "#e8f7ff", "#b39ddb"}},
+        {"amethyst", {"#0d0221", "#2e1065", "#6d28d9", "#a78bfa", "#f0abfc", "#fdf4ff"}},
+        {"copper", {"#0a0503", "#4a1f0e", "#b5651d", "#e8a35c", "#ffe2b8", "#7fd1c7"}},
+        {"cyber", {"#020a0a", "#003b46", "#07575b", "#00ff9c", "#f5d300", "#ff2a6d"}},
+        {"phosphor", {"#000000", "#003b00", "#008f11", "#00ff41", "#d8ffd8"}},
+        {"candy", {"#ff5d8f", "#ffb3c6", "#fff0a5", "#b8f2e6", "#aed9e0", "#c8a2ff"}},
         {"mono", {"#000000", "#ffffff"}},
     };
     return all;
@@ -616,8 +630,9 @@ QStringList layerTypes() { return {"wave", "bars", "shape", "terrain", "particle
 QStringList transitionStyles() { return {"mixed", "dissolve", "center", "edges", "sweep", "clouds", "wipe"}; }
 
 QStringList paletteNames() {
-    return {"theme", "accent", "fire", "ocean", "neon", "sunset", "aurora", "vapor", "acid", "ice", "gold",
-            "rainbow", "mono"};
+    return {"theme",   "accent", "fire",   "ocean",    "neon",   "sunset", "aurora", "vapor",    "acid",
+            "ice",     "gold",   "rainbow", "magma",   "inferno", "viridis", "lagoon", "forest",   "dusk",
+            "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }
@@ -637,12 +652,6 @@ QStringList variableNames() {
     for (int band = 0; band < AudioFrame::Bands; ++band)
         names << QString(bandInfo(band).name) + "_att";
     return names + QStringList{"beat", "beats", "aspect", "progress", "pi", "tau"};
-}
-
-QStringList functionNames() {
-    return {"sin", "cos", "tan", "asin", "acos", "atan", "atan2", "abs", "sign", "floor", "ceil", "fract", "int",
-            "sqrt", "sqr", "exp", "log", "pow", "min", "max", "mod", "clamp", "mix", "step", "smoothstep", "if",
-            "above", "below", "equal", "band", "bor", "bnot", "rand", "noise", "length", "tri"};
 }
 
 ThemeColors defaultThemeColors() {
@@ -696,6 +705,23 @@ QJsonObject blank(const QString &name) {
     };
 }
 
+bool moves(const QJsonObject &json) {
+    if (!codeText(json.value("pixel")).trimmed().isEmpty())
+        return true;
+    const QJsonObject feedback = json.value("feedback").toObject();
+    static const QString section = "feedback";
+    for (const Field &field : fields(section)) {
+        static const QList<QByteArray> motion = {"zoom", "rot", "warp", "dx", "dy", "sx", "sy"};
+        if (!motion.contains(field.key))
+            continue;
+        const QJsonValue value = feedback.value(QString::fromLatin1(field.key));
+        // A formula counts: nobody writes one to say "stay still".
+        if (value.isString() ? !value.toString().trimmed().isEmpty() : value.isDouble() && value.toDouble() != field.def)
+            return true;
+    }
+    return false;
+}
+
 QVariantMap schema() {
     auto describe = [](const QString &section) {
         QVariantList list;
@@ -726,7 +752,7 @@ QVariantMap schema() {
             {"code", named("code", {"init", "frame", "pixel", "shade"})}, {"types", named("type", layerTypes())},
             {"transitions", transitionStyles()},
             {"layerTypes", layerTypes()}, {"palettes", paletteNames()}, {"themeColors", themeColorNames()},
-            {"variables", variableNames()}, {"functions", functionNames()}};
+            {"variables", variableNames()}, {"functions", expr::functionNames()}};
 }
 
 CompiledPreset compile(const QJsonObject &json) {

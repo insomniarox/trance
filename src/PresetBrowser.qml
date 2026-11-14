@@ -7,7 +7,7 @@ import QtQuick.Layouts
 SidePanel {
     id: browser
     title: qsTr("Presets")
-    scope: qsTr("%n presets", "", backend.presets.length)
+    scope: Ui.count(backend.presets.length, qsTr("1 preset"), qsTr("%1 presets"))
     pictureOnLeft: false
 
     readonly property var shown: {

@@ -1,0 +1,105 @@
+{
+  "name": "Lava Lamp",
+  "author": "Trance",
+  "description": "Six blobs of wax rising and sinking, the largest and slowest for the rumble, the smallest and quickest for the cymbals. Each swells with its own range, and where they meet they melt together.",
+  "palette": "magma",
+  "init": "h0 = rand(6)\nh1 = rand(6)\nh2 = rand(6)\nh3 = rand(6)\nh4 = rand(6)\nh5 = rand(6)",
+  "frame": "h0 = h0 + dt*0.25*(0.3 + 0.7*sub_att)\nh1 = h1 + dt*0.32*(0.3 + 0.7*low_att)\nh2 = h2 + dt*0.4*(0.3 + 0.7*lowmid_att)\nh3 = h3 + dt*0.5*(0.3 + 0.7*highmid_att)\nh4 = h4 + dt*0.62*(0.3 + 0.7*presence_att)\nh5 = h5 + dt*0.78*(0.3 + 0.7*air_att)",
+  "feedback": {
+    "decay": 0.86,
+    "zoom": 1.002,
+    "warp": 0.8,
+    "warpScale": 2,
+    "blur": 0.9,
+    "edge": "clamp"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.25,
+    "tint": 0.1,
+    "spread": 0.2,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 32,
+      "x": "-1.1 + 0.1*sin(h0*0.7 + 0)",
+      "y": "0.75*sin(h0 + 0)",
+      "radius": "0.2*(0.8 + 0.3*min(sub_att, 2))",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "white",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "x": "-0.65 + 0.1*sin(h1*0.7 + 2)",
+      "y": "0.75*sin(h1 + 1)",
+      "radius": "0.17*(0.8 + 0.3*min(low_att, 2))",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "white",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "x": "-0.2 + 0.1*sin(h2*0.7 + 4)",
+      "y": "0.75*sin(h2 + 2)",
+      "radius": "0.15*(0.8 + 0.3*min(lowmid_att, 2))",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "white",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "x": "0.25 + 0.1*sin(h3*0.7 + 6)",
+      "y": "0.75*sin(h3 + 3)",
+      "radius": "0.13*(0.8 + 0.3*min(highmid_att, 2))",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "white",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "x": "0.7 + 0.1*sin(h4*0.7 + 8)",
+      "y": "0.75*sin(h4 + 4)",
+      "radius": "0.11*(0.8 + 0.3*min(presence_att, 2))",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "white",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "x": "1.1 + 0.1*sin(h5*0.7 + 10)",
+      "y": "0.75*sin(h5 + 5)",
+      "radius": "0.09*(0.8 + 0.3*min(air_att, 2))",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "white",
+      "alpha2": 0,
+      "additive": true
+    }
+  ],
+  "post": {
+    "colorize": 1,
+    "colorCurve": 0.7,
+    "contrast": 1.6,
+    "brightness": 1.1,
+    "bloom": 0.6,
+    "vignette": 0.5
+  }
+}

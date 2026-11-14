@@ -5,6 +5,8 @@
 #include <QDBusConnectionInterface>
 #include <QDBusMessage>
 #include <QDBusPendingReply>
+#include <QHash>
+#include <memory>
 
 namespace {
 const char *const PlayerPath = "/org/mpris/MediaPlayer2";
@@ -46,25 +48,43 @@ void NowPlaying::refresh() {
     });
 }
 
-// Asks every player what it is doing and takes the first one that is
-// actually playing. A paused player keeps the last title on screen.
+// Asks every player what it is doing and, once all have answered, takes
+// one that is playing: the one already shown if it still is, so two playing
+// at once don't take turns, or else the first. A paused player keeps the
+// last title on screen.
 void NowPlaying::ask(const QStringList &players) {
+    struct Round {
+        int left = 0;
+        QHash<QString, QVariantMap> playing;
+    };
     const int generation = ++m_generation;
+    auto round = std::make_shared<Round>();
+    round->left = int(players.size());
     for (const auto &player : players) {
         QDBusMessage message = QDBusMessage::createMethodCall(player, PlayerPath, Properties, "GetAll");
         message << QString::fromLatin1(PlayerInterface);
         auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(message, 1500), this);
-        connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, generation](QDBusPendingCallWatcher *call) {
+        connect(watcher, &QDBusPendingCallWatcher::finished, this,
+                [this, generation, round, player, players](QDBusPendingCallWatcher *call) {
             call->deleteLater();
+            if (generation != m_generation)
+                return;
             const QDBusPendingReply<QVariantMap> reply = *call;
-            if (reply.isError() || generation != m_generation)
+            if (!reply.isError() && reply.value().value("PlaybackStatus").toString() == "Playing")
+                round->playing.insert(player, reply.value());
+            if (--round->left > 0 || round->playing.isEmpty())
                 return;
-            const QVariantMap properties = reply.value();
-            if (properties.value("PlaybackStatus").toString() != "Playing")
-                return;
-            const QVariantMap metadata = qdbus_cast<QVariantMap>(properties.value("Metadata"));
+            QString chosen = m_player;
+            if (!round->playing.contains(chosen))
+                for (const auto &name : players)
+                    if (round->playing.contains(name)) {
+                        chosen = name;
+                        break;
+                    }
+            const QVariantMap metadata = qdbus_cast<QVariantMap>(round->playing.value(chosen).value("Metadata"));
             const QString title = metadata.value("xesam:title").toString().trimmed();
             const QString artist = metadata.value("xesam:artist").toStringList().join(", ").trimmed();
+            m_player = chosen;
             if (title.isEmpty() || (title == m_title && artist == m_artist))
                 return;
             m_title = title;

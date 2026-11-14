@@ -53,7 +53,6 @@ const FnInfo functions[] = {
     {"mod", 2, 2, FnMod, "f_mod(%1,%2)"},
     {"clamp", 3, 3, FnClamp, "f_clamp(%1,%2,%3)"},
     {"mix", 3, 3, FnMix, "mix(%1,%2,%3)"},
-    {"lerp", 3, 3, FnMix, "mix(%1,%2,%3)"},
     {"step", 2, 2, FnStep, "step(%1,%2)"},
     {"smoothstep", 3, 3, FnSmoothstep, "f_smoothstep(%1,%2,%3)"},
     {"if", 3, 3, FnIf, "((%1)!=0.0?(%2):(%3))"},
@@ -68,6 +67,17 @@ const FnInfo functions[] = {
     {"length", 2, 2, FnLength, "length(vec2(%1,%2))"},
     {"tri", 1, 1, FnTri, "f_tri(%1)"},
 };
+
+} // namespace
+
+QStringList functionNames() {
+    QStringList names;
+    for (const auto &fn : functions)
+        names << QString::fromLatin1(fn.name);
+    return names;
+}
+
+namespace {
 
 const FnInfo *findFunction(const QString &name) {
     for (const auto &fn : functions)
@@ -487,6 +497,8 @@ private:
                 return variable(token.text);
             }
             const FnInfo *fn = findFunction(token.text);
+            if (!fn && token.text == "lerp")
+                return fail("Unknown function 'lerp'; mix(a, b, t) does the same");
             if (!fn)
                 return fail(QString("Unknown function '%1'").arg(token.text));
             ++m_index;

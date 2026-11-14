@@ -7,10 +7,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
-#include <QStandardPaths>
 #include <cmath>
 
-Theme::Theme(const QString &directory, QObject *parent, const QString &hyprctl)
+Theme::Theme(const QString &directory, QObject *parent, const QString &hyprland)
     : QObject(parent), m_directory(directory.isEmpty() ? defaultDirectory() : directory) {
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(80);
@@ -19,46 +18,41 @@ Theme::Theme(const QString &directory, QObject *parent, const QString &hyprctl)
     connect(&m_debounce, &QTimer::timeout, this, &Theme::reload);
 
     // Corners follow Hyprland's effective rounding, which themes and personal
-    // overrides can both set, so ask hyprctl rather than reading its config.
-    // Without Hyprland the corners stay sharp, like Omarchy's default.
-    m_hyprctl = !hyprctl.isEmpty() ? hyprctl
-              : directory.isEmpty() && !qEnvironmentVariableIsEmpty("HYPRLAND_INSTANCE_SIGNATURE")
-                  ? QStandardPaths::findExecutable("hyprctl") : QString();
-    m_roundingTimeout.setSingleShot(true);
-    m_roundingTimeout.setInterval(500);
-    connect(&m_roundingTimeout, &QTimer::timeout, &m_roundingProcess, &QProcess::kill);
-    connect(&m_roundingProcess, &QProcess::errorOccurred, this, [this] { m_roundingTimeout.stop(); });
-    connect(&m_roundingProcess, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
-        m_roundingTimeout.stop();
-        const auto value = QJsonDocument::fromJson(m_roundingProcess.readAllStandardOutput()).object().value("int");
-        if (code != 0 || status != QProcess::NormalExit || !value.isDouble() || value.toInt(-1) < 0)
-            return;
-        if (value.toInt() != m_radius) {
-            m_radius = value.toInt();
-            emit changed();
-        }
+    // overrides can both set, so ask Hyprland rather than reading its config:
+    // once now, and again whenever it says its config was reloaded.
+    m_hyprland = hyprland;
+    if (m_hyprland.isEmpty() && directory.isEmpty() && !qEnvironmentVariableIsEmpty("HYPRLAND_INSTANCE_SIGNATURE"))
+        m_hyprland = qEnvironmentVariable("XDG_RUNTIME_DIR") + "/hypr/" + qEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE");
+    connect(&m_hyprlandEvents, &QLocalSocket::readyRead, this, [this] {
+        while (m_hyprlandEvents.canReadLine())
+            if (m_hyprlandEvents.readLine().startsWith("configreloaded>>"))
+                refreshRounding();
     });
-    m_roundingPoll.setInterval(1000);
-    connect(&m_roundingPoll, &QTimer::timeout, this, &Theme::refreshRounding);
-    if (!m_hyprctl.isEmpty())
-        m_roundingPoll.start();
-    reload();
-}
-
-Theme::~Theme() {
-    if (m_roundingProcess.state() != QProcess::NotRunning) {
-        m_roundingProcess.kill();
-        m_roundingProcess.waitForFinished(1000);
+    if (!m_hyprland.isEmpty()) {
+        m_hyprlandEvents.connectToServer(m_hyprland + "/.socket2.sock", QIODevice::ReadOnly);
+        refreshRounding();
     }
+    reload();
 }
 
 QString Theme::defaultDirectory() { return QDir::homePath() + "/.local/state/omarchy/current"; }
 
+// One question over Hyprland's request socket, which answers and hangs up.
 void Theme::refreshRounding() {
-    if (m_hyprctl.isEmpty() || m_roundingProcess.state() != QProcess::NotRunning)
+    if (m_hyprland.isEmpty())
         return;
-    m_roundingProcess.start(m_hyprctl, {"-j", "getoption", "decoration:rounding"});
-    m_roundingTimeout.start();
+    auto *request = new QLocalSocket(this);
+    connect(request, &QLocalSocket::connected, request, [request] { request->write("j/getoption decoration:rounding"); });
+    connect(request, &QLocalSocket::errorOccurred, request, &QObject::deleteLater);
+    connect(request, &QLocalSocket::disconnected, this, [this, request] {
+        request->deleteLater();
+        const auto value = QJsonDocument::fromJson(request->readAll()).object().value("int");
+        if (!value.isDouble() || value.toInt(-1) < 0 || value.toInt() == m_radius)
+            return;
+        m_radius = value.toInt();
+        emit changed();
+    });
+    request->connectToServer(m_hyprland + "/.socket.sock");
 }
 
 QString Theme::readAccent(const QString &path) {
@@ -98,7 +92,6 @@ QString Theme::accentForeground() const {
 }
 
 void Theme::reload() {
-    refreshRounding();
     const auto paths = m_watcher.files() + m_watcher.directories();
     if (!paths.isEmpty())
         m_watcher.removePaths(paths);

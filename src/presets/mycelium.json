@@ -1,0 +1,84 @@
+{
+  "name": "Mycelium",
+  "author": "Trance",
+  "description": "Threads feeling their way through the dark and leaving themselves behind. The bass sends up thick ones from below, the leads send fine ones in from the edges, and the cymbals scatter spores.",
+  "palette": "forest",
+  "feedback": {
+    "decay": 0.992,
+    "zoom": 1.0008,
+    "blur": 0.03,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.15,
+    "tint": 0,
+    "spread": 0.15,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "point",
+      "y": -1,
+      "area": 0.25,
+      "count": 300,
+      "rate": "8 + 50*max(0, low_att - 0.6)",
+      "speed": 0.5,
+      "angle": 1.57,
+      "spread": 1.4,
+      "field": 0.7,
+      "fieldScale": 1.2,
+      "drag": 0.12,
+      "life": 6,
+      "size": 3,
+      "streak": 0.05,
+      "color": "palette(0.35 + 0.2*i)",
+      "alpha": 0.85
+    },
+    {
+      "type": "particles",
+      "emit": "edges",
+      "count": 300,
+      "rate": "4 + 30*max(0, highmid_att - 0.6)",
+      "speed": 0.35,
+      "spread": 1.0,
+      "field": 1.0,
+      "fieldScale": 2.5,
+      "drag": 0.1,
+      "life": 5,
+      "size": 2,
+      "streak": 0.05,
+      "color": "palette(0.55 + 0.2*i)",
+      "alpha": 0.75
+    },
+    {
+      "type": "shape",
+      "sides": 16,
+      "instances": 8,
+      "x": "(noise(n*4.1, 5)*2 - 1)*aspect*0.8",
+      "y": "(noise(n*6.3, 6)*2 - 1)*0.75",
+      "radius": "0.008 + 0.03*v",
+      "color": "palette(0.8)",
+      "alpha": "0.1 + 0.3*v",
+      "color2": "palette(0.8)",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 400,
+      "rate": "3 + 120*max(0, air - 1)",
+      "speed": 0.02,
+      "life": 1.2,
+      "size": 1.4,
+      "color": "palette(0.9)",
+      "alpha": 0.5
+    }
+  ],
+  "post": {
+    "bloom": 0.8,
+    "vignette": 0.5
+  }
+}

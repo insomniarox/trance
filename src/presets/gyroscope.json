@@ -1,0 +1,85 @@
+{
+  "name": "Gyroscope",
+  "author": "Trance",
+  "description": "Six rings turning inside one another in three dimensions. Each tumbles faster the louder its range, from the great outer ring on the rumble to the smallest on the cymbals.",
+  "palette": "arctic",
+  "init": "a0 = rand(6)\nb0 = rand(6)\na1 = rand(6)\nb1 = rand(6)\na2 = rand(6)\nb2 = rand(6)\na3 = rand(6)\nb3 = rand(6)\na4 = rand(6)\nb4 = rand(6)\na5 = rand(6)\nb5 = rand(6)",
+  "frame": "a0 = a0 + dt*0.5*(0.2 + sub_att)\nb0 = b0 + dt*0.3*(0.3 + 0.5*sub_att)\na1 = a1 + dt*-0.65*(0.2 + low_att)\nb1 = b1 + dt*0.4*(0.3 + 0.5*low_att)\na2 = a2 + dt*0.8*(0.2 + lowmid_att)\nb2 = b2 + dt*-0.5*(0.3 + 0.5*lowmid_att)\na3 = a3 + dt*-1.0*(0.2 + highmid_att)\nb3 = b3 + dt*0.6*(0.3 + 0.5*highmid_att)\na4 = a4 + dt*1.25*(0.2 + presence_att)\nb4 = b4 + dt*-0.75*(0.3 + 0.5*presence_att)\na5 = a5 + dt*-1.6*(0.2 + air_att)\nb5 = b5 + dt*0.9*(0.3 + 0.5*air_att)",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": 1.004,
+    "rot": 0.002,
+    "blur": 0.15,
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.3,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": "4.5*(0.6 + 0.5*sub)",
+      "color": "palette(0.25)",
+      "point": "th = t*tau\npx = 0.85*cos(th)\npy = 0.85*sin(th)\nqy = py*cos(a0)\nqz = py*sin(a0)\nrx = px*cos(b0) + qz*sin(b0)\nrz = qz*cos(b0) - px*sin(b0)\nps = 2.2/(2.2 + rz)\nx = rx*ps\ny = qy*ps\na = a*clamp(0.25 + 0.6*(ps - 0.7), 0.2, 1)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": "4*(0.6 + 0.5*low)",
+      "color": "palette(0.37)",
+      "point": "th = t*tau\npx = 0.72*cos(th)\npy = 0.72*sin(th)\nqy = py*cos(a1)\nqz = py*sin(a1)\nrx = px*cos(b1) + qz*sin(b1)\nrz = qz*cos(b1) - px*sin(b1)\nps = 2.2/(2.2 + rz)\nx = rx*ps\ny = qy*ps\na = a*clamp(0.25 + 0.6*(ps - 0.7), 0.2, 1)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": "3.5*(0.6 + 0.5*lowmid)",
+      "color": "palette(0.49)",
+      "point": "th = t*tau\npx = 0.6*cos(th)\npy = 0.6*sin(th)\nqy = py*cos(a2)\nqz = py*sin(a2)\nrx = px*cos(b2) + qz*sin(b2)\nrz = qz*cos(b2) - px*sin(b2)\nps = 2.2/(2.2 + rz)\nx = rx*ps\ny = qy*ps\na = a*clamp(0.25 + 0.6*(ps - 0.7), 0.2, 1)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": "3*(0.6 + 0.5*highmid)",
+      "color": "palette(0.61)",
+      "point": "th = t*tau\npx = 0.48*cos(th)\npy = 0.48*sin(th)\nqy = py*cos(a3)\nqz = py*sin(a3)\nrx = px*cos(b3) + qz*sin(b3)\nrz = qz*cos(b3) - px*sin(b3)\nps = 2.2/(2.2 + rz)\nx = rx*ps\ny = qy*ps\na = a*clamp(0.25 + 0.6*(ps - 0.7), 0.2, 1)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": "2.5*(0.6 + 0.5*presence)",
+      "color": "palette(0.73)",
+      "point": "th = t*tau\npx = 0.37*cos(th)\npy = 0.37*sin(th)\nqy = py*cos(a4)\nqz = py*sin(a4)\nrx = px*cos(b4) + qz*sin(b4)\nrz = qz*cos(b4) - px*sin(b4)\nps = 2.2/(2.2 + rz)\nx = rx*ps\ny = qy*ps\na = a*clamp(0.25 + 0.6*(ps - 0.7), 0.2, 1)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": "2*(0.6 + 0.5*air)",
+      "color": "palette(0.85)",
+      "point": "th = t*tau\npx = 0.27*cos(th)\npy = 0.27*sin(th)\nqy = py*cos(a5)\nqz = py*sin(a5)\nrx = px*cos(b5) + qz*sin(b5)\nrz = qz*cos(b5) - px*sin(b5)\nps = 2.2/(2.2 + rz)\nx = rx*ps\ny = qy*ps\na = a*clamp(0.25 + 0.6*(ps - 0.7), 0.2, 1)"
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "radius": "0.05 + 0.03*vol_att",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "palette(0.6)",
+      "alpha2": 0,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "chroma": 0.3,
+    "vignette": 0.5
+  }
+}

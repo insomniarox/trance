@@ -21,6 +21,22 @@
 // one picture: the motion and the look hand over place by place, the layers
 // fade across, and a wave reshapes itself into the next preset's wave, the
 // way SoundSpectrum's G-Force morphs between its WaveShapes.
+// Somewhere else to have a preset's two shaders built, so that drawing
+// doesn't stop for it. request() hands over the fragment shaders under a
+// number; take() gives back one finished pair at a time, oldest first, and
+// false when none is ready yet. Only the latest request has to be answered.
+class ProgramBuilder {
+public:
+    struct Result {
+        int id = 0;
+        unsigned warp = 0, composite = 0; // both 0, with the error, if it could not be built
+        QString error;
+    };
+    virtual ~ProgramBuilder() = default;
+    virtual void request(int id, const QString &warp, const QString &composite) = 0;
+    virtual bool take(Result *result) = 0;
+};
+
 class Engine : protected QOpenGLExtraFunctions {
 public:
     Engine();
@@ -30,6 +46,18 @@ public:
     // With 0 seconds the preset is swapped in place and keeps what it can of
     // the running state, which is what editing wants.
     void setPreset(const CompiledPreset &preset, double blendSeconds);
+    // With a builder, a new preset's shaders are made there and the preset
+    // comes on a few frames later, when they are ready; the one showing
+    // carries on in the meantime. Without one they are built on the spot,
+    // which is what a render to a file wants. The builder must outlive the
+    // engine's use of it.
+    void setProgramBuilder(ProgramBuilder *builder) { m_builder = builder; }
+    // Compiles and links one program in whatever context is current: 0 and
+    // the driver's message if it can't.
+    static unsigned buildProgram(QOpenGLExtraFunctions *gl, bool es, const QString &vertex, const QString &fragment,
+                                 QString *error);
+    // The vertex shader every preset's two shaders go with.
+    static QString screenVertexShader();
     void setTheme(const ThemeColors &theme);
     // A palette name to use instead of each preset's own; empty to stop.
     void setPaletteOverride(const QString &name);
@@ -120,9 +148,13 @@ private:
     GLuint build(const QString &vertex, const QString &fragment, QString *error);
     void ensureTarget(Target &target, int width, int height, bool wide, GLenum filter);
     void releaseTarget(Target &target);
-    std::unique_ptr<Scene> makeScene(const CompiledPreset &preset, bool shaders, QString *error);
+    // With programs handed in, those are used instead of building them.
+    std::unique_ptr<Scene> makeScene(const CompiledPreset &preset, bool shaders, QString *error, GLuint warp = 0,
+                                     GLuint composite = 0);
     void destroyScene(std::unique_ptr<Scene> &scene);
-    void adoptPending();
+    void startPending();
+    void collectBuilt();
+    void adopt(std::unique_ptr<Scene> scene, double blendSeconds, const QString &error);
     void rebuildColors(Scene &scene);
     void uploadPalette(Scene &scene);
     void updateScene(Scene &scene, double progress);
@@ -200,6 +232,12 @@ private:
 
     double m_time = 0, m_dt = 1.0 / 60, m_fps = 60, m_progress = 0;
     qint64 m_frame = 0;
+    // A preset whose shaders are being built elsewhere, and the number the
+    // builder knows it by; anything older that comes back is thrown away.
+    ProgramBuilder *m_builder = nullptr;
+    CompiledPreset m_awaited;
+    double m_awaitedBlend = 0;
+    int m_awaitedId = 0, m_lastRequest = 0;
     bool m_glass = false;
     double m_glassOpacity = 0;
     double m_quality = 1;

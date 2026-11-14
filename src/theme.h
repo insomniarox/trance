@@ -3,12 +3,14 @@
 #include <QColor>
 #include <QFileSystemWatcher>
 #include <QHash>
+#include <QLocalSocket>
 #include <QObject>
-#include <QProcess>
 #include <QTimer>
 
 // Follows the Omarchy theme live: the accent for the controls, every named
 // color for the visuals, and Hyprland's window rounding for the corners.
+// Without Omarchy the built-in colors stand in; without Hyprland the corners
+// stay sharp.
 class Theme : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString accent READ accent NOTIFY changed)
@@ -16,8 +18,8 @@ class Theme : public QObject {
     Q_PROPERTY(int radius READ radius NOTIFY changed)
 
 public:
-    explicit Theme(const QString &currentDirectory = {}, QObject *parent = nullptr, const QString &hyprctl = {});
-    ~Theme() override;
+    // hyprland is the directory its sockets are in, found when left empty.
+    explicit Theme(const QString &currentDirectory = {}, QObject *parent = nullptr, const QString &hyprland = {});
 
     QString accent() const { return m_accent; }
     QString accentForeground() const;
@@ -41,8 +43,7 @@ private:
     QHash<QString, QColor> m_colors;
     QFileSystemWatcher m_watcher;
     QTimer m_debounce;
-    QString m_hyprctl;
+    QString m_hyprland;
+    QLocalSocket m_hyprlandEvents;
     int m_radius = 0;
-    QProcess m_roundingProcess;
-    QTimer m_roundingPoll, m_roundingTimeout;
 };

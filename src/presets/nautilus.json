@@ -1,0 +1,60 @@
+{
+  "name": "Nautilus",
+  "author": "Trance",
+  "description": "A shell that is also the spectrum: the bass coils at the heart and the treble runs out along the lip, with a pearl for every pitch.",
+  "palette": "copper",
+  "frame": "sp = sp - dt*(0.15 + 0.4*bass_att)",
+  "feedback": {
+    "decay": 0.93,
+    "zoom": "1.008 + 0.006*bass_att",
+    "rot": 0.006,
+    "edge": "black",
+    "darkenCenter": true
+  },
+  "background": {
+    "style": "nebula",
+    "intensity": 0.2,
+    "tint": 0.1,
+    "spread": 0.3
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "source": "spectrum",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": "2.5 + 1.5*bass",
+      "color": "palette(t*0.8 + time*0.02)",
+      "point": "th = t*tau*3.5 + sp\nrr = 0.035*exp(0.5075*t*tau) + v*0.06*(0.3 + t)\nx = rr*cos(th)\ny = rr*sin(th)"
+    },
+    {
+      "type": "shape",
+      "sides": 16,
+      "instances": 24,
+      "x": "0.035*exp(0.5075*t*tau)*cos(t*tau*3.5 + sp)",
+      "y": "0.035*exp(0.5075*t*tau)*sin(t*tau*3.5 + sp)",
+      "radius": "0.008 + 0.03*v*(0.3 + t)",
+      "color": "palette(t*0.8 + 0.1)",
+      "alpha": 0.8,
+      "color2": "palette(t*0.8 + 0.1)",
+      "alpha2": 0,
+      "additive": true
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 900,
+      "rate": "60 + 600*beat",
+      "speed": 0.05,
+      "flow": 1,
+      "life": 2.5,
+      "size": 1.8,
+      "color": "palette(i)",
+      "alpha": 0.8
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "vignette": 0.5
+  }
+}

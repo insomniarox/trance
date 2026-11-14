@@ -1,7 +1,7 @@
 pkgname=trance
 pkgver=0.1.0
 pkgrel=1
-pkgdesc='Music visualizer for the Omarchy desktop: feedback, flow and spectrum presets you can edit live'
+pkgdesc='Music visualizer for the Linux desktop: feedback, flow and spectrum presets you can edit live'
 arch=('x86_64' 'aarch64')
 license=('MIT')
 depends=('qt6-base' 'qt6-declarative' 'qt6-wayland' 'pipewire' 'pipewire-audio')

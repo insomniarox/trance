@@ -43,6 +43,7 @@ Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
     m_quality = qBound(0.25, m_settings->value("quality", 1.0).toDouble(), 1.0);
     m_glass = m_settings->value("glass", false).toBool();
     m_glassOpacity = qBound(0.0, m_settings->value("glassOpacity", 0.0).toDouble(), 1.0);
+    // Older settings only said whether titles were shown at all.
     m_titleStyle = m_settings->value("titleStyle", m_settings->value("showTitles", true).toBool() ? "corner" : "off")
                        .toString();
     if (!QStringList{"corner", "picture", "off"}.contains(m_titleStyle))
@@ -72,6 +73,11 @@ Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
         connect(m_capture, &AudioCapture::errorChanged, this, &Backend::audioChanged);
         connect(m_capture, &AudioCapture::sourcesChanged, this, &Backend::sourcesChanged);
         m_capture->start(m_source);
+        // An application or a device is called by its name from the start,
+        // without the settings having been opened first. Everything and the
+        // microphone need no name, so PipeWire isn't asked for one.
+        if (m_source != "system" && m_source != "microphone")
+            m_capture->refreshSources();
     }
 
     m_tick.setInterval(50);
@@ -149,6 +155,12 @@ void Backend::tick() {
     }
     if (m_metering)
         emit levelsChanged();
+    // The debug overlay names what is being listened to and says whether it
+    // is there, so while it is up that is looked into now and then.
+    if (m_debug && m_capture && (!m_sinceSources.isValid() || m_sinceSources.elapsed() > 5000)) {
+        m_sinceSources.restart();
+        m_capture->refreshSources();
+    }
     // Colors drifting on their own, the way G-Force cycles its ColorMaps
     // apart from everything else: the engine fades each new palette in.
     if (m_colorDrift && m_sinceDrift.elapsed() / 1000.0 > m_driftAfter) {
@@ -300,7 +312,7 @@ bool Backend::mashup(double blend) {
     if (all.size() < 3)
         return false;
     auto *dice = QRandomGenerator::global();
-    for (int attempt = 0; attempt < 16; ++attempt) {
+    for (int attempt = 0; attempt < 32; ++attempt) {
         const int motionIndex = dice->bounded(int(all.size())), layersIndex = dice->bounded(int(all.size()));
         const int lookIndex = dice->bounded(int(all.size())), backIndex = dice->bounded(int(all.size()));
         if (motionIndex == layersIndex)
@@ -308,6 +320,12 @@ bool Backend::mashup(double blend) {
         const QJsonObject motion = m_library.load(motionIndex), drawn = m_library.load(layersIndex);
         const QJsonObject look = m_library.load(lookIndex), back = m_library.load(backIndex);
         if (motion.isEmpty() || drawn.isEmpty() || look.isEmpty())
+            continue;
+        // Some presets move only through their layers (a pendulum, a train
+        // of gears) and have a still picture underneath. Lending that
+        // stillness to another preset's layers leaves them standing there,
+        // under a name that promises the lender.
+        if (!presets::moves(motion))
             continue;
         const QString name = all[motionIndex].name + " × " + all[layersIndex].name;
         QJsonObject json{{"name", name}, {"description", tr("A mash-up. Save it to keep it.")}};
@@ -828,8 +846,6 @@ void Backend::setGlassOpacity(double opacity) {
     emit settingsChanged();
 }
 
-void Backend::setShowTitles(bool show) { setTitleStyle(show ? "corner" : "off"); }
-
 void Backend::setTitleStyle(const QString &style) {
     if (style == m_titleStyle || !QStringList{"corner", "picture", "off"}.contains(style))
         return;
@@ -904,8 +920,10 @@ void Backend::refreshSources() {
 }
 
 QString Backend::sourceLabel() const {
-    const QVariantList list = sources();
-    for (const auto &entry : list)
+    // Until PipeWire has been asked there is no knowing whether a device is
+    // plugged in or an application playing, so nothing is said about it.
+    const QVariantList known = m_capture ? m_capture->sources() : QVariantList();
+    for (const auto &entry : known.isEmpty() ? AudioCapture::describe({}, {}) : known)
         if (entry.toMap().value("id").toString() == m_source)
             return entry.toMap().value("label").toString();
     return m_source.section(':', 1);

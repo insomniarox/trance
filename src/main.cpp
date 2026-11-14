@@ -1,9 +1,10 @@
-// trance — a music visualizer for the Omarchy desktop: MilkDrop-style
+// trance — a music visualizer for the Linux desktop: MilkDrop-style
 // feedback and SoundSpectrum-style flow, in the colors of your theme.
 
 #include <QDBusConnection>
 #include <QGuiApplication>
 #include <QIcon>
+#include <QOffscreenSurface>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -16,11 +17,10 @@
 #include "cli.h"
 #include "nowplaying.h"
 #include "theme.h"
-#include "translator.h"
 #include "visualizeritem.h"
 
-// What `trance next` and friends reach over D-Bus, so a key bound in
-// Hyprland can steer the window.
+// What `trance next` and friends reach over D-Bus, so a key binding can
+// steer the window.
 class Remote : public QObject {
     Q_OBJECT
 
@@ -83,11 +83,6 @@ int main(int argc, char *argv[]) {
 
     QQuickStyle::setStyle("Material");
 
-    // Installed before anything is translated, and every qsTr() binding is
-    // re-evaluated when the Omarchy language changes.
-    Translator translator;
-    app.installTranslator(&translator);
-
     QStringList arguments = app.arguments().mid(1);
     if (!arguments.isEmpty() && arguments.first() == "open")
         arguments.removeFirst();
@@ -104,6 +99,13 @@ int main(int argc, char *argv[]) {
     QObject::connect(&nowPlaying, &NowPlaying::changed, &backend,
                      [&] { backend.setTrack(nowPlaying.title(), nowPlaying.artist()); });
     VisualizerItem::setBackend(&backend);
+    // The next preset's shaders are built on a thread of their own, which
+    // needs a surface made here to work on. It is declared before the
+    // window so that it outlasts it.
+    QOffscreenSurface buildSurface;
+    buildSurface.setFormat(format);
+    buildSurface.create();
+    VisualizerItem::setBuildSurface(&buildSurface);
     qmlRegisterType<VisualizerItem>("Trance", 1, 0, "Visualizer");
 
     if (!arguments.isEmpty()) {
@@ -120,8 +122,6 @@ int main(int argc, char *argv[]) {
         bus.registerObject(remote::Path, remote::Interface, remoteControl, QDBusConnection::ExportAllSlots);
 
     QQmlApplicationEngine engine;
-    QObject::connect(&translator, &Translator::changed, &engine, &QQmlEngine::retranslate);
-    engine.rootContext()->setContextProperty("translator", &translator);
     engine.rootContext()->setContextProperty("theme", &theme);
     engine.rootContext()->setContextProperty("backend", &backend);
     engine.rootContext()->setContextProperty("nowPlaying", &nowPlaying);

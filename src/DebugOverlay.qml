@@ -9,7 +9,7 @@ import QtQuick.Layouts
 Rectangle {
     id: overlay
     // The Visualizer whose drawing is being reported.
-    property var picture
+    property var view
     // The backend's side of it, asked for a few times a second.
     property var stats: backend.stats()
 
@@ -27,14 +27,11 @@ Rectangle {
         onTriggered: overlay.stats = backend.stats()
     }
 
-    function number(value, places) {
-        translator.language
-        return Number(value).toLocaleString(Qt.locale(), 'f', places)
-    }
+    function number(value, places) { return Number(value).toFixed(places) }
     readonly property string presetLine: {
         const parts = [backend.currentName]
         parts.push(backend.currentIsYours ? qsTr("yours") : qsTr("built-in"))
-        parts.push(qsTr("%n layers", "", stats.layers))
+        parts.push(Ui.count(stats.layers, qsTr("1 layer"), qsTr("%1 layers")))
         if (backend.dirty)
             parts.push(qsTr("Unsaved changes"))
         return parts.join("  ·  ")
@@ -53,15 +50,15 @@ Rectangle {
         const when = left > 0 ? qsTr("In %1 s").arg(left) : qsTr("On the next beat")
         return when + "  ·  " + (backend.shuffle ? qsTr("Shuffle") : qsTr("In order"))
     }
-    readonly property string drawingLine: picture
-        ? qsTr("%1 frames a second").arg(Math.round(picture.fps)) + "  ·  "
-          + qsTr("%1 ms a frame, %2 ms at worst").arg(number(picture.frameMs, 1)).arg(number(picture.worstMs, 1))
+    readonly property string drawingLine: view
+        ? qsTr("%1 frames a second").arg(Math.round(view.fps)) + "  ·  "
+          + qsTr("%1 ms a frame, %2 ms at worst").arg(number(view.frameMs, 1)).arg(number(view.worstMs, 1))
         : ""
     readonly property string sizeLine: {
-        if (!picture)
+        if (!view)
             return ""
-        const drawn = picture.pictureWidth + " × " + picture.pictureHeight
-        const shown = picture.pixelWidth + " × " + picture.pixelHeight
+        const drawn = view.pictureWidth + " × " + view.pictureHeight
+        const shown = view.pixelWidth + " × " + view.pixelHeight
         return drawn === shown ? drawn : qsTr("%1, shown at %2").arg(drawn).arg(shown)
     }
     readonly property string soundLine: {
@@ -72,8 +69,8 @@ Rectangle {
     readonly property string colorLine: backend.activePalette.length === 0 ? qsTr("Each preset's own")
         : backend.colorDrift ? qsTr("%1, drifting").arg(backend.activePalette) : backend.activePalette
     readonly property string sceneLine: {
-        const parts = [picture && picture.blending ? qsTr("Changing presets") : qsTr("One preset")]
-        parts.push(qsTr("%n visitors", "", picture ? picture.visitors : 0))
+        const parts = [view && view.blending ? qsTr("Changing presets") : qsTr("One preset")]
+        parts.push(Ui.count(view ? view.visitors : 0, qsTr("1 visitor"), qsTr("%1 visitors")))
         return parts.join("  ·  ")
     }
 
@@ -113,7 +110,7 @@ Rectangle {
         Name { text: qsTr("Size") }
         Value { text: overlay.sizeLine }
         Name { text: qsTr("Graphics") }
-        Value { text: overlay.picture ? overlay.picture.graphics : "" }
+        Value { text: overlay.view ? overlay.view.graphics : "" }
         Name { text: qsTr("Sound") }
         Value { text: overlay.soundLine }
         Name { text: qsTr("Levels") }

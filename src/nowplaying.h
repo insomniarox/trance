@@ -31,5 +31,6 @@ private:
 
     QTimer m_debounce;
     QString m_title, m_artist;
+    QString m_player; // whose title is showing
     int m_generation = 0;
 };

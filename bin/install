@@ -3,5 +3,10 @@ set -eu
 
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 "$ROOT/bin/build"
-cd "$ROOT/pkgbuild"
-exec makepkg -fsi "$@"
+
+# On Arch, a package pacman knows about; anywhere else, into /usr/local.
+if command -v makepkg >/dev/null 2>&1; then
+  cd "$ROOT/pkgbuild"
+  exec makepkg -fsi "$@"
+fi
+exec sudo make -C "$ROOT/build" install

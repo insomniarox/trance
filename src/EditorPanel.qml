@@ -27,8 +27,9 @@ SidePanel {
         return [any(["feedback", "pixel", "frame", "init"]), any(["layers"]),
                 any(["palette", "background", "post", "shade"]), false]
     }
+    // Which tab shows. The window keeps it, so it is asked to change it.
     property int tab: 0
-    function cycleTab(step) { tab = (tab + step + tabNames.length) % tabNames.length }
+    signal tabPicked(int index)
 
     component SectionTitle: Label {
         Layout.fillWidth: true
@@ -139,7 +140,7 @@ SidePanel {
                         width: tabLabel.implicitWidth + 20
                         focusPolicy: Qt.NoFocus
                         hoverEnabled: true
-                        onClicked: panel.tab = index
+                        onClicked: panel.tabPicked(index)
                         contentItem: Item {
                             Label {
                                 id: tabLabel

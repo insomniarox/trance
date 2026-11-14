@@ -6,6 +6,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFontMetrics>
+#include <QGuiApplication>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -19,11 +21,10 @@
 #include <QStandardPaths>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <memory>
 
 #include "audio.h"
-#include <QFontMetrics>
-#include <QGuiApplication>
 #include "audiocapture.h"
 #include "engine.h"
 #include "library.h"
@@ -384,7 +385,7 @@ int steer(const QStringList &arguments) {
     Command command(word, word == "preset" ? "Switch a running Trance to the named preset."
                           : word == "source" ? "Have a running Trance listen to something else: an id from "
                                                "trance sources, or an application's name."
-                                             : "Tell a running Trance to do this. Bind it to a key in Hyprland.");
+                                             : "Tell a running Trance to do this. Bind it to a key.");
     if (word == "preset")
         command.parser.addPositionalArgument("name", "The preset to show.");
     if (word == "source")
@@ -398,23 +399,20 @@ int steer(const QStringList &arguments) {
         return fail("Give preset a name; trance list shows them.");
     if (word == "source" && command.argument(0).isEmpty())
         return fail("Give source something to listen to; trance sources lists what there is.");
-    bool reached = false;
-    for (const char *service : {remote::WindowService}) {
-        QDBusMessage call = QDBusMessage::createMethodCall(service, remote::Path, remote::Interface, methods.value(word));
-        if (word == "preset" || word == "source")
-            call << command.argument(0);
-        const QDBusMessage reply = QDBusConnection::sessionBus().call(call, QDBus::Block, 2000);
-        if (reply.type() != QDBusMessage::ReplyMessage)
-            continue;
-        if (word == "preset" && !reply.arguments().value(0).toBool())
-            return fail("No preset called '" + command.argument(0) + "'.");
-        if (word == "mashup" && !reply.arguments().value(0).toBool())
-            return fail("No mash-up came together this time; try again.");
-        if (word == "current" && !reached)
-            print(stdout, reply.arguments().value(0).toString());
-        reached = true;
-    }
-    return reached ? 0 : fail("Trance isn't running.");
+    QDBusMessage call = QDBusMessage::createMethodCall(remote::WindowService, remote::Path, remote::Interface,
+                                                       methods.value(word));
+    if (word == "preset" || word == "source")
+        call << command.argument(0);
+    const QDBusMessage reply = QDBusConnection::sessionBus().call(call, QDBus::Block, 2000);
+    if (reply.type() != QDBusMessage::ReplyMessage)
+        return fail("Trance isn't running.");
+    if (word == "preset" && !reply.arguments().value(0).toBool())
+        return fail("No preset called '" + command.argument(0) + "'.");
+    if (word == "mashup" && !reply.arguments().value(0).toBool())
+        return fail("No mash-up came together this time; try again.");
+    if (word == "current")
+        print(stdout, reply.arguments().value(0).toString());
+    return 0;
 }
 
 // What there is to listen to, as PipeWire reports it right now.

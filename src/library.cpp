@@ -118,9 +118,18 @@ QString Library::save(const QJsonObject &preset, QString *error) {
     // Saving over the user's own preset keeps its file; anything else,
     // a changed built-in included, becomes a new file in their folder.
     const int existing = indexOf(name);
-    const QString path = existing >= 0 && !m_presets[existing].builtin
-                             ? m_presets[existing].path
-                             : m_userDirectory + "/" + slug(name) + ".json";
+    QString path;
+    if (existing >= 0 && !m_presets[existing].builtin) {
+        path = m_presets[existing].path;
+    } else {
+        // Two names can come down to the same file name ("Night!" and
+        // "Night?"). The newcomer takes another one rather than write over
+        // a preset that isn't it.
+        const QString base = m_userDirectory + "/" + slug(name);
+        path = base + ".json";
+        for (int n = 2; QFileInfo::exists(path); ++n)
+            path = base + "-" + QString::number(n) + ".json";
+    }
     QSaveFile file(path);
     const QByteArray text = QJsonDocument(preset).toJson(QJsonDocument::Indented);
     if (!QDir().mkpath(m_userDirectory) || !file.open(QIODevice::WriteOnly) || file.write(text) != text.size() ||
