@@ -904,6 +904,30 @@ CompiledPreset compile(const QJsonObject &json) {
         }
         Block layer = compiler.block(object, type, path, {"type", "name"});
         layer.type = type;
+        // Outside a shape's copies, only the color and the point code are
+        // worked out point by point; the engine sets these names to 0 for
+        // everything else, which is never what was meant.
+        if (type != "shape") {
+            const int own[] = {p.vars.find("t"), p.vars.find("i"), p.vars.find("v"), p.vars.find("v2")};
+            for (const Field &field : fields(type)) {
+                const auto found = layer.numbers.constFind(field.key);
+                if (found == layer.numbers.constEnd())
+                    continue;
+                const QStringList names = [&] {
+                    QStringList read;
+                    for (int slot : own)
+                        if (found->reads(slot))
+                            read << p.vars.name(slot);
+                    return read;
+                }();
+                if (!names.isEmpty())
+                    compiler.problem(path + "." + QString::fromLatin1(field.key),
+                                     QString("'%1' %2 always 0 here: only the color and the point code are "
+                                             "worked out point by point")
+                                         .arg(names.join("', '"), names.size() > 1 ? "are" : "is"),
+                                     false);
+            }
+        }
         p.layers.append(layer);
     }
     if (p.layers.size() > 24)

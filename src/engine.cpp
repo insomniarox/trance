@@ -984,8 +984,12 @@ void Engine::drawLayers(Scene &scene, bool stashWaves, bool morphWaves) {
     m_colors = scene.paletteTexture || !m_scene ? &scene : m_scene.get();
     auto &V = scene.p.vars.values;
     const QList<Block> &layers = scene.p.layers;
+    const Slots &s = scene.s;
     for (qsizetype i = 0; i < layers.size(); ++i) {
         const Block &layer = layers.at(i);
+        // A layer's own settings are worked out once, before its points, so
+        // these hold 0 there rather than what the last layer's points left.
+        V[size_t(s.t)] = V[size_t(s.i)] = V[size_t(s.v)] = V[size_t(s.v2)] = 0;
         if (!layer.flag("enabled", V))
             continue;
         const bool additive = layer.flag("additive", V);

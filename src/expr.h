@@ -52,6 +52,8 @@ public:
     bool parse(const QString &source, Vars &vars, QString *error);
     bool isEmpty() const { return m_code.empty(); }
     bool isConstant() const { return m_constant; }
+    // Whether any statement reads the variable in this slot.
+    bool reads(int slot) const;
 
     // Runs every statement and returns the value of the last one.
     double run(std::vector<double> &values) const;

@@ -373,6 +373,25 @@ private slots:
         QCOMPARE(byPath.value("glitter").error, false);
     }
 
+    // Outside a shape's copies, t, i and v reach only the color and the
+    // point code; anywhere else in a layer they are 0, so check says so.
+    void pointNamesInLayerSettingsAreWarned()
+    {
+        const CompiledPreset compiled = presets::compile(fixture(
+            "{ 'name': 'Points', 'layers': [ { 'type': 'terrain', 'alpha': '1 - 0.7*i', "
+            "'color': 'palette(t + i)' }, { 'type': 'particles', 'size': 'v*2' }, "
+            "{ 'type': 'shape', 'instances': 4, 'radius': '0.1*t' } ] }"));
+        QVERIFY(compiled.ok());
+        QHash<QString, Problem> byPath;
+        for (const auto &problem : compiled.problems)
+            byPath.insert(problem.path, problem);
+        QVERIFY(byPath.value("layers.0.alpha").message.startsWith("'i' is always 0 here"));
+        QCOMPARE(byPath.value("layers.0.alpha").error, false);
+        QVERIFY(byPath.value("layers.1.size").message.startsWith("'v' is always 0 here"));
+        QVERIFY(!byPath.contains("layers.0.color"));
+        QVERIFY(!byPath.contains("layers.2.radius"));
+    }
+
     void presetCodeReachesTheShaders()
     {
         const QJsonObject json = fixture(

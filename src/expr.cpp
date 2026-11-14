@@ -569,6 +569,13 @@ Program Program::constant(double value) {
     return program;
 }
 
+bool Program::reads(int slot) const {
+    for (const Node &node : m_nodes)
+        if (node.kind == Node::Variable && node.op == slot)
+            return true;
+    return false;
+}
+
 bool Program::parse(const QString &source, Vars &vars, QString *error) {
     m_nodes.clear();
     m_statements.clear();
