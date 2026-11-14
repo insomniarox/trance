@@ -1,0 +1,66 @@
+{
+  "name": "Breath",
+  "author": "Trance",
+  "description": "A globe made only of the voices and leads, breathing in and out with the rumble beneath them and turning as the melody moves, while the cymbals shed sparkles that drift up from it.",
+  "palette": "jade",
+  "init": "ph = rand(6)\ndir = rand() < 0.5 ? -1 : 1",
+  "frame": "lungs = 0.32 + 0.1*min(sub_att, 2)\nturn = turn + dir*dt*(0.1 + 0.35*min(highmid_att, 2))",
+  "feedback": {
+    "decay": 0.85,
+    "zoom": 1.003,
+    "blur": 0.35,
+    "edge": "black"
+  },
+  "background": {
+    "style": "nebula",
+    "intensity": "0.05 + 0.05*min(lowmid_att, 2)",
+    "tint": 0.25,
+    "spread": 0.3,
+    "speed": 0.4
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "sphere",
+      "style": "strands",
+      "bins": 64,
+      "rows": 24,
+      "speed": 12,
+      "low": 200,
+      "high": 2000,
+      "tilt": 3,
+      "smooth": 0.3,
+      "fade": 0.35,
+      "height": "0.22 + 0.06*min(highmid_att, 2)",
+      "radius": "lungs",
+      "yaw": "turn + ph",
+      "pitch": "0.3 + 0.15*sin(time*0.09)",
+      "distance": 3,
+      "thickness": 1.3,
+      "fog": 0.7,
+      "color": "palette(0.35 + 0.5*min(v, 1))",
+      "alpha": "0.55 + 0.3*min(lowmid_att, 1)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 700,
+      "rate": "10 + 500*max(0, air - 1)",
+      "speed": 0.05,
+      "gravity": -0.15,
+      "drag": 0.8,
+      "field": 0.4,
+      "fieldScale": 2,
+      "fieldSpeed": 0.3,
+      "life": 2.5,
+      "size": 2,
+      "color": "palette(0.85 + 0.15*i)",
+      "alpha": 0.85
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "bloomThreshold": 0.4,
+    "vignette": 0.4
+  }
+}

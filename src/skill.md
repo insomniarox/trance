@@ -48,6 +48,11 @@ trance render "Night Drive" -o look.png --sheet 6 --seconds 8
   `time*0.2` or it reads as flat. `trance show Whitecaps` is the plain
   sheet, `trance show Scroll` morphs two forms, `trance show Ribbon` bends
   one with `point` code, and `trance show Borehole` puts the camera inside.
+- To give each range of the sound a wireframe of its own, set its `low` and
+  `high` to the range's Hz (sub 20-60, low 60-200, lowmid 200-600, highmid
+  600-2000, presence 2000-6000, air 6000-16000) and drive its height or
+  size with the matching `_att`. `trance show Terraces` and `trance show
+  Moons` do it six times over.
 - Additive layers with a `decay` near 1 and a `zoom` above 1 pile up to
   white. Lower `alpha` or `decay` when a render looks blown out.
 - The best presets combine the parts: a flow in `pixel`, a `background`, a

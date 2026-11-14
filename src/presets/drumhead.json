@@ -1,0 +1,58 @@
+{
+  "name": "Drumhead",
+  "author": "Trance",
+  "description": "A drum skin seen from above. The kick tips it toward you, the rumble swells its middle, the snare throws sparks off its rim, and the cymbals haze it over.",
+  "palette": "carnival",
+  "init": "ph = rand(6)",
+  "frame": "kick = min(low, 2.5)\nspin = spin + dt*(0.15 + 0.25*min(highmid_att, 2))",
+  "feedback": {
+    "decay": 0.74,
+    "zoom": "1 + 0.01*kick",
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "ring",
+      "style": "mesh",
+      "bins": 72,
+      "rows": 28,
+      "speed": 14,
+      "low": 80,
+      "high": 3000,
+      "smooth": 0.4,
+      "fade": 0.3,
+      "height": "0.22 + 0.12*min(sub_att, 2)",
+      "radius": 1.35,
+      "yaw": "spin + ph",
+      "pitch": "1.05 - 0.22*kick",
+      "distance": 3.4,
+      "size": "0.95 + 0.04*kick",
+      "thickness": 1.2,
+      "fog": "0.4 + 0.3*min(air_att, 1.5)",
+      "color": "palette(0.1 + 0.6*i + 0.3*min(v, 1))",
+      "alpha": 0.7
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 900,
+      "rate": "20 + 700*max(0, presence - 1.1)",
+      "speed": 0.5,
+      "spread": 6.2832,
+      "gravity": 0.8,
+      "drag": 1.2,
+      "life": 1.1,
+      "size": 2.4,
+      "streak": 0.04,
+      "color": "palette(0.35 + 0.3*i)",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "bloomThreshold": 0.45,
+    "vignette": 0.45
+  }
+}

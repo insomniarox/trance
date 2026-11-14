@@ -614,6 +614,15 @@ calm and throws up a few sharp crests. *Lowest* and *Highest pitch* aim it:
 `"low": 150, "high": 1200` spreads a melody across the whole sheet, and
 `"low": 2000, "high": 12000` leaves only cymbals and the breath of a voice.
 
+**One for each range.** Set *Lowest* and *Highest pitch* to the edges of
+one of the six ranges in [section 3](#3-listening-to-the-music) (`"low":
+60, "high": 200` for `low`), and drive the same layer's size, height or
+opacity with that range's variable (`"height": "0.1 + 0.15*low_att"`).
+The layer then both shows and moves with that part of the music alone,
+and six of them side by side come apart the way the instruments do.
+`trance show Terraces` stacks six sheets that way, and `trance show
+Moons` puts six globes in orbit.
+
 Like a terrain it is its own memory, and needs nothing from the feedback: a
 low decay gives clean lines, a high one lets the turning form smear into a
 solid. Particles with `"emit": "wave"` are born along its newest sample.

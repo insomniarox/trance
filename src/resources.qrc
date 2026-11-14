@@ -24,6 +24,7 @@
         <file alias="HelpTip.qml">HelpTip.qml</file>
         <file alias="presets/aurora.json">presets/aurora.json</file>
         <file alias="presets/borehole.json">presets/borehole.json</file>
+        <file alias="presets/breath.json">presets/breath.json</file>
         <file alias="presets/clockwork.json">presets/clockwork.json</file>
         <file alias="presets/concentric.json">presets/concentric.json</file>
         <file alias="presets/confetti.json">presets/confetti.json</file>
@@ -37,6 +38,7 @@
         <file alias="presets/deep-field.json">presets/deep-field.json</file>
         <file alias="presets/double-helix.json">presets/double-helix.json</file>
         <file alias="presets/drift.json">presets/drift.json</file>
+        <file alias="presets/drumhead.json">presets/drumhead.json</file>
         <file alias="presets/dunes.json">presets/dunes.json</file>
         <file alias="presets/ember-drift.json">presets/ember-drift.json</file>
         <file alias="presets/equalizer.json">presets/equalizer.json</file>
@@ -59,6 +61,7 @@
         <file alias="presets/loom.json">presets/loom.json</file>
         <file alias="presets/mainframe.json">presets/mainframe.json</file>
         <file alias="presets/molten.json">presets/molten.json</file>
+        <file alias="presets/moons.json">presets/moons.json</file>
         <file alias="presets/murmuration.json">presets/murmuration.json</file>
         <file alias="presets/mycelium.json">presets/mycelium.json</file>
         <file alias="presets/nautilus.json">presets/nautilus.json</file>
@@ -88,6 +91,7 @@
         <file alias="presets/strata.json">presets/strata.json</file>
         <file alias="presets/sunburst.json">presets/sunburst.json</file>
         <file alias="presets/synth-road.json">presets/synth-road.json</file>
+        <file alias="presets/terraces.json">presets/terraces.json</file>
         <file alias="presets/thunderhead.json">presets/thunderhead.json</file>
         <file alias="presets/tide-pool.json">presets/tide-pool.json</file>
         <file alias="presets/tidewater.json">presets/tidewater.json</file>
