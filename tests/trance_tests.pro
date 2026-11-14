@@ -11,3 +11,6 @@ SOURCES += trance_tests.cpp ../src/audio.cpp ../src/audiocapture.cpp ../src/back
     ../src/expr.cpp ../src/library.cpp ../src/preset.cpp ../src/presetdocs.cpp ../src/theme.cpp
 
 RESOURCES += ../src/resources.qrc
+
+# Where the README is, so the counts it gives can be checked.
+DEFINES += TRANCE_ROOT=\\\"$$clean_path($$PWD/..)\\\"

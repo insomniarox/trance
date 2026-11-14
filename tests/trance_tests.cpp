@@ -325,6 +325,35 @@ private slots:
         }
     }
 
+    // The README's counts follow the presets and palettes as they are.
+    void readmeCountsAreCurrent()
+    {
+        QFile file(TRANCE_ROOT "/README.md");
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QString readme = QString::fromUtf8(file.readAll()).simplified();
+        const Library library(QDir::tempPath() + "/trance-tests-no-such-folder");
+        const qsizetype presetCount = library.presets().size();
+        QVERIFY2(readme.contains(QString("**%1 presets**").arg(presetCount)),
+                 qPrintable(QString("The README should say %1 presets").arg(presetCount)));
+        // theme and accent are the desktop theme's, which the README names apart.
+        const qsizetype paletteCount = presets::paletteNames().size() - 2;
+        QVERIFY2(readme.contains(QString("one of %1 palettes").arg(paletteCount)),
+                 qPrintable(QString("The README should say %1 palettes").arg(paletteCount)));
+        int wireframes = 0;
+        for (const auto &info : library.presets())
+            for (const Block &layer : presets::compile(library.load(library.indexOf(info.name))).layers)
+                if (layer.type == "wireframe") {
+                    ++wireframes;
+                    break;
+                }
+        static const QStringList words{"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+                                       "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+                                       "Seventeen", "Eighteen", "Nineteen", "Twenty"};
+        const QString said = wireframes < words.size() ? words[wireframes] : QString::number(wireframes);
+        QVERIFY2(readme.contains(said + " presets are built on it"),
+                 qPrintable(QString("The README should say %1 presets are built on the wireframe").arg(said)));
+    }
+
     // Every setting has a name and an explanation for the editor, and the
     // manual covers every one of them by the name it has in the file.
     void everySettingIsExplained()
