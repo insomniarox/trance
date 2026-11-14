@@ -1,0 +1,54 @@
+{
+  "name": "Red Shift",
+  "author": "Trance",
+  "description": "Racing down a canyon of points, floor and ceiling made of the spectrum, toward a horizon that burns brightest when the kick lands, while what is left behind is pulled away into the vanishing point and reddens as it goes.",
+  "palette": "crimson",
+  "init": "ph = rand(6)",
+  "frame": "speed = 10 + 8*min(bass_att, 2)",
+  "feedback": {
+    "decay": 0.78,
+    "zoom": "0.992 - 0.004*bass_att",
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": "0.25 + 0.15*min(air_att, 2)",
+    "tint": 0.7,
+    "spread": 0.3,
+    "speed": "0.6 + 0.6*min(bass_att, 2)"
+  },
+  "layers": [
+    {
+      "type": "terrain",
+      "style": "dots",
+      "rows": 40,
+      "cols": 72,
+      "speed": "speed",
+      "height": "0.18 + 0.25*min(lowmid_att, 2)",
+      "width": 4,
+      "y": -1.0,
+      "horizon": -0.05,
+      "depth": 5,
+      "thickness": 3.2,
+      "color": "palette(0.4 + 0.5*min(v, 1) + 0.1*(1 - i))",
+      "alpha": 0.95
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": 0,
+      "scale": 0.04,
+      "smooth": 0.7,
+      "thickness": "2 + 4*beat",
+      "color": "palette(0.85 + 0.15*t)",
+      "alpha": "0.5 + 0.5*beat",
+      "additive": true
+    }
+  ],
+  "post": {
+    "mirror": "y",
+    "bloom": 1.1,
+    "bloomThreshold": 0.35,
+    "vignette": 0.55
+  }
+}

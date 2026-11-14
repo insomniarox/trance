@@ -1,0 +1,70 @@
+{
+  "name": "Mother of Pearl",
+  "author": "Trance",
+  "description": "A pale globe of the whole spectrum that opens into a ring and closes again, its lines running through every color of an opal, while the snares shed flecks of nacre that drift off it on a slow current.",
+  "palette": "opal",
+  "init": "ph = rand(6)\nrate = 0.09 + rand(0.05)\ndir = rand() < 0.5 ? -1 : 1",
+  "frame": "turn = turn + dir*dt*(0.12 + 0.25*min(mid_att, 2))\nsheen = sheen + dt*(0.03 + 0.08*min(treb_att, 2))",
+  "feedback": {
+    "decay": 0.8,
+    "zoom": "1.002 + 0.004*bass_att",
+    "warp": 0.15,
+    "warpScale": 1.5,
+    "warpSpeed": 0.3,
+    "blur": 0.4,
+    "edge": "black"
+  },
+  "background": {
+    "style": "nebula",
+    "intensity": "0.06 + 0.05*min(sub_att, 2)",
+    "tint": "sheen",
+    "spread": 0.6,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "sphere",
+      "form2": "ring",
+      "morph": "0.5 - 0.5*cos(time*rate + ph)",
+      "style": "lines",
+      "bins": 72,
+      "rows": 30,
+      "speed": 14,
+      "fade": 0.4,
+      "height": "0.25 + 0.08*min(bass_att, 2)",
+      "radius": "0.45 + 0.04*min(low_att, 2)",
+      "yaw": "turn + ph",
+      "pitch": "0.45 + 0.2*sin(time*0.07)",
+      "roll": "0.2*sin(time*0.05 + ph)",
+      "distance": 3.2,
+      "thickness": 1.1,
+      "fog": 0.6,
+      "color": "palette(t*0.8 + i*0.6 + sheen)",
+      "alpha": "0.35 + 0.25*min(vol_att, 1)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 900,
+      "rate": "15 + 600*max(0, presence - 1)",
+      "speed": 0.08,
+      "drag": 1.2,
+      "flow": 1,
+      "field": 0.5,
+      "fieldScale": 1.5,
+      "fieldSpeed": 0.2,
+      "life": 3,
+      "size": 2.2,
+      "color": "palette(i + sheen)",
+      "alpha": 0.6
+    }
+  ],
+  "post": {
+    "bloom": 0.45,
+    "bloomThreshold": 0.6,
+    "saturation": 1.5,
+    "chroma": 0.35,
+    "vignette": 0.45
+  }
+}

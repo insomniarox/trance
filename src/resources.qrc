@@ -26,6 +26,7 @@
         <file alias="presets/borehole.json">presets/borehole.json</file>
         <file alias="presets/breath.json">presets/breath.json</file>
         <file alias="presets/clockwork.json">presets/clockwork.json</file>
+        <file alias="presets/composition.json">presets/composition.json</file>
         <file alias="presets/concentric.json">presets/concentric.json</file>
         <file alias="presets/confetti.json">presets/confetti.json</file>
         <file alias="presets/corkscrew.json">presets/corkscrew.json</file>
@@ -44,8 +45,10 @@
         <file alias="presets/equalizer.json">presets/equalizer.json</file>
         <file alias="presets/event-horizon.json">presets/event-horizon.json</file>
         <file alias="presets/fireworks.json">presets/fireworks.json</file>
+        <file alias="presets/fizz.json">presets/fizz.json</file>
         <file alias="presets/flow-state.json">presets/flow-state.json</file>
         <file alias="presets/fractal-bloom.json">presets/fractal-bloom.json</file>
+        <file alias="presets/fumarole.json">presets/fumarole.json</file>
         <file alias="presets/galaxy.json">presets/galaxy.json</file>
         <file alias="presets/gyroscope.json">presets/gyroscope.json</file>
         <file alias="presets/hall-of-mirrors.json">presets/hall-of-mirrors.json</file>
@@ -59,9 +62,11 @@
         <file alias="presets/lanterns.json">presets/lanterns.json</file>
         <file alias="presets/lava-lamp.json">presets/lava-lamp.json</file>
         <file alias="presets/loom.json">presets/loom.json</file>
+        <file alias="presets/magnetosphere.json">presets/magnetosphere.json</file>
         <file alias="presets/mainframe.json">presets/mainframe.json</file>
         <file alias="presets/molten.json">presets/molten.json</file>
         <file alias="presets/moons.json">presets/moons.json</file>
+        <file alias="presets/mother-of-pearl.json">presets/mother-of-pearl.json</file>
         <file alias="presets/murmuration.json">presets/murmuration.json</file>
         <file alias="presets/mycelium.json">presets/mycelium.json</file>
         <file alias="presets/nautilus.json">presets/nautilus.json</file>
@@ -75,6 +80,7 @@
         <file alias="presets/pulse-grid.json">presets/pulse-grid.json</file>
         <file alias="presets/radar.json">presets/radar.json</file>
         <file alias="presets/rain.json">presets/rain.json</file>
+        <file alias="presets/red-shift.json">presets/red-shift.json</file>
         <file alias="presets/ribbon.json">presets/ribbon.json</file>
         <file alias="presets/ridgeline.json">presets/ridgeline.json</file>
         <file alias="presets/ripple-tank.json">presets/ripple-tank.json</file>

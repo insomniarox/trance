@@ -15,7 +15,7 @@ theme.
 
 ![Presets with a part for each range of the sound](docs/gallery-layered.jpg)
 
-- **81 presets** built in, changing on the beat every 30 seconds (or held,
+- **87 presets** built in, changing on the beat every 30 seconds (or held,
   shuffled, or picked from a searchable list). A change is not a cut: for a
   few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next.

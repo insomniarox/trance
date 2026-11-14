@@ -1,0 +1,107 @@
+{
+  "name": "Composition",
+  "author": "Trance",
+  "description": "A poster in the Bauhaus manner: a red disc that swells with the kick, a yellow square turned by the leads, a blue triangle tipped by the snares, and a row of dots that the cymbals light, over a stave of bars.",
+  "palette": "bauhaus",
+  "init": "ph = rand(6)\nsq = rand(1)\nwedge = rand(1)",
+  "frame": "sq = sq + dt*(0.05 + 0.35*min(highmid_att, 2))\nwedge = wedge - dt*(0.04 + 0.3*min(presence_att, 2))\ndrift = 0.08*sin(time*0.11 + ph)",
+  "feedback": {
+    "decay": 0.55,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.12,
+    "tint": 0.5,
+    "spread": 0.05,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "count": 32,
+      "height": "0.3 + 0.1*vol_att",
+      "gap": 0.55,
+      "color": "palette(0.5)",
+      "alpha": 0.85,
+      "fade": 0
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "x": "-0.55*aspect + 0.45 + drift",
+      "y": 0.12,
+      "radius": "0.4*(0.85 + 0.2*min(low_att, 2))",
+      "color": "palette(0)",
+      "alpha": 1,
+      "color2": "palette(0)",
+      "alpha2": 1
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "x": "-0.55*aspect + 0.45 + drift",
+      "y": 0.12,
+      "radius": "0.4*(0.85 + 0.2*min(low_att, 2)) + 0.04 + 0.12*beat",
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.5)",
+      "borderAlpha": "0.25 + 0.75*beat",
+      "borderWidth": 3
+    },
+    {
+      "type": "shape",
+      "sides": 4,
+      "x": "0.45*aspect - drift",
+      "y": -0.18,
+      "radius": "0.32*(0.9 + 0.15*min(lowmid_att, 2))",
+      "angle": "sq",
+      "color": "palette(0.25)",
+      "alpha": 0.95,
+      "color2": "palette(0.25)",
+      "alpha2": 0.95
+    },
+    {
+      "type": "shape",
+      "sides": 3,
+      "x": "0.05 + 0.5*drift",
+      "y": 0.42,
+      "radius": "0.26*(0.9 + 0.2*min(presence_att, 2))",
+      "angle": "wedge",
+      "color": "palette(0.75)",
+      "alpha": 0.95,
+      "color2": "palette(0.75)",
+      "alpha2": 0.95
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "instances": 9,
+      "x": "-0.6*aspect + t*1.2*aspect",
+      "y": 0.86,
+      "radius": "0.018 + 0.03*min(air*v*3, 1)",
+      "color": "palette(0.5)",
+      "alpha": "0.4 + 0.6*min(air, 1)",
+      "color2": "palette(0.5)",
+      "alpha2": "0.4 + 0.6*min(air, 1)"
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.55,
+      "scale": 0.25,
+      "smooth": 0.6,
+      "thickness": 4,
+      "color": "palette(0.5)",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "bloom": 0.15,
+    "bloomThreshold": 0.85,
+    "vignette": 0.2,
+    "grain": 0.06
+  }
+}

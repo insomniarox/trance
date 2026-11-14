@@ -1,0 +1,77 @@
+{
+  "name": "Magnetosphere",
+  "author": "Trance",
+  "description": "A small world whose field loops out of one pole and back into the other. The flow follows the field lines, drawn as a grid of strokes, and dust caught in them spirals from pole to pole, faster and farther out as the bass line pushes.",
+  "palette": "cobalt",
+  "init": "ph = rand(6)\ntip = 0.3*(rand()*2 - 1)",
+  "frame": "pull = 0.0007*(0.6 + 0.8*min(low_att, 2))\nlean = tip + 0.15*sin(time*0.05 + ph)",
+  "feedback": {
+    "decay": 0.92,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "pixel": "u = x*cos(lean) - y*sin(lean)\nw = x*sin(lean) + y*cos(lean)\nr2 = u*u + w*w + 0.06\nf = pull/(r2*r2*sqrt(r2))\nbu = 3*u*w*f\nbw = (2*w*w - u*u)*f\ndx = clamp(bu*cos(lean) + bw*sin(lean), -0.01, 0.01)\ndy = clamp(-bu*sin(lean) + bw*cos(lean), -0.01, 0.01)",
+  "background": {
+    "style": "stars",
+    "intensity": 0.25,
+    "tint": 0.6,
+    "spread": 0.3,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "vectors",
+      "cols": 40,
+      "rows": 22,
+      "length": "1.4 + 1.2*min(low_att, 2)",
+      "thickness": 1.4,
+      "color": "palette(0.35 + 0.55*v)",
+      "alpha": 0.45
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 2600,
+      "rate": 700,
+      "speed": 0.01,
+      "flow": 1.4,
+      "drag": 2,
+      "life": 3,
+      "size": 2.2,
+      "color": "palette(0.6 + 0.4*i)",
+      "alpha": 0.9,
+      "additive": true
+    },
+    {
+      "type": "particles",
+      "emit": "point",
+      "x": 0,
+      "y": 0,
+      "area": 0.14,
+      "count": 600,
+      "rate": "300*max(0, air - 0.9)",
+      "speed": 0.05,
+      "flow": 1.6,
+      "life": 2,
+      "size": 2.4,
+      "color": "palette(0.95)",
+      "alpha": 0.9,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.1 + 0.015*min(sub_att, 2)",
+      "scale": 0.08,
+      "smooth": 0.5,
+      "thickness": 3,
+      "color": "palette(0.8 + 0.2*t)",
+      "alpha": 0.95
+    }
+  ],
+  "post": {
+    "bloom": 1.0,
+    "bloomThreshold": 0.45,
+    "vignette": 0.5
+  }
+}

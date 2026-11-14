@@ -1,0 +1,76 @@
+{
+  "name": "Fumarole",
+  "author": "Trance",
+  "description": "A row of vents along the floor, one per band of the spectrum, each breathing smoke as loud as its band. The smoke rises and curls on a hot current, and the picture is colored dark to bright in sulfur, so where it is thickest it burns yellow.",
+  "palette": "sulfur",
+  "init": "ph = rand(6)",
+  "frame": "heat = 0.6 + 0.7*min(bass_att, 2)",
+  "feedback": {
+    "decay": 0.97,
+    "blur": 0.35,
+    "edge": "black"
+  },
+  "pixel": "dy = 0.007*heat\ndx = 0.004*sin(y*5 + time*0.6 + ph) + 0.0015*sin(y*13 - time*1.1)\nzoom = 1 - 0.003*y",
+  "background": {
+    "style": "plasma",
+    "intensity": "0.1 + 0.08*min(sub_att, 2)",
+    "tint": 0.2,
+    "spread": 0.15,
+    "scale": 0.7,
+    "speed": 0.25
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "count": 24,
+      "height": "0.12 + 0.05*low_att",
+      "gap": 0.35,
+      "color": "white",
+      "alpha": 0.25,
+      "fade": 0.6,
+      "peaks": true
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 3500,
+      "rate": "500 + 900*min(vol_att, 2)",
+      "speed": 0.5,
+      "angle": 1.5708,
+      "spread": 0.4,
+      "gravity": "-0.6*heat",
+      "drag": 0.3,
+      "flow": 1,
+      "field": 0.6,
+      "fieldScale": 1.8,
+      "fieldSpeed": 0.4,
+      "life": 3.5,
+      "size": 4,
+      "color": "white",
+      "alpha": 0.5
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 400,
+      "rate": "200*max(0, presence - 1.1)",
+      "speed": 0.9,
+      "angle": 1.5708,
+      "spread": 0.6,
+      "gravity": 0.8,
+      "life": 1,
+      "size": 1.6,
+      "streak": 0.05,
+      "color": "white",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "colorize": 1,
+    "colorCurve": 0.85,
+    "bloom": 0.7,
+    "bloomThreshold": 0.5,
+    "vignette": 0.5
+  }
+}
