@@ -5,8 +5,8 @@ import QtQuick.Layouts
 // What is running right now, for when something looks or sounds wrong: the
 // preset and where it came from, how hard the drawing is working, what is
 // arriving from the music, and the colors. Off unless asked for (D, or the
-// settings). It sits straight on the picture with no panel behind it, small
-// and half see-through, and a faint outline keeps it readable over light.
+// settings). It is small and half see-through, on a thin dark backing that
+// keeps it readable over light without hiding the picture under it.
 Item {
     id: overlay
     // The Visualizer whose drawing is being reported.
@@ -15,9 +15,17 @@ Item {
     property var stats: backend.stats()
     readonly property var details: view ? view.details : ({})
 
-    width: Math.min(grid.implicitWidth, parent.width - 32)
-    height: grid.implicitHeight
-    opacity: 0.78
+    readonly property int padX: 10
+    readonly property int padY: 7
+    width: Math.min(grid.implicitWidth + 2 * padX, parent.width - 32)
+    height: grid.implicitHeight + 2 * padY
+    opacity: 0.85
+
+    Rectangle {
+        anchors.fill: parent
+        radius: Math.min(4, theme.radius)
+        color: "#73000000"
+    }
 
     Timer {
         interval: 250
@@ -29,7 +37,7 @@ Item {
 
     readonly property int nameSize: 9
     readonly property int valueSize: 10
-    readonly property color outline: "#b0000000"
+    readonly property color outline: "#70000000"
 
     function number(value, places) { return Number(value || 0).toFixed(places) }
     function thousands(value) { return Number(value || 0).toLocaleString(Qt.locale("en_US"), "f", 0) }
@@ -165,7 +173,9 @@ Item {
 
     GridLayout {
         id: grid
-        width: Math.min(implicitWidth, overlay.parent.width - 32)
+        x: overlay.padX
+        y: overlay.padY
+        width: Math.min(implicitWidth, overlay.parent.width - 32 - 2 * overlay.padX)
         columns: 2
         columnSpacing: 10
         rowSpacing: 2
