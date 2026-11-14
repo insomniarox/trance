@@ -355,7 +355,7 @@ ApplicationWindow {
                         : quietTimer.waited && backend.silent
                             ? (backend.source === "system" ? qsTr("Waiting for music. Play something and the picture follows.")
                                : backend.source === "microphone" ? qsTr("Waiting for sound from the microphone.")
-                               : qsTr("Waiting for sound from %1.").arg(backend.sourceLabel()))
+                               : qsTr("Waiting for sound from %1.").arg(backend.sourceLabel))
                         : hintTimer.running ? qsTr("Press ? for the shortcuts") : ""
                 }
                 // Silence between songs is not worth a message; lasting silence is.

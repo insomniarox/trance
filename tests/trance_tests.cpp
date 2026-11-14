@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalServer>
+#include <QMetaProperty>
 #include <QLocalSocket>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
@@ -964,7 +965,13 @@ private slots:
             QCOMPARE(backend.sourceLabel(), QString("Spotify"));
             backend.setSource("output:alsa_output.speaker");
             QCOMPARE(backend.sourceLabel(), QString("alsa_output.speaker"));
+            // The window is told when that name may have changed.
+            QSignalSpy relabelled(&backend, &Backend::sourcesChanged);
             backend.setSource("system");
+            QCOMPARE(relabelled.count(), 1);
+            const QMetaProperty label = backend.metaObject()->property(backend.metaObject()->indexOfProperty("sourceLabel"));
+            QCOMPARE(label.notifySignal().name(), QByteArray("sourcesChanged"));
+            QCOMPARE(label.read(&backend).toString(), QString("Everything that's playing"));
 
             // The levels are announced only while something is showing them.
             QSignalSpy levels(&backend, &Backend::levelsChanged);
@@ -1021,15 +1028,19 @@ private slots:
         // the other announces what happens.
         QTemporaryDir dir;
         QByteArray answer = R"({"option": "decoration:rounding", "int": 0, "set": true })";
-        int asked = 0;
+        int asked = 0, closed = 0;
+        bool answering = true;
         QLocalServer requests, events;
         QVERIFY(requests.listen(dir.filePath(".socket.sock")));
         QVERIFY(events.listen(dir.filePath(".socket2.sock")));
         connect(&requests, &QLocalServer::newConnection, &requests, [&] {
             QLocalSocket *client = requests.nextPendingConnection();
+            connect(client, &QLocalSocket::disconnected, client, [&] { ++closed; });
             connect(client, &QLocalSocket::readyRead, client, [&, client] {
                 QCOMPARE(client->readAll(), QByteArray("j/getoption decoration:rounding"));
                 ++asked;
+                if (!answering)
+                    return;
                 client->write(answer);
                 client->disconnectFromServer();
             });
@@ -1051,6 +1062,34 @@ private slots:
         QTRY_COMPARE(theme.radius(), 6);
         QCOMPARE(asked, 2);
         QCOMPARE(changed.count(), 1);
+
+        // A change made at runtime sends no event, so it is also asked when
+        // the window becomes active.
+        answer.replace("\"int\": 6", "\"int\": 8");
+        emit qGuiApp->applicationStateChanged(Qt::ApplicationInactive);
+        QTest::qWait(100);
+        QCOMPARE(asked, 2);
+        emit qGuiApp->applicationStateChanged(Qt::ApplicationActive);
+        QTRY_COMPARE(theme.radius(), 8);
+        QCOMPARE(asked, 3);
+        QTRY_COMPARE(closed, 3);
+
+        // A dropped event connection is made again, and the rounding asked
+        // for once more, since a reload may have gone unheard meanwhile.
+        answer.replace("\"int\": 8", "\"int\": 12");
+        delete listener;
+        QTRY_COMPARE(theme.radius(), 12);
+        QCOMPARE(asked, 4);
+        QTRY_COMPARE(closed, 4);
+
+        // A question Hyprland takes but never answers is given up on.
+        answering = false;
+        QTRY_VERIFY(events.hasPendingConnections());
+        events.nextPendingConnection()->write("configreloaded>>\n");
+        QTRY_COMPARE(asked, 5);
+        QCOMPARE(closed, 4);
+        QTRY_COMPARE(closed, 5);
+        QCOMPARE(theme.radius(), 12);
     }
 
 private:

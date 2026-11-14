@@ -36,6 +36,7 @@ signals:
 
 private:
     void reload();
+    void listenToHyprland();
     void refreshRounding();
 
     QString m_directory;
@@ -45,5 +46,6 @@ private:
     QTimer m_debounce;
     QString m_hyprland;
     QLocalSocket m_hyprlandEvents;
+    QTimer m_retry;
     int m_radius = 0;
 };

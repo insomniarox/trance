@@ -45,6 +45,7 @@ class Backend : public QObject {
     Q_PROPERTY(QString titleStyle READ titleStyle WRITE setTitleStyle NOTIFY settingsChanged)
     Q_PROPERTY(QString source READ source WRITE setSource NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList sources READ sources NOTIFY sourcesChanged)
+    Q_PROPERTY(QString sourceLabel READ sourceLabel NOTIFY sourcesChanged)
     Q_PROPERTY(double blendSeconds READ blendSeconds WRITE setBlendSeconds NOTIFY settingsChanged)
     Q_PROPERTY(QString transition READ transition WRITE setTransition NOTIFY settingsChanged)
     Q_PROPERTY(bool mashups READ mashups WRITE setMashups NOTIFY settingsChanged)
@@ -99,6 +100,8 @@ public:
     QString titleStyle() const { return m_titleStyle; }
     QString source() const { return m_source; }
     QVariantList sources() const;
+    // The name of what is being listened to, as the list of sources has it.
+    QString sourceLabel() const;
     double blendSeconds() const { return m_blendSeconds; }
     QString transition() const { return m_transition; }
     bool mashups() const { return m_mashups; }
@@ -147,7 +150,6 @@ public:
     // layers, a third's colors and finish. False if nothing workable came up.
     Q_INVOKABLE bool mashup();
     Q_INVOKABLE void refreshSources();
-    Q_INVOKABLE QString sourceLabel() const;
     Q_INVOKABLE QString cycleTitleStyle();
     // What is going on right now, for the debug overlay: when the preset
     // changes next and why not, the levels as formulas see them, and so on.
