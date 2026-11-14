@@ -376,6 +376,16 @@ spark. Those are what make one layer a rainbow rather than one color:
 | `v2` | the other channel | | the waveform at `t` | | | | |
 | `n` `count` | | | the copy's number, and how many | | | | |
 
+Only the color and the `point` code are worked out point by point. Every
+other setting, `alpha` included, is worked out once a frame for the whole
+layer, before its first point, when `t`, `i` and `v` still hold whatever the
+layer before it left in them. A terrain with `"alpha": "1 - 0.7*i"` under a
+wave reads the number of the wave's last point, perhaps 511, and vanishes.
+To fade a layer point by point, set `a` in its `point` code, which waves,
+bars and wireframes have. Particles already fade as they age and a terrain
+as it recedes, so they don't need it. Shapes are the exception: with
+several copies, every setting is worked out once per copy and may use them.
+
 ### Wave
 
 The sound drawn as a line. `"type": "wave"`.
@@ -919,6 +929,7 @@ one layer for each of the six ranges.
 | It looks the same as every other preset | Too much bloom and too little structure | Lower `bloom`; give the motion a `pixel` flow |
 | A hard seam down the screen | `edge` is `wrap` and the two sides don't match | Use `mirror` or `black` |
 | The trail is a row of separate copies | The picture moves further each frame than the layer is thick | Add `blur`, slow the motion, or thicken the layer |
+| A layer vanishes, or flickers, once another is added before it | Its `alpha` or another setting uses `t`, `i` or `v`, which only its color sees | Use `a` in the `point` code instead ([section 8](#8-layers)) |
 | `Unknown variable` | A name is read that nothing ever assigns | Assign it in `init` or `frame`, or fix the spelling |
 | The palette I chose does nothing | A palette is set for every preset in the settings | Settings > Colors > Each preset's own |
 
