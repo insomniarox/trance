@@ -15,6 +15,8 @@ theme.
 
 ![Presets with a part for each range of the sound](docs/gallery-layered.jpg)
 
+![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
+
 - **87 presets** built in, changing on the beat every 30 seconds (or held,
   shuffled, or picked from a searchable list). A change is not a cut: for a
   few seconds both presets run on the one picture, and the wave of one
@@ -29,7 +31,7 @@ theme.
   wrapped round a ball, folding from one form into another while a camera
   turns round it. It hears the music the way WhiteCap does, in even steps
   of pitch and without decibels, so it shows what stands out where the bars
-  show everything, and the two never move alike. Sixteen presets are built
+  show everything, and the two never move alike. Seventeen presets are built
   on it, from Whitecaps and Borehole to a Seismograph whose pens draw back
   across the paper in perspective, and Terraces and Moons, where each of
   the six ranges of the sound has a wireframe of its own.
