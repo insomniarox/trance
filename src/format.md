@@ -143,6 +143,13 @@ place.
 Every layer has `type`, and may have `enabled` and `additive` (light adds
 up instead of covering). Colors are described below.
 
+Where a layer's `color` is said to take `t`, `i` or `v`, only the color and
+the `point` code see them. Every other setting, `alpha` included, is worked
+out once a frame for the whole layer, when those names still hold whatever
+the layer before it left in them, so don't use them there. Particles already
+fade with age and terrain with distance. A shape's copies are the exception:
+there every setting is worked out per copy.
+
 **wave** draws the sound as a line.
 `source` (`mix`, `left`, `right`, `spectrum`), `shape` (`line`, `circle`,
 `xy` for left against right, `custom` for point code only), `samples` (8–512),
