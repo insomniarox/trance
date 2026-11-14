@@ -37,8 +37,10 @@ theme.
   waves and bars throw particles, the particles ride the flow, backgrounds
   fill the dark, and one palette colors all of it.
 - **Mash-ups and visitors.** `X` builds a new preset from parts of others:
-  one's motion, another's layers, a third's colors. Small extras drop in over
-  any preset for a while and leave again.
+  one's motion, another's layers, a third's colors. A dozen small extras
+  drop in over any preset for a while and leave again: a comet, fireflies,
+  a globe made of one range of the music, a ripple on every kick, a row of
+  six lights for the six ranges, a flurry that falls with the cymbals.
 - **Listen to one app.** Follow everything that's playing, or only Spotify,
   or only your browser. The app keeps playing through your speakers; no
   virtual cables or rerouting.

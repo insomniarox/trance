@@ -104,10 +104,15 @@
         <file alias="presets/whitecaps.json">presets/whitecaps.json</file>
         <file alias="presets/windmap.json">presets/windmap.json</file>
         <file alias="visitors/comet.json">visitors/comet.json</file>
+        <file alias="visitors/drop.json">visitors/drop.json</file>
         <file alias="visitors/fireflies.json">visitors/fireflies.json</file>
+        <file alias="visitors/flurry.json">visitors/flurry.json</file>
+        <file alias="visitors/kite.json">visitors/kite.json</file>
         <file alias="visitors/orbiters.json">visitors/orbiters.json</file>
+        <file alias="visitors/satellite.json">visitors/satellite.json</file>
         <file alias="visitors/second-voice.json">visitors/second-voice.json</file>
         <file alias="visitors/shedding.json">visitors/shedding.json</file>
+        <file alias="visitors/six-lights.json">visitors/six-lights.json</file>
         <file alias="visitors/spinner.json">visitors/spinner.json</file>
         <file alias="visitors/sweep.json">visitors/sweep.json</file>
         <file alias="format.md">format.md</file>

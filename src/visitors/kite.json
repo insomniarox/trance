@@ -1,0 +1,36 @@
+{
+  "name": "Kite",
+  "init": "fx = 0.17 + rand(0.1)\nfy = 0.23 + rand(0.12)\nph = rand(6)\nrate = 0.25 + rand(0.2)",
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "sheet",
+      "form2": "tube",
+      "morph": "0.5 - 0.5*cos(time*rate + ph)",
+      "style": "mesh",
+      "bins": 16,
+      "rows": 12,
+      "speed": 14,
+      "low": 2000,
+      "high": 12000,
+      "tilt": 3,
+      "smooth": 0.3,
+      "fade": 0.25,
+      "height": "0.3 + 0.1*min(presence_att, 2)",
+      "width": 0.9,
+      "depth": 0.7,
+      "radius": 0.35,
+      "yaw": "time*0.6",
+      "pitch": "0.4*sin(time*0.37)",
+      "roll": "0.5*sin(time*0.29 + ph)",
+      "distance": 3,
+      "size": 0.2,
+      "x": "aspect*0.65*sin(time*fx + ph)",
+      "y": "0.6*sin(time*fy*2 + ph)",
+      "thickness": 1,
+      "fog": 0.5,
+      "color": "palette(0.5 + 0.4*i + time*0.03)",
+      "alpha": 0.85
+    }
+  ]
+}
