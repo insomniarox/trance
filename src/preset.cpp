@@ -174,6 +174,18 @@ const QHash<QString, QStringList> &palettes() {
         // Every hue at about the same brightness, so a palette that keeps
         // turning changes color without flickering lighter and darker.
         {"phase", {"#b8860b", "#d2603f", "#d0477c", "#9c5ac8", "#4f83d1", "#24a3a0", "#62a83a"}},
+        // Three more from black, each a single hue the rest pass through
+        // on the way to another: blood red, sulfur, and cobalt blue.
+        {"crimson", {"#050000", "#2c0204", "#6e060c", "#b10e16", "#e5281f", "#ff7a5c", "#ffe0d0"}},
+        {"sulfur", {"#030400", "#1a2003", "#3e4d08", "#73860f", "#b4c41a", "#e6f04a", "#fbffcc"}},
+        {"cobalt", {"#000105", "#020b2e", "#06216e", "#0a3fc2", "#2f74ff", "#8fb8ff", "#eef4ff"}},
+        // Two bright ones: the Bauhaus's red, yellow, paper and blue, which
+        // palette(0), (0.25), (0.5) and (0.75) give exactly, and citrus.
+        {"bauhaus", {"#e63946", "#f4b400", "#f1ebe0", "#1d4ed8"}},
+        {"citrus", {"#2fbf71", "#a7e22e", "#ffe83d", "#ffb627", "#ff7b1c"}},
+        // Pale all the way round, pink to peach, mint, sky and lavender and
+        // back to pink: the play of color in an opal, without a seam.
+        {"opal", {"#f9c6d8", "#fde2b8", "#d4f1c5", "#b9e3f0", "#d3c4f5"}},
         // Pale, down through night and back up through dusk: its two ends
         // meet, so palette(t + time*0.1) turns without a seam anywhere.
         {"twilight", {"#e2d9e2", "#a8b8d2", "#6f7fc0", "#5a4aa4", "#3b1a5e", "#2a0f2c", "#6e2347", "#b0545a",
@@ -675,7 +687,7 @@ QStringList paletteNames() {
             "ice",     "gold",   "rainbow", "magma",   "inferno", "viridis", "lagoon", "forest",   "dusk",
             "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "sepia",    "steel",  "rose",
             "abyss",   "tropic", "twilight", "thermal", "nova", "jade",    "retro",  "carnival", "phase",
-            "mono"};
+            "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }
