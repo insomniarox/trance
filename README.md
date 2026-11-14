@@ -47,7 +47,7 @@ theme.
   wireframes and particles can be added, reordered and removed. Nothing is written until
   you save, and your presets are kept apart from the built-in ones.
 - **Follows your theme.** Presets can use the theme's colors by name, and
-  `T` recolors every preset with the theme's colors or one of 23 palettes. On
+  `T` recolors every preset with the theme's colors or one of 29 palettes. On
   [Omarchy](https://omarchy.org) those are the desktop theme's colors, and a
   theme switch shows up immediately; elsewhere a built-in set stands in.
 - **Glass.** `G` makes black see-through, so your desktop, and your

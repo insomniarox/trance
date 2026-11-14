@@ -708,8 +708,9 @@ The theme's colors are `accent`, `foreground`, `background`, `selection`,
 | | |
 |---|---|
 | `theme` `accent` | Built from the desktop theme, and follow it live |
-| `fire` `ocean` `ice` `gold` `magma` `inferno` `viridis` `lagoon` `forest` `dusk` `arctic` `amethyst` `copper` `phosphor` | Run from dark to bright, which is what Colorize wants |
-| `neon` `sunset` `aurora` `vapor` `acid` `rainbow` `cyber` `candy` | Bright all the way round, for coloring layers apart |
+| `fire` `ocean` `ice` `gold` `magma` `inferno` `viridis` `lagoon` `forest` `dusk` `arctic` `amethyst` `copper` `phosphor` `sepia` `steel` `rose` `abyss` | Run from dark to bright, which is what Colorize wants |
+| `neon` `sunset` `aurora` `vapor` `acid` `rainbow` `cyber` `candy` `tropic` | Bright all the way round, for coloring layers apart |
+| `twilight` | Pale, down through dark and back up: its ends meet, so a palette that keeps turning has no seam |
 | `mono` | Black to white |
 
 A palette is a strip of colors that blends from each to the next and then

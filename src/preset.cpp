@@ -154,6 +154,18 @@ const QHash<QString, QStringList> &palettes() {
         {"cyber", {"#020a0a", "#003b46", "#07575b", "#00ff9c", "#f5d300", "#ff2a6d"}},
         {"phosphor", {"#000000", "#003b00", "#008f11", "#00ff41", "#d8ffd8"}},
         {"candy", {"#ff5d8f", "#ffb3c6", "#fff0a5", "#b8f2e6", "#aed9e0", "#c8a2ff"}},
+        // Four more that rise evenly from black, in tones the rest leave
+        // out: old film, cold metal, a blush, and the deep sea with a flare
+        // of pink where it is brightest.
+        {"sepia", {"#0b0704", "#2e1c10", "#5e3f25", "#93683f", "#c79f6e", "#eed9b0", "#fff8e7"}},
+        {"steel", {"#030508", "#121a24", "#2c3c4e", "#55697f", "#8ea2b5", "#cdd9e3", "#ffffff"}},
+        {"rose", {"#050003", "#2a0718", "#661537", "#b02d5c", "#e86d8e", "#ffb3c4", "#fff0f3"}},
+        {"abyss", {"#000206", "#03122b", "#073d5c", "#00808a", "#1fc9b0", "#9effd8", "#ff7ad9"}},
+        {"tropic", {"#ff5e5b", "#ff9f43", "#ffd166", "#06d6a0", "#00b4d8", "#3a86ff", "#c86bfa"}},
+        // Pale, down through night and back up through dusk: its two ends
+        // meet, so palette(t + time*0.1) turns without a seam anywhere.
+        {"twilight", {"#e2d9e2", "#a8b8d2", "#6f7fc0", "#5a4aa4", "#3b1a5e", "#2a0f2c", "#6e2347", "#b0545a",
+                      "#d99a86"}},
         {"mono", {"#000000", "#ffffff"}},
     };
     return all;
@@ -649,7 +661,8 @@ QStringList transitionStyles() { return {"mixed", "dissolve", "center", "edges",
 QStringList paletteNames() {
     return {"theme",   "accent", "fire",   "ocean",    "neon",   "sunset", "aurora", "vapor",    "acid",
             "ice",     "gold",   "rainbow", "magma",   "inferno", "viridis", "lagoon", "forest",   "dusk",
-            "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "mono"};
+            "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "sepia",    "steel",  "rose",
+            "abyss",   "tropic", "twilight", "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }

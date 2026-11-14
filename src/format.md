@@ -234,8 +234,8 @@ A color is text, one of:
 `palette` at the top of the preset is a name (`theme`, `accent`, `fire`,
 `ocean`, `neon`, `sunset`, `aurora`, `vapor`, `acid`, `ice`, `gold`,
 `rainbow`, `magma`, `inferno`, `viridis`, `lagoon`, `forest`, `dusk`,
-`arctic`, `amethyst`, `copper`, `cyber`, `phosphor`, `candy`, `mono`) or a
-list of colors: `["#000000", "accent", "#ffffff"]`.
+`arctic`, `amethyst`, `copper`, `cyber`, `phosphor`, `candy`, `sepia`,
+`steel`, `rose`, `abyss`, `tropic`, `twilight`, `mono`) or a list of colors: `["#000000", "accent", "#ffffff"]`.
 `theme` and `accent` are built from the desktop theme. Presets that color
 everything with `palette(...)` look right under any palette the user picks
 with the T key.

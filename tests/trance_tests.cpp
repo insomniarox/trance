@@ -401,6 +401,20 @@ private slots:
         QCOMPARE(palette("#ff0000, accent"), (QStringList{"#ff0000", "accent"}));
         QCOMPARE(palette(QJsonArray{"#000000", "#ffffff", "red"}), (QStringList{"#000000", "#ffffff", "red"}));
         QCOMPARE(palette(QJsonValue::Undefined), presets::paletteStops("theme"));
+        // Every name the docs and the T key offer is there, each named once,
+        // and compiles without a problem.
+        const QStringList names = presets::paletteNames();
+        QCOMPARE(QSet<QString>(names.begin(), names.end()).size(), names.size());
+        for (const QString &name : names) {
+            QVERIFY2(presets::paletteStops(name).size() >= 2, qPrintable(name));
+            const CompiledPreset compiled = presets::compile(QJsonObject{{"name", "P"}, {"palette", name}});
+            QVERIFY2(compiled.problems.isEmpty(), qPrintable(name + ": " + compiled.firstError()));
+        }
+        QFile format(":/format.md");
+        QVERIFY(format.open(QIODevice::ReadOnly));
+        const QString text = QString::fromUtf8(format.readAll());
+        for (const QString &name : names)
+            QVERIFY2(text.contains("`" + name + "`"), qPrintable("The format leaves out the palette " + name));
         ThemeColors theme{{"accent", QColor("#123456")}};
         QCOMPARE(presets::resolveColor("accent", theme).name(), QString("#123456"));
         QCOMPARE(presets::resolveColor("red", theme), presets::defaultThemeColors().value("red"));
