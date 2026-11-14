@@ -745,8 +745,9 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     }
     for (Target &bloom : m_bloom)
         ensureTarget(bloom, std::max(8, m_width / 4), std::max(8, m_height / 4), m_wide, GL_LINEAR);
-    // The two buffers a change of preset needs are kept ready all along.
-    // Making them when a change begins is a pause exactly there.
+    // The two buffers a change of preset needs are kept ready all along,
+    // about 44 MB of graphics memory at 1440 lines. Making them when a
+    // change begins is a pause exactly there.
     ensureTarget(m_other, m_width, m_height, m_wide, GL_LINEAR);
     ensureTarget(m_snapshot, m_width, m_height, false, GL_LINEAR);
 

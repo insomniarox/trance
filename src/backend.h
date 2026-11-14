@@ -210,6 +210,9 @@ signals:
     void layersChanged();
     void problemsChanged();
     void paletteChanged();
+    // One signal for every setting. They change only when the user changes
+    // one, so the bindings that are worked out again for nothing cost nothing
+    // that shows; a signal each would be twenty more of these.
     void settingsChanged();
     void audioChanged();
     void levelsChanged();

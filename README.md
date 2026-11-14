@@ -224,9 +224,6 @@ bin/build    # qmake6 + make into build/trance
 bin/test     # the test suite, offscreen
 ```
 
-What is known to be missing or rough is in
-[docs/known-issues.md](docs/known-issues.md).
-
 ## Where the ideas come from
 
 From MilkDrop: the feedback loop, per-pixel code, custom waves and shapes,
