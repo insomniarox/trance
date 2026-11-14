@@ -60,6 +60,13 @@ Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
     m_mashups = m_settings->value("mashups", false).toBool();
     m_visitors = m_settings->value("visitors", true).toBool();
     m_colorDrift = m_settings->value("colorDrift", false).toBool();
+    m_filterColor = m_settings->value("filterColor").toString();
+    if (!presets::colorFamilies().contains(m_filterColor))
+        m_filterColor.clear();
+    for (const QString &feature : m_settings->value("filterFeatures").toStringList())
+        if (presets::featureNames().contains(feature) && !m_filterFeatures.contains(feature))
+            m_filterFeatures << feature;
+    m_keepToFilter = m_settings->value("keepToFilter", false).toBool();
     m_showNames = m_settings->value("showNames", false).toBool();
     m_debug = m_settings->value("debug", false).toBool();
     for (const QJsonObject &visitor : Library::visitors()) {
@@ -178,6 +185,11 @@ void Backend::tick() {
         m_driftAfter = 22 + QRandomGenerator::global()->bounded(20.0);
         QStringList names = presets::paletteNames();
         names.removeAll("mono");
+        // Kept to a family of colors, the drift stays in it too.
+        if (m_keepToFilter && !m_filterColor.isEmpty())
+            names.removeIf([this](const QString &name) {
+                return presets::colorFamily(presets::paletteStops(name)) != m_filterColor;
+            });
         names.removeAll(m_driftPalette);
         names << QString(""); // each preset's own
         m_driftPalette = names.at(QRandomGenerator::global()->bounded(int(names.size())));
@@ -188,10 +200,11 @@ void Backend::tick() {
     // Moving on: when the time is up, wait for the next beat (a few seconds
     // at most) so the change lands with the music. Never while a preset is
     // being edited or has unsaved work.
-    if (m_cycleSeconds <= 0 || m_locked || m_editing || dirty() || m_library.presets().size() < 2)
+    if (m_cycleSeconds <= 0 || m_locked || m_editing || dirty())
         return;
     const double elapsed = m_sinceChange.elapsed() / 1000.0;
-    if (elapsed >= m_cycleSeconds && (frame.beat > 0.75f || frame.silent || elapsed >= m_cycleSeconds + 4))
+    if (elapsed >= m_cycleSeconds && (frame.beat > 0.75f || frame.silent || elapsed >= m_cycleSeconds + 4) &&
+        pool().size() >= 2)
         advance(true);
 }
 
@@ -201,8 +214,123 @@ QVariantList Backend::presets() const {
     QVariantList list;
     for (const auto &preset : m_library.presets())
         list << QVariantMap{{"name", preset.name}, {"author", preset.author}, {"builtin", preset.builtin},
-                            {"shadowsBuiltin", preset.shadowsBuiltin}};
+                            {"shadowsBuiltin", preset.shadowsBuiltin}, {"family", preset.family},
+                            {"features", preset.features}, {"matches", matches(preset)}};
     return list;
+}
+
+// ------------------------------------------------------------ the filters
+
+bool Backend::matches(const PresetInfo &preset) const {
+    if (!m_filterColor.isEmpty() && preset.family != m_filterColor)
+        return false;
+    for (const QString &feature : m_filterFeatures)
+        if (!preset.features.contains(feature))
+            return false;
+    return true;
+}
+
+int Backend::matchCount() const {
+    const auto &all = m_library.presets();
+    return int(std::count_if(all.begin(), all.end(), [this](const PresetInfo &preset) { return matches(preset); }));
+}
+
+QList<int> Backend::pool() const {
+    QList<int> all, kept;
+    for (int i = 0; i < m_library.presets().size(); ++i) {
+        all << i;
+        if (m_keepToFilter && filtering() && matches(m_library.presets()[i]))
+            kept << i;
+    }
+    return kept.isEmpty() ? all : kept;
+}
+
+// The next or the previous preset in the pool, from wherever the one on
+// screen is in the whole list, so leaving the pool comes straight back.
+int Backend::step(int direction) const {
+    const QList<int> from = pool();
+    if (from.isEmpty())
+        return -1;
+    const int current = m_library.indexOf(m_currentName);
+    if (direction > 0) {
+        for (int index : from)
+            if (index > current)
+                return index;
+        return from.first();
+    }
+    for (auto it = from.rbegin(); it != from.rend(); ++it)
+        if (current < 0 || *it < current)
+            return *it;
+    return from.last();
+}
+
+QVariantList Backend::colorFamilies() const {
+    // Each family's swatch, with every hue round the wheel for many and the
+    // desktop's own colors for the theme.
+    static const QList<std::pair<QString, QStringList>> labels = {
+        {"Reds and pinks", {"#ff4d6d"}},     {"Oranges and yellows", {"#ffa62b"}},
+        {"Greens", {"#3ccf6e"}},             {"Blues and teals", {"#2f8cff"}},
+        {"Violets", {"#9b6bff"}},            {"Many colors", {"#ff0040", "#ffe600", "#00e5ff", "#b400ff"}},
+        {"Grays", {"#9aa3ad"}},              {"The desktop theme's colors", {}}};
+    QVariantList list;
+    const QStringList names = presets::colorFamilies();
+    for (int i = 0; i < names.size(); ++i) {
+        QStringList colors = labels.value(i).second;
+        if (names[i] == "theme")
+            for (const QString &stop : presets::paletteStops("theme").mid(0, 4))
+                colors << presets::resolveColor(stop, themeColors()).name();
+        list << QVariantMap{{"name", names[i]}, {"label", labels.value(i).first}, {"colors", colors}};
+    }
+    return list;
+}
+
+QVariantList Backend::featureList() const {
+    QVariantList list;
+    for (const QString &feature : presets::featureNames())
+        list << QVariantMap{{"name", feature},
+                            {"label", feature == "ranges" ? QString("Six ranges") : presets::fieldDoc("type", feature).label}};
+    return list;
+}
+
+void Backend::setFilterColor(const QString &family) {
+    const QString wanted = presets::colorFamilies().contains(family) ? family : QString();
+    if (wanted == m_filterColor)
+        return;
+    m_filterColor = wanted;
+    store("filterColor", wanted);
+    emit presetsChanged();
+}
+
+void Backend::setFilterFeatures(const QStringList &features) {
+    QStringList wanted;
+    for (const QString &feature : presets::featureNames())
+        if (features.contains(feature))
+            wanted << feature;
+    if (wanted == m_filterFeatures)
+        return;
+    m_filterFeatures = wanted;
+    store("filterFeatures", wanted);
+    emit presetsChanged();
+}
+
+void Backend::toggleFeature(const QString &feature) {
+    QStringList features = m_filterFeatures;
+    if (!features.removeAll(feature))
+        features << feature;
+    setFilterFeatures(features);
+}
+
+void Backend::clearFilter() {
+    setFilterColor({});
+    setFilterFeatures({});
+}
+
+void Backend::setKeepToFilter(bool keep) {
+    if (keep == m_keepToFilter)
+        return;
+    m_keepToFilter = keep;
+    store("keepToFilter", keep);
+    emit presetsChanged();
 }
 
 bool Backend::currentIsYours() const {
@@ -270,27 +398,15 @@ bool Backend::open(const QString &nameOrPath, QString *error) {
 
 // A change asked for by hand is quick; one that comes round by itself takes
 // its time (G-Force keeps the same two speeds).
-void Backend::next() {
-    const int count = m_library.presets().size();
-    if (count > 0)
-        load((m_library.indexOf(m_currentName) + 1) % count, quickBlend());
-}
+void Backend::next() { load(step(1), quickBlend()); }
 
-void Backend::previous() {
-    const int count = m_library.presets().size();
-    if (count > 0)
-        load((qMax(0, m_library.indexOf(m_currentName)) + count - 1) % count, quickBlend());
-}
+void Backend::previous() { load(step(-1), quickBlend()); }
 
 int Backend::randomIndex() const {
-    const int count = m_library.presets().size();
-    if (count == 0)
-        return -1;
-    const int current = m_library.indexOf(m_currentName);
-    int index = QRandomGenerator::global()->bounded(count);
-    if (count > 1 && index == current)
-        index = (index + 1 + QRandomGenerator::global()->bounded(count - 1)) % count;
-    return index;
+    QList<int> from = pool();
+    if (from.size() > 1)
+        from.removeAll(m_library.indexOf(m_currentName));
+    return from.isEmpty() ? -1 : from.at(QRandomGenerator::global()->bounded(int(from.size())));
 }
 
 void Backend::random() { load(randomIndex(), quickBlend()); }
@@ -305,15 +421,11 @@ bool Backend::select(const QString &name) {
 
 void Backend::advance(bool automatic) {
     const double blend = automatic ? m_blendSeconds : quickBlend();
-    const int count = m_library.presets().size();
-    if (count == 0)
+    if (m_library.presets().isEmpty())
         return;
     if (m_mashups && QRandomGenerator::global()->bounded(100) < 40 && mashup(blend))
         return;
-    if (m_shuffle)
-        load(randomIndex(), blend);
-    else
-        load((m_library.indexOf(m_currentName) + 1) % count, blend);
+    load(m_shuffle ? randomIndex() : step(1), blend);
 }
 
 bool Backend::mashup() { return mashup(quickBlend()); }
@@ -325,12 +437,15 @@ bool Backend::mashup() { return mashup(quickBlend()); }
 // draw that doesn't compile is thrown back and another is tried.
 bool Backend::mashup(double blend) {
     const auto &all = m_library.presets();
-    if (all.size() < 3)
+    // Kept to the filters, the parts come from the presets that match.
+    const QList<int> from = pool();
+    if (from.size() < 3)
         return false;
     auto *dice = QRandomGenerator::global();
+    const auto draw = [&] { return from.at(dice->bounded(int(from.size()))); };
     for (int attempt = 0; attempt < 32; ++attempt) {
-        const int motionIndex = dice->bounded(int(all.size())), layersIndex = dice->bounded(int(all.size()));
-        const int lookIndex = dice->bounded(int(all.size())), backIndex = dice->bounded(int(all.size()));
+        const int motionIndex = draw(), layersIndex = draw();
+        const int lookIndex = draw(), backIndex = draw();
         if (motionIndex == layersIndex)
             continue;
         const QJsonObject motion = m_library.load(motionIndex), drawn = m_library.load(layersIndex);
@@ -1026,6 +1141,8 @@ QVariantMap Backend::stats() const {
         waiting = "editing";
     else if (dirty())
         waiting = "unsaved";
+    else if (pool().size() < 2)
+        waiting = "alone";
     QVariantList bands;
     for (int band = 0; band < AudioFrame::Bands; ++band)
         bands << QVariantMap{{"name", QString(bandInfo(band).name)}, {"level", frame.bandAtt[band]}};

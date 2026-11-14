@@ -2,9 +2,13 @@
 
 #include "audio.h"
 
+#include <QColor>
 #include <QJsonArray>
+#include <QSet>
 #include <QRegularExpression>
+#include <algorithm>
 #include <cmath>
+#include <functional>
 
 namespace {
 
@@ -777,6 +781,100 @@ bool moves(const QJsonObject &json) {
             return true;
     }
     return false;
+}
+
+QStringList colorFamilies() { return {"red", "orange", "green", "blue", "violet", "many", "gray", "theme"}; }
+
+// Each stop pulls toward its hue as hard as it is colorful (the gap between
+// its brightest and darkest channel), so black and white pull not at all.
+// Averaged round the color wheel, the pull says which hue leads, and its
+// strength how much it leads: under half, the stops pull different ways.
+QString colorFamily(const QStringList &stops) {
+    if (stops.isEmpty())
+        return {};
+    double x = 0, y = 0, weight = 0;
+    for (const QString &stop : stops) {
+        if (!stop.startsWith('#'))
+            return "theme";
+        const QColor color(stop);
+        const double chroma = std::max({color.redF(), color.greenF(), color.blueF()}) -
+                              std::min({color.redF(), color.greenF(), color.blueF()});
+        if (chroma <= 0)
+            continue;
+        const double angle = color.hsvHueF() * 2 * M_PI;
+        x += chroma * std::cos(angle);
+        y += chroma * std::sin(angle);
+        weight += chroma;
+    }
+    if (weight / stops.size() < 0.12)
+        return "gray";
+    if (std::hypot(x, y) / weight < 0.5)
+        return "many";
+    const double hue = std::fmod(std::atan2(y, x) * 180 / M_PI + 360, 360);
+    return hue < 15 ? "red" : hue < 60 ? "orange" : hue < 165 ? "green" : hue < 250 ? "blue" : hue < 315 ? "violet" : "red";
+}
+
+// The same reading of `palette` as compile's.
+QStringList presetPalette(const QJsonObject &json) {
+    const QJsonValue palette = json.value("palette");
+    QStringList stops;
+    if (palette.isArray()) {
+        for (const auto &stop : palette.toArray())
+            stops << stop.toString().trimmed();
+    } else if (palette.isString() && palette.toString().contains(QRegularExpression("[#,]"))) {
+        for (const auto &stop : palette.toString().split(',', Qt::SkipEmptyParts))
+            stops << stop.trimmed();
+    } else {
+        stops = paletteStops(palette.isUndefined() ? QString("theme") : palette.toString().trimmed());
+    }
+    return stops;
+}
+
+QStringList featureNames() { return layerTypes() << "ranges"; }
+
+QStringList features(const QJsonObject &json) {
+    QStringList found;
+    const QJsonArray layers = json.value("layers").toArray();
+    for (const QString &type : layerTypes())
+        for (const auto &layer : layers)
+            if (layer.toObject().value("type").toString() == type) {
+                found << type;
+                break;
+            }
+
+    // Whether any formula or code names one of the six ranges. The words in
+    // the name, the description and comments don't count.
+    static const QSet<QString> ranges = [] {
+        QSet<QString> names;
+        for (int band = 0; band < AudioFrame::Bands; ++band)
+            names << bandInfo(band).name << QString(bandInfo(band).name) + "_att";
+        return names;
+    }();
+    static const QRegularExpression word("[A-Za-z_][A-Za-z0-9_]*"), comment("//[^\n]*");
+    std::function<bool(const QJsonValue &)> reads = [&](const QJsonValue &value) {
+        if (value.isString()) {
+            const QString text = value.toString().remove(comment);
+            for (auto it = word.globalMatch(text); it.hasNext();)
+                if (ranges.contains(it.next().captured()))
+                    return true;
+        } else if (value.isArray()) {
+            for (const auto &item : value.toArray())
+                if (reads(item))
+                    return true;
+        } else if (value.isObject()) {
+            const QJsonObject object = value.toObject();
+            for (auto it = object.begin(); it != object.end(); ++it)
+                if (reads(it.value()))
+                    return true;
+        }
+        return false;
+    };
+    for (auto it = json.begin(); it != json.end(); ++it)
+        if (!QStringList{"name", "author", "description"}.contains(it.key()) && reads(it.value())) {
+            found << "ranges";
+            break;
+        }
+    return found;
 }
 
 QVariantMap schema() {

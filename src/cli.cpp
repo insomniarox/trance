@@ -97,7 +97,9 @@ int list(const QStringList &arguments) {
         QJsonArray array;
         for (const auto &preset : library.presets())
             array.append(QJsonObject{{"name", preset.name}, {"author", preset.author}, {"builtin", preset.builtin},
-                                     {"shadowsBuiltin", preset.shadowsBuiltin}, {"path", preset.path}});
+                                     {"shadowsBuiltin", preset.shadowsBuiltin}, {"path", preset.path},
+                                     {"family", preset.family},
+                                     {"features", QJsonArray::fromStringList(preset.features)}});
         print({{"presets", array}, {"directory", library.userDirectory()}});
     } else {
         for (const auto &preset : library.presets())

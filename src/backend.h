@@ -61,6 +61,16 @@ class Backend : public QObject {
     Q_PROPERTY(QString audioError READ audioError NOTIFY audioChanged)
     Q_PROPERTY(bool silent READ silent NOTIFY audioChanged)
     Q_PROPERTY(QVariantList levels READ levels NOTIFY levelsChanged)
+    // The browser's filters: a family of colors (empty for any) and features
+    // a preset must all have. Kept to, the changes move among those that
+    // match, so the filters can set a mood for a while.
+    Q_PROPERTY(QString filterColor READ filterColor WRITE setFilterColor NOTIFY presetsChanged)
+    Q_PROPERTY(QStringList filterFeatures READ filterFeatures WRITE setFilterFeatures NOTIFY presetsChanged)
+    Q_PROPERTY(bool keepToFilter READ keepToFilter WRITE setKeepToFilter NOTIFY presetsChanged)
+    Q_PROPERTY(bool filtering READ filtering NOTIFY presetsChanged)
+    Q_PROPERTY(int matchCount READ matchCount NOTIFY presetsChanged)
+    Q_PROPERTY(QVariantList colorFamilies READ colorFamilies NOTIFY paletteChanged)
+    Q_PROPERTY(QVariantList featureList READ featureList CONSTANT)
 
 public:
     // Tests pass a temporary folder and listen = false, so nothing touches
@@ -73,6 +83,16 @@ public:
     bool open(const QString &nameOrPath, QString *error = nullptr);
 
     QVariantList presets() const;
+    QString filterColor() const { return m_filterColor; }
+    QStringList filterFeatures() const { return m_filterFeatures; }
+    bool keepToFilter() const { return m_keepToFilter; }
+    bool filtering() const { return !m_filterColor.isEmpty() || !m_filterFeatures.isEmpty(); }
+    int matchCount() const;
+    QVariantList colorFamilies() const;
+    QVariantList featureList() const;
+    void setFilterColor(const QString &family);
+    void setFilterFeatures(const QStringList &features);
+    void setKeepToFilter(bool keep);
     QString currentName() const { return m_currentName; }
     bool currentIsYours() const;
     // Yours, and standing in for a built-in of the same name, which is
@@ -153,6 +173,8 @@ public:
     // A new preset put together from parts of others: one's motion, another's
     // layers, a third's colors and finish. False if nothing workable came up.
     Q_INVOKABLE bool mashup();
+    Q_INVOKABLE void toggleFeature(const QString &feature);
+    Q_INVOKABLE void clearFilter();
     Q_INVOKABLE void refreshSources();
     Q_INVOKABLE QString cycleTitleStyle();
     // What is going on right now, for the debug overlay: when the preset
@@ -231,6 +253,11 @@ private:
     void advance(bool automatic);
     bool mashup(double blend);
     int randomIndex() const;
+    bool matches(const PresetInfo &preset) const;
+    // Where the changes come from: the presets that match when the filters
+    // are kept to and any do, otherwise all of them. In library order.
+    QList<int> pool() const;
+    int step(int direction) const;
     double quickBlend() const { return qMin(m_blendSeconds, 1.2); }
     void recompile(double blend);
     void pushUndo(const QString &key);
@@ -271,6 +298,9 @@ private:
     double m_blendSeconds = 4.0;
     QString m_transition = "mixed";
     bool m_mashups = false, m_visitors = true, m_colorDrift = false;
+    QString m_filterColor;
+    QStringList m_filterFeatures;
+    bool m_keepToFilter = false;
     QString m_driftPalette; // null until the drift first moves
     QElapsedTimer m_sinceDrift, m_sinceSources;
     double m_driftAfter = 30;

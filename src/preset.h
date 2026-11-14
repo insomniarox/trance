@@ -102,6 +102,21 @@ QJsonObject starterLayer(const QString &type);
 bool moves(const QJsonObject &json);
 QJsonObject blank(const QString &name);
 
+// What the browser sorts presets by. Both come from the preset itself, so
+// a new palette or a new preset is sorted as soon as it is there.
+// The family of colors stops lean to: "theme" when they follow the desktop,
+// "gray" when there is hardly any color, "many" when no one hue leads, and
+// otherwise the hue that does: red (pinks too), orange (and yellow), green,
+// blue (and teal) or violet. Empty for no stops.
+QString colorFamily(const QStringList &stops);
+QStringList colorFamilies();
+// A preset's palette as stops; the theme's when it names none.
+QStringList presetPalette(const QJsonObject &json);
+// Each kind of layer the preset has, in layerTypes() order, then "ranges"
+// when any of its formulas or code reads one of the six narrow ranges.
+QStringList features(const QJsonObject &json);
+QStringList featureNames();
+
 // Colors Omarchy themes define, with stand-ins for when there is no theme.
 ThemeColors defaultThemeColors();
 QColor resolveColor(const QString &stop, const ThemeColors &theme);

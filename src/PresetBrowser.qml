@@ -3,17 +3,88 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 
-// The list of presets down the left side: type to filter, Enter to show.
+// The list of presets down the left side: type to find one, Enter to show
+// it. Under the search, filters by color and by what a preset is made of;
+// kept to, the presets change among those that match.
 SidePanel {
     id: browser
     title: qsTr("Presets")
-    scope: Ui.count(backend.presets.length, qsTr("1 preset"), qsTr("%1 presets"))
+    scope: backend.filtering ? qsTr("%1 of %2").arg(backend.matchCount).arg(Ui.count(backend.presets.length, qsTr("1 preset"), qsTr("%1 presets")))
+                             : Ui.count(backend.presets.length, qsTr("1 preset"), qsTr("%1 presets"))
     pictureOnLeft: false
 
     readonly property var shown: {
         const needle = search.text.trim().toLowerCase()
-        const all = backend.presets
-        return needle.length === 0 ? all : all.filter(function (p) { return p.name.toLowerCase().indexOf(needle) >= 0 })
+        return backend.presets.filter(function (p) {
+            return p.matches && (needle.length === 0 || p.name.toLowerCase().indexOf(needle) >= 0)
+        })
+    }
+
+    // A round swatch for a family of colors: one color, or several round
+    // the circle.
+    component Swatch: AbstractButton {
+        id: swatch
+        required property var modelData
+        readonly property var family: modelData
+        readonly property bool chosen: backend.filterColor === family.name
+        implicitWidth: 26
+        implicitHeight: 26
+        focusPolicy: Qt.NoFocus
+        hoverEnabled: true
+        onClicked: backend.filterColor = chosen ? "" : family.name
+        background: Rectangle {
+            radius: width / 2
+            color: "transparent"
+            border.width: 2
+            border.color: swatch.chosen ? Ui.text : swatch.hovered ? Ui.textFaint : "transparent"
+        }
+        contentItem: Canvas {
+            id: dot
+            readonly property var colors: swatch.family.colors
+            onColorsChanged: requestPaint()
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.reset()
+                const r = width / 2 - 5
+                ctx.beginPath()
+                ctx.arc(width / 2, height / 2, r, 0, 2 * Math.PI)
+                if (colors.length > 1) {
+                    const g = ctx.createConicalGradient(width / 2, height / 2, 0)
+                    for (let i = 0; i <= colors.length; ++i)
+                        g.addColorStop(i / colors.length, colors[i % colors.length])
+                    ctx.fillStyle = g
+                } else {
+                    ctx.fillStyle = colors.length > 0 ? colors[0] : "#808080"
+                }
+                ctx.fill()
+            }
+        }
+    }
+
+    // A feature to filter by, lit while it is.
+    component Chip: AbstractButton {
+        id: chip
+        required property var modelData
+        readonly property var feature: modelData
+        readonly property bool chosen: backend.filterFeatures.indexOf(feature.name) >= 0
+        implicitWidth: chipLabel.implicitWidth + 20
+        implicitHeight: 24
+        focusPolicy: Qt.NoFocus
+        hoverEnabled: true
+        onClicked: backend.toggleFeature(feature.name)
+        background: Rectangle {
+            radius: Math.min(height / 2, Math.max(4, theme.radius))
+            color: chip.chosen ? theme.accent : chip.hovered ? Ui.fieldHover : Ui.field
+        }
+        contentItem: Label {
+            id: chipLabel
+            text: chip.feature.label
+            font.pixelSize: Ui.small
+            font.weight: chip.chosen ? Font.DemiBold : Font.Normal
+            color: chip.chosen ? theme.accentForeground : Ui.textDim
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
     }
 
     function focusSearch() {
@@ -48,6 +119,63 @@ SidePanel {
             Glyph { x: 10; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 14; color: Ui.textFaint }
         }
 
+        Row {
+            Layout.leftMargin: 9
+            Layout.rightMargin: 9
+            spacing: 2
+            Repeater {
+                model: backend.colorFamilies
+                delegate: Swatch {}
+            }
+        }
+        Flow {
+            Layout.fillWidth: true
+            Layout.leftMargin: 12
+            Layout.rightMargin: 12
+            Layout.topMargin: 8
+            spacing: 6
+            Repeater {
+                model: backend.featureList
+                delegate: Chip {}
+            }
+        }
+        ColumnLayout {
+            visible: backend.filtering
+            Layout.fillWidth: true
+            Layout.leftMargin: 12
+            Layout.rightMargin: 12
+            Layout.topMargin: 8
+            spacing: 4
+            RowLayout {
+                Layout.fillWidth: true
+                Label {
+                    Layout.fillWidth: true
+                    text: backend.matchCount === 0 ? qsTr("Nothing matches")
+                        : Ui.count(backend.matchCount, qsTr("1 matches"), qsTr("%1 match"))
+                    font.pixelSize: Ui.small
+                    color: Ui.textDim
+                }
+                TextButton { text: qsTr("Clear"); implicitHeight: 24; onClicked: backend.clearFilter() }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Cycle through these only")
+                    font.pixelSize: Ui.small
+                    color: Ui.text
+                    elide: Text.ElideRight
+                }
+                Toggle {
+                    checked: backend.keepToFilter
+                    enabled: backend.matchCount > 0
+                    onToggled: backend.keepToFilter = checked
+                }
+            }
+        }
+        Item { Layout.preferredHeight: 8 }
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Ui.line }
+
         ListView {
             id: list
             Layout.fillWidth: true
@@ -57,6 +185,16 @@ SidePanel {
             model: browser.shown
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: ScrollBar {}
+            Label {
+                visible: browser.shown.length === 0
+                anchors.centerIn: parent
+                width: parent.width - 32
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                text: search.text.trim().length > 0 ? qsTr("No preset by that name here") : qsTr("No preset has all of these")
+                font.pixelSize: Ui.small
+                color: Ui.textFaint
+            }
             delegate: Item {
                 id: entry
                 required property var modelData

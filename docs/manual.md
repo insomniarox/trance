@@ -752,6 +752,16 @@ A preset colored this way looks right under any palette, including the one
 picked for every preset in the settings. A preset with fixed `#` colors
 ignores both. Prefer the palette and the theme's names.
 
+The preset list's color filter goes by the palette too. Each stop pulls
+toward its hue as hard as it is colorful, so black, white and grays pull
+not at all, and the hue that wins puts the preset among the reds (and
+pinks), oranges (and yellows), greens, blues (and teals) or violets. When
+the stops pull different ways and no hue wins clearly, it goes under many
+colors; with hardly any color at all, under grays; and a palette that
+names a theme color goes under the theme. Your own list of colors is
+sorted the same way, as soon as the preset is saved. A preset whose layers
+use fixed `#` colors is still sorted by its palette.
+
 ## 10. Background
 
 `"background": { … }`, on the **Look** tab. It is drawn fresh every frame

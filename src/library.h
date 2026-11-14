@@ -3,6 +3,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 struct PresetInfo {
     QString name;
@@ -11,6 +12,10 @@ struct PresetInfo {
     bool builtin = true;
     // A preset of the user's that stands in for a built-in of the same name.
     bool shadowsBuiltin = false;
+    // Its colors' family and what it is made of, for the browser's filters:
+    // see presets::colorFamily and presets::features.
+    QString family;
+    QStringList features;
 };
 
 // The presets on offer: those compiled into the binary and those in the

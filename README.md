@@ -18,7 +18,10 @@ theme.
 ![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
 
 - **87 presets** built in, changing on the beat every 30 seconds (or held,
-  shuffled, or picked from a searchable list). A change is not a cut: for a
+  shuffled, or picked from a list you can search and filter). Filter by
+  color, or by what a preset is made of, such as wireframes or the six
+  ranges, and the changes can keep to what matches, for a mood that lasts.
+  A change is not a cut: for a
   few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next.
 - **A layer for every part of the sound.** Besides bass, mid and treble,
@@ -132,6 +135,21 @@ There are two panels, and they don't overlap:
 - **The preset editor** (`E`) changes the one preset on screen, and what it
   changes is saved with that preset: its motion, its layers, its look, or
   the whole thing as JSON. `Ctrl+Tab` moves between those.
+
+The preset list (`P`) is on the left. Type to find a preset by name.
+Under the search, the round swatches filter by the colors of a preset's
+palette: reds and pinks, oranges and yellows, greens, blues and teals,
+violets, many colors, grays, or the desktop theme's. The chips filter by
+what a preset is made of: a kind of layer, or **Six ranges** for presets
+that move with one narrow range of the sound. A preset must have every
+chip that is lit. Both are read from the presets themselves, so a new
+palette, or a preset of your own, is sorted as soon as it is saved.
+
+**Cycle through these only** keeps every change among the presets that
+match: the ones that come by themselves, `Space`, `Backspace`, `R` and
+mash-ups, and with **Colors drift** on, the colors stay in the chosen
+family. Picking a preset from the list still shows any preset. The
+filters are remembered between runs; **Clear** lets everything back in.
 
 Nothing is written over the picture unless you ask for it. Preset names on
 a change are off by default (Settings > On screen), and `D` brings up a

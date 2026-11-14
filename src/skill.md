@@ -22,7 +22,7 @@ trance help manual
 ## Working on a preset
 
 ```sh
-trance list --json                     # every preset, with its file
+trance list --json                     # every preset: its file, color family, layers, ranges
 trance show "Neon Tunnel"              # a preset's JSON, to learn from
 trance new "Night Drive" --from Horizon   # prints the new file's path
 trance check "Night Drive" --json      # every problem, by setting

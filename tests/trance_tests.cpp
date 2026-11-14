@@ -525,6 +525,134 @@ private slots:
         QCOMPARE(Library::slug("  Ça va? Très BIEN!  "), QString("ça-va-très-bien"));
     }
 
+    // ------------------------------------------------------------- filters
+
+    // The family comes from the colors themselves, so a palette added later,
+    // or a preset's own list of colors, is sorted with no table to update.
+    void colorFamiliesComeFromTheColors()
+    {
+        const QHash<QString, QString> expected = {
+            {"crimson", "red"},     {"rose", "red"},      {"fire", "orange"}, {"gold", "orange"},
+            {"phosphor", "green"},  {"jade", "green"},    {"ocean", "blue"},  {"cobalt", "blue"},
+            {"amethyst", "violet"}, {"rainbow", "many"},  {"neon", "many"},   {"mono", "gray"},
+            {"steel", "gray"},      {"theme", "theme"},   {"accent", "theme"}};
+        for (auto it = expected.begin(); it != expected.end(); ++it)
+            QCOMPARE(presets::colorFamily(presets::paletteStops(it.key())), it.value());
+        for (const QString &name : presets::paletteNames())
+            QVERIFY2(presets::colorFamilies().contains(presets::colorFamily(presets::paletteStops(name))),
+                     qPrintable(name));
+
+        QCOMPARE(presets::colorFamily({"#000000", "#003300", "#22aa44", "#ccffdd"}), QString("green"));
+        QCOMPARE(presets::colorFamily({"#000000", "#ffffff"}), QString("gray"));
+        QCOMPARE(presets::colorFamily({"#000000", "accent"}), QString("theme"));
+        QCOMPARE(presets::colorFamily({}), QString());
+        QCOMPARE(presets::colorFamily(presets::presetPalette(fixture("{ 'palette': '#ff0000, #800000' }"))),
+                 QString("red"));
+        QCOMPARE(presets::colorFamily(presets::presetPalette(fixture("{ 'palette': ['#2040ff', '#001060'] }"))),
+                 QString("blue"));
+        QCOMPARE(presets::colorFamily(presets::presetPalette(fixture("{ 'name': 'No palette' }"))), QString("theme"));
+    }
+
+    void featuresAreReadFromThePreset()
+    {
+        QCOMPARE(presets::features(fixture(
+                     "{ 'layers': [ { 'type': 'wireframe' }, { 'type': 'wave' }, { 'type': 'wave' } ] }")),
+                 QStringList({"wave", "wireframe"}));
+        // A range counts only where a formula or code reads it, not in the
+        // words around it.
+        QCOMPARE(presets::features(fixture("{ 'description': 'Light as air', 'frame': ['// sub and low', 'x = 1'],"
+                                           " 'layers': [ { 'type': 'bars', 'lowest': 'lowmidst' } ] }")),
+                 QStringList({"bars"}));
+        QCOMPARE(presets::features(fixture("{ 'feedback': { 'zoom': '1 + 0.1*presence_att' } }")),
+                 QStringList({"ranges"}));
+        QCOMPARE(presets::features(fixture("{ 'layers': [ { 'type': 'shape', 'radius': '0.2 + sub' } ] }")),
+                 QStringList({"shape", "ranges"}));
+
+        // A preset of the user's is sorted as soon as it is saved.
+        QTemporaryDir dir;
+        Library library(dir.path());
+        QString error;
+        QVERIFY(!library.save(fixture("{ 'name': 'Mine', 'palette': ['#003300', '#33ff66'],"
+                                      " 'layers': [ { 'type': 'wireframe', 'yaw': 'air_att' } ] }"), &error)
+                     .isEmpty());
+        const PresetInfo mine = library.presets()[library.indexOf("Mine")];
+        QCOMPARE(mine.family, QString("green"));
+        QCOMPARE(mine.features, QStringList({"wireframe", "ranges"}));
+        const PresetInfo terraces = library.presets()[library.indexOf("Terraces")];
+        QVERIFY(terraces.features.contains("wireframe") && terraces.features.contains("ranges"));
+    }
+
+    void backendKeepsToTheFilter()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const auto &all = backend.library().presets();
+        const auto wireframes = [&] {
+            QStringList names;
+            for (const PresetInfo &preset : all)
+                if (preset.features.contains("wireframe") && preset.features.contains("ranges"))
+                    names << preset.name;
+            return names;
+        }();
+        QVERIFY(wireframes.size() >= 3);
+
+        backend.setFilterFeatures({"ranges", "wireframe", "no such feature"});
+        QCOMPARE(backend.filterFeatures(), QStringList({"wireframe", "ranges"}));
+        QCOMPARE(backend.matchCount(), int(wireframes.size()));
+        int shown = 0;
+        for (const QVariant &preset : backend.presets())
+            shown += preset.toMap().value("matches").toBool();
+        QCOMPARE(shown, int(wireframes.size()));
+
+        // Not kept to, the filters only narrow the list.
+        QVERIFY(backend.select("Aurora"));
+        backend.next();
+        QCOMPARE(backend.currentName(), all[backend.library().indexOf("Aurora") + 1].name);
+
+        // Kept to, every way of moving on stays among those that match,
+        // and comes back to them from one that doesn't.
+        backend.setKeepToFilter(true);
+        QVERIFY(backend.select("Aurora"));
+        backend.next();
+        QVERIFY2(wireframes.contains(backend.currentName()), qPrintable(backend.currentName()));
+        QStringList visited;
+        for (int i = 0; i < int(wireframes.size()); ++i) {
+            backend.next();
+            visited << backend.currentName();
+        }
+        visited.sort();
+        QCOMPARE(visited, wireframes);
+        for (int i = 0; i < 20; ++i) {
+            const QString before = backend.currentName();
+            i % 2 ? backend.previous() : backend.random();
+            QVERIFY2(wireframes.contains(backend.currentName()), qPrintable(backend.currentName()));
+            QVERIFY(backend.currentName() != before);
+        }
+
+        // The filters and keeping to them are remembered.
+        backend.setFilterColor("blue");
+        backend.setFilterColor("no such color");
+        QCOMPARE(backend.filterColor(), QString());
+        backend.setFilterColor("violet");
+        {
+            Backend again(dir.path(), false);
+            QCOMPARE(again.filterColor(), QString("violet"));
+            QCOMPARE(again.filterFeatures(), QStringList({"wireframe", "ranges"}));
+            QVERIFY(again.keepToFilter());
+        }
+
+        // When nothing matches, the changes fall back to every preset.
+        backend.setFilterColor("gray");
+        backend.setFilterFeatures({"terrain", "wireframe", "vectors"});
+        QCOMPARE(backend.matchCount(), 0);
+        QVERIFY(backend.select("Aurora"));
+        backend.next();
+        QVERIFY(backend.currentName() != "Aurora");
+        backend.clearFilter();
+        QVERIFY(!backend.filtering());
+        QCOMPARE(backend.matchCount(), int(all.size()));
+    }
+
     // ------------------------------------------------------------- backend
 
     void backendEditsUndoesAndSaves()

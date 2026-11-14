@@ -64,9 +64,11 @@ Item {
         if (waiting === "held") return qsTr("held")
         if (waiting === "editing") return qsTr("waiting while the editor is open")
         if (waiting === "unsaved") return qsTr("waiting for unsaved changes")
+        if (waiting === "alone") return qsTr("nothing to change to")
         const left = Math.ceil(stats.nextIn)
         return join([left > 0 ? qsTr("in %1 s").arg(left) : qsTr("on the next beat"),
                      backend.shuffle ? qsTr("shuffle") : qsTr("in order"),
+                     backend.keepToFilter && backend.filtering && backend.matchCount > 0 ? qsTr("among %1 filtered").arg(backend.matchCount) : "",
                      qsTr("%1 s blend, %2").arg(number(backend.blendSeconds, 1)).arg(backend.transition)])
     }
     readonly property string changeLine: join([

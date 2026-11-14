@@ -1,5 +1,7 @@
 #include "library.h"
 
+#include "preset.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -30,6 +32,8 @@ void Library::reload() {
             if (info.name.isEmpty())
                 info.name = QFileInfo(file).completeBaseName();
             info.author = preset.value("author").toString();
+            info.family = presets::colorFamily(presets::presetPalette(preset));
+            info.features = presets::features(preset);
             const int existing = indexOf(info.name);
             if (existing >= 0) {
                 info.shadowsBuiltin = m_presets[existing].builtin;
