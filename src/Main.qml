@@ -130,7 +130,9 @@ ApplicationWindow {
         sequence: "T"; context: Qt.ApplicationShortcut; enabled: !win.typing
         onActivated: {
             const name = backend.cyclePalette()
-            win.toast(name.length > 0 ? qsTr("Colors: %1").arg(name) : qsTr("Colors: each preset's own"))
+            win.toast(name.length === 0 ? qsTr("Colors: each preset's own")
+                      : backend.editing ? qsTr("Colors: %1, once the editor is closed").arg(name)
+                      : qsTr("Colors: %1").arg(name))
         }
     }
     Shortcut {

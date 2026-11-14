@@ -1204,4 +1204,5 @@ void Backend::setEditing(bool editing) {
     m_editing = editing;
     m_sinceChange.restart();
     emit settingsChanged();
+    emit paletteChanged();
 }

@@ -653,6 +653,25 @@ private slots:
         QCOMPARE(backend.matchCount(), int(all.size()));
     }
 
+    // The editor shows the preset's own palette, so one picked there is
+    // the one on screen; the Colors setting comes back when it closes.
+    void editorShowsThePresetsOwnPalette()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        QVERIFY(backend.select("Terraces"));
+        backend.setPaletteOverride("fire");
+        QCOMPARE(backend.effectivePalette(), QString("fire"));
+        QSignalSpy changed(&backend, &Backend::paletteChanged);
+        backend.setEditing(true);
+        QCOMPARE(backend.effectivePalette(), QString());
+        QVERIFY(!changed.isEmpty());
+        backend.setParam("palette", "cobalt");
+        QCOMPARE(backend.paletteColors(), presets::paletteStops("cobalt"));
+        backend.setEditing(false);
+        QCOMPARE(backend.effectivePalette(), QString("fire"));
+    }
+
     // ------------------------------------------------------------- backend
 
     void backendEditsUndoesAndSaves()

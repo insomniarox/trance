@@ -752,6 +752,10 @@ A preset colored this way looks right under any palette, including the one
 picked for every preset in the settings. A preset with fixed `#` colors
 ignores both. Prefer the palette and the theme's names.
 
+While the editor is open, the preset's own palette shows, whatever the
+settings and drifting colors would put in its place, so a palette you
+pick there is the one you see. They come back when the editor closes.
+
 The preset list's color filter goes by the palette too. Each stop pulls
 toward its hue as hard as it is colorful, so black, white and grays pull
 not at all, and the hue that wins puts the preset among the reds (and
@@ -940,7 +944,6 @@ one layer for each of the six ranges.
 | The trail is a row of separate copies | The picture moves further each frame than the layer is thick | Add `blur`, slow the motion, or thicken the layer |
 | A fade or size along a layer does nothing | It uses `t`, `i` or `v` in a setting other than the color, where they are 0 (`check` warns) | Use `a` in the `point` code instead ([section 8](#8-layers)) |
 | `Unknown variable` | A name is read that nothing ever assigns | Assign it in `init` or `frame`, or fix the spelling |
-| The palette I chose does nothing | A palette is set for every preset in the settings | Settings > Colors > Each preset's own |
 
 `trance check` names the setting each problem is in, for example
 `feedback.zoom: Unknown variable 'basss'`, and unknown settings are

@@ -211,7 +211,7 @@ SidePanel {
                 heading: qsTr("Picture")
                 Setting {
                     label: qsTr("Colors")
-                    note: qsTr("One palette for every preset, in place of its own.")
+                    note: qsTr("One palette for every preset, in place of its own. The editor shows the preset's own.")
                     Picker {
                         model: [qsTr("Each preset's own")].concat(backend.schema.palettes)
                         currentIndex: backend.schema.palettes.indexOf(backend.paletteOverride) + 1

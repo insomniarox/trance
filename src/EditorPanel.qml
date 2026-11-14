@@ -305,24 +305,6 @@ SidePanel {
                     }
                 }
                 Note { text: qsTr("A name from the list, or your own colors separated by commas. Theme names such as accent follow your desktop.") }
-                // The app's color setting wins over a preset's palette, which
-                // would otherwise look like the palette here doing nothing.
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.topMargin: 2
-                    visible: backend.activePalette.length > 0
-                    implicitHeight: overridden.implicitHeight + 16
-                    radius: Math.min(4, theme.radius)
-                    color: Ui.card
-                    Label {
-                        id: overridden
-                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 10 }
-                        text: qsTr("Showing %1 instead: the Colors setting applies to every preset.").arg(backend.activePalette)
-                        wrapMode: Text.WordWrap
-                        font.pixelSize: Ui.small
-                        color: Ui.warning
-                    }
-                }
 
                 SectionTitle { text: qsTr("Background") }
                 Note { text: qsTr("Shows where the picture is dark. It is drawn fresh every frame, so it never smears.") }

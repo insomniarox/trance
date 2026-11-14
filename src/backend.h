@@ -215,7 +215,11 @@ public:
     int compiledRevision() const { return m_compiledRevision; }
     double pendingBlend() const { return m_blend; }
     // The palette in force: the user's pick, or wherever the drift has got to.
-    QString effectivePalette() const { return m_colorDrift && !m_driftPalette.isNull() ? m_driftPalette : m_paletteOverride; }
+    // The palette in place of the preset's own, if any. Not while the preset
+    // is being edited, so its own palette shows as it is changed.
+    QString effectivePalette() const {
+        return m_editing ? QString() : m_colorDrift && !m_driftPalette.isNull() ? m_driftPalette : m_paletteOverride;
+    }
     int transitionIndex() const { return qMax(0, int(presets::transitionStyles().indexOf(m_transition))); }
     const QList<CompiledPreset> &visitorPool() const { return m_visitorPool; }
     double visitorRate() const { return m_visitors ? 1.0 : 0.0; }
