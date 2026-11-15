@@ -397,6 +397,8 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
 
     ComPtr<IAudioClient> client;
     Handle application;
+    // An application that can't be waited on, looked for instead.
+    DWORD lookedFor = 0;
     DWORD flags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM;
     if (source == "system" || source.startsWith("app:")) {
         // Everything is all the sound but Trance's own, which it has none of.
@@ -410,6 +412,11 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
             // To notice it closing, which the sound alone would not tell:
             // it would only be quiet from then on.
             application.handle = OpenProcess(SYNCHRONIZE, FALSE, process);
+            // Windows may refuse that, as for one run as administrator.
+            // Then it is looked for every so often, or its closing would
+            // go unnoticed and it would never be heard again.
+            if (!application.handle)
+                lookedFor = process;
         }
         hr = processLoopback(process, only, stop, &client);
         flags |= AUDCLNT_STREAMFLAGS_LOOPBACK;
@@ -483,8 +490,9 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
     // Ahead of ordinary work, as Windows offers to threads that handle sound.
     DWORD task = 0;
     const HANDLE priority = AvSetMmThreadCharacteristicsW(L"Audio", &task);
-    QElapsedTimer quiet;
+    QElapsedTimer quiet, sinceLooked;
     quiet.start();
+    sinceLooked.start();
     std::vector<float> samples;
     Ended ended = Stopped;
     for (;;) {
@@ -528,6 +536,13 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
             samples.assign(size_t(qMin<qint64>(quiet.restart(), 4 * Gap) * rate / 1000) * 2, 0.f);
         if (!samples.empty())
             deliver(samples);
+        if (lookedFor && sinceLooked.elapsed() >= 2000) {
+            sinceLooked.restart();
+            if (!processes().contains(lookedFor)) {
+                ended = Lost;
+                break;
+            }
+        }
     }
     if (priority)
         AvRevertMmThreadCharacteristics(priority);
