@@ -98,10 +98,10 @@ corners that follow the window rounding on Hyprland.
 
 ## Windows
 
-Trance runs on Windows 11 on x64 too. That is new: each change is built
-and tested on GitHub, where a virtual sound cable plays a tone for it to
-hear and two stand-in media players give it titles, but it has not yet
-been tried on a real PC with real sound cards and players.
+Trance runs on Windows 11 on x64 too, as fully as on Linux. Each change is
+built and tested on GitHub, where a virtual sound cable plays a tone for it
+to hear and two stand-in media players give it titles. It has also run on a
+real Windows 11 PC, though not yet across many sound cards and players.
 
 ### Running it
 
@@ -132,7 +132,7 @@ It needs:
 Then, in PowerShell:
 
 ```powershell
-git clone -b windows https://github.com/insomniarox/trance   # the port is on the windows branch for now
+git clone https://github.com/insomniarox/trance
 cd trance
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # once: lets the build scripts run
 bin\build.ps1      # builds build\trance.exe

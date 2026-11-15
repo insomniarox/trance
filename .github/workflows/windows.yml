@@ -2,7 +2,7 @@ name: Windows
 
 on:
   push:
-    branches: [master, windows]
+    branches: [master]
   workflow_dispatch:
 
 # Reading the code is all the run needs to do with the repository.
