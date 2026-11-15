@@ -4,10 +4,10 @@ This is the short reference. `trance help manual` (docs/manual.md) explains
 each setting at length and builds a preset step by step.
 
 A preset is one JSON file. Trance's own are built in; yours live in
-`~/.config/trance/presets/`. Start one with `trance new "My Preset"` (add
-`--from "Neon Tunnel"` to copy an existing one), check it with
-`trance check "My Preset"`, and see it without opening a window with
-`trance render "My Preset" -o look.png`.
+`~/.config/trance/presets/` (`%LOCALAPPDATA%\trance\presets` on Windows).
+Start one with `trance new "My Preset"` (add `--from "Neon Tunnel"` to copy
+an existing one), check it with `trance check "My Preset"`, and see it
+without opening a window with `trance render "My Preset" -o look.png`.
 
 ```json
 {

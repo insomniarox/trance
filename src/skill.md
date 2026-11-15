@@ -1,6 +1,6 @@
 ---
 name: trance
-description: Write, check, render and switch presets for Trance, the Linux music visualizer. Use when asked to make or change a visualizer preset, to match the visualizer to a theme or a song, to render a preset to an image, or to control a running Trance (next preset, lock).
+description: Write, check, render and switch presets for Trance, the music visualizer for Linux and Windows. Use when asked to make or change a visualizer preset, to match the visualizer to a theme or a song, to render a preset to an image, or to control a running Trance (next preset, lock).
 ---
 
 # Trance
@@ -29,8 +29,9 @@ trance check "Night Drive" --json      # every problem, by setting
 trance render "Night Drive" -o look.png --sheet 6 --seconds 8
 ```
 
-- The user's presets are in `~/.config/trance/presets/`. Built-in presets
-  can't be changed; `new --from` copies one.
+- The user's presets are in `~/.config/trance/presets/`
+  (`%LOCALAPPDATA%\trance\presets` on Windows). Built-in presets can't be
+  changed; `new --from` copies one.
 - Always run `check` after editing; it exits 1 on errors and names the
   setting (`layers.0.color`). Then `render` and look at the picture.
   `--sheet N` tiles N moments so motion is visible in one image, `--audio

@@ -2,12 +2,12 @@
 
 ![Trance showing the Neon Tunnel preset with the editor open](docs/screenshot.png)
 
-A music visualizer for the Linux desktop. It listens to whatever your
-speakers are playing and draws it: feedback tunnels in the spirit of
-MilkDrop, flow fields and spectrum landscapes in the spirit of SoundSpectrum's
-G-Force and WhiteCap, and plain analyzers when that's all you want. Every
-preset can be changed while it runs, and the colors can follow your desktop
-theme.
+A music visualizer for the Linux desktop, and for Windows 11. It listens to
+whatever your speakers are playing and draws it: feedback tunnels in the
+spirit of MilkDrop, flow fields and spectrum landscapes in the spirit of
+SoundSpectrum's G-Force and WhiteCap, and plain analyzers when that's all you
+want. Every preset can be changed while it runs, and the colors can follow
+your desktop theme.
 
 ![Twelve of the built-in presets](docs/gallery.jpg)
 
@@ -68,6 +68,8 @@ theme.
 
 ## Install
 
+On Linux:
+
 ```sh
 bin/install
 ```
@@ -93,6 +95,76 @@ It needs:
 Track titles come from any player that speaks MPRIS. Two things are only
 there on the desktops that have them: the theme's colors on Omarchy, and
 corners that follow the window rounding on Hyprland.
+
+## Windows
+
+Trance runs on Windows 11 on x64 too. That is new: each change is built
+and tested on GitHub, where a virtual sound cable plays a tone for it to
+hear and two stand-in media players give it titles, but it has not yet
+been tried on a real PC with real sound cards and players.
+
+### Running it
+
+Every build on GitHub leaves a ready-to-run copy: open the
+[Windows runs](https://github.com/insomniarox/trance/actions/workflows/windows.yml),
+pick the newest green one, and download `trance-windows` under Artifacts
+(GitHub asks you to sign in for that). Unzip it anywhere and start
+`dist\trance\trance.exe`. It brings Qt and Microsoft's C++ runtime along, so
+nothing has to be installed first. Settings and your presets are kept in
+`%LOCALAPPDATA%\trance`.
+
+On Windows 11 before 24H2 a console window opens beside Trance's when it
+is started from Explorer or the Start menu; it can be ignored, and closing
+it closes Trance.
+
+### Building it
+
+It needs:
+
+- Visual Studio 2022 or later with the C++ build tools: the free Build
+  Tools for Visual Studio will do, with "Desktop development with C++",
+  which brings the Windows SDK.
+- Qt 6.8 or newer for MSVC 2022 64-bit, from Qt's online installer. The
+  build finds it under `C:\Qt` by itself; elsewhere, set `QTDIR` to the
+  kit, as in `C:\Qt\6.8.3\msvc2022_64`.
+- A graphics driver with OpenGL 3.3, which every current one has.
+
+Then, in PowerShell:
+
+```powershell
+git clone -b windows https://github.com/insomniarox/trance   # the port is on the windows branch for now
+cd trance
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # once: lets the build scripts run
+bin\build.ps1      # builds build\trance.exe
+bin\test.ps1       # the tests
+bin\package.ps1    # dist\trance: the program and all it needs, to zip and carry
+dist\trance\trance.exe
+```
+
+`build\trance.exe` also runs straight away in the window that built it,
+which has Qt on its path. Commands work the same as on Linux, from
+PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
+`trance.exe render ...` (for `--audio`, `ffmpeg` has to be on the path).
+
+### What is different there
+
+- **Listening.** Everything that's playing is every application but
+  Trance, on every output at once. An application is called by its
+  program's name: `chrome`, `msedge`, `firefox`, `Spotify`. As on Linux it
+  goes on playing through your speakers, and nothing is rerouted. Devices
+  go by the names Windows shows, and Voicemeeter buses and virtual cables
+  are among them as ordinary inputs and outputs. If Windows keeps
+  applications from the microphone (Settings > Privacy & security >
+  Microphone), Trance says so.
+- **Track titles** come from Windows' media controls, the same list as
+  the media flyout by the volume keys: Spotify, the browsers and Windows'
+  Media Player report there. Players that don't, such as VLC, show no
+  title.
+- **Colors.** There is no desktop theme to follow, so "theme" is the
+  built-in set; the 41 palettes are the same everywhere.
+- **Key bindings.** `trance.exe next` and the others work from any tool
+  that runs a command on a key, such as PowerToys' Keyboard Manager or
+  AutoHotkey.
 
 ## Shortcuts
 
@@ -171,9 +243,9 @@ you can pick instead:
 
 - **one application** (Spotify, Firefox, mpv…), so a video call or a
   notification sound doesn't move the picture. The application goes on
-  playing through your speakers exactly as before: PipeWire lets Trance tap
-  its stream, so there is nothing to reroute. If it stops playing, Trance
-  waits for it.
+  playing through your speakers exactly as before: PipeWire (or Windows)
+  lets Trance tap its stream, so there is nothing to reroute. If it stops
+  playing, Trance waits for it.
 - **one output or input device**, or the microphone. Only what is plugged in
   is offered, and only when there is a choice: with one set of speakers and
   one microphone, the list is just "everything" and "microphone".
@@ -206,8 +278,9 @@ what every setting is and does, and a preset written step by step. `trance
 help manual` prints it.
 
 A preset is a JSON file. Built-in ones are compiled into the app; yours are
-in `~/.config/trance/presets/`. Saving a changed built-in makes your own copy
-under the same name, and deleting that copy brings the original back.
+in `~/.config/trance/presets/` (`%LOCALAPPDATA%\trance\presets` on
+Windows). Saving a changed built-in makes your own copy under the same name,
+and deleting that copy brings the original back.
 
 ```json
 {
@@ -250,6 +323,12 @@ picture so you can see it move.
 bin/build    # qmake6 + make into build/trance
 bin/test     # the test suite, offscreen
 ```
+
+On Windows, `bin\build.ps1`, `bin\test.ps1` and `bin\package.ps1` (see
+[Windows](#windows)). What differs by system is in files of its own, picked
+in `trance.pro`: `audiocapture_pipewire.cpp` and `audiocapture_wasapi.cpp`
+for listening, `nowplaying_mpris.cpp` and `nowplaying_smtc.cpp` for track
+titles, and `theme_hyprland.cpp` for the corners.
 
 ## Where the ideas come from
 
