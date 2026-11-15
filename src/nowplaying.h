@@ -7,7 +7,9 @@
 // browser, mpv, ...), so its title can be shown when it changes.
 //
 // Who is asked differs by system, and so does the file the asking is in:
-// nowplaying_mpris.cpp on Linux, where players say it over MPRIS.
+// nowplaying_mpris.cpp on Linux, where players say it over MPRIS, and
+// nowplaying_smtc.cpp on Windows, where they say it to the system's media
+// controls.
 class NowPlaying : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString title READ title NOTIFY changed)

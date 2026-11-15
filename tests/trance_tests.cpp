@@ -26,6 +26,106 @@
 #include "remote.h"
 #include "theme.h"
 
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#include <unknwn.h> // before C++/WinRT, which then takes COM's own interfaces too
+
+#include <propsys.h>
+#include <shellapi.h>
+#include <systemmediatransportcontrolsinterop.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Media.Control.h>
+#include <winrt/Windows.Media.h>
+
+#include "nowplaying.h"
+
+namespace {
+
+// A media player as Windows sees one, for trying which titles Trance takes:
+// a window that is never shown, saying what it plays to the system's media
+// controls the way a browser does. Each has an application id of its own, as
+// each real player has, which is what Windows tells them apart by.
+class FakePlayer {
+public:
+    explicit FakePlayer(const wchar_t *id) {
+        m_window = CreateWindowExW(0, L"STATIC", id, WS_OVERLAPPED, 0, 0, 0, 0, nullptr, nullptr,
+                                   GetModuleHandleW(nullptr), nullptr);
+        // PKEY_AppUserModel_ID, as in propkey.h, which only declares it.
+        static const PROPERTYKEY ApplicationId = {{0x9f4c2855, 0x9f79, 0x4b39, {0xa8, 0xd0, 0xe1, 0xd4, 0x2d, 0xe1, 0xd5, 0xf3}}, 5};
+        winrt::com_ptr<IPropertyStore> store;
+        winrt::check_hresult(SHGetPropertyStoreForWindow(m_window, IID_PPV_ARGS(store.put())));
+        PROPVARIANT value;
+        PropVariantInit(&value);
+        value.vt = VT_LPWSTR;
+        value.pwszVal = const_cast<wchar_t *>(id);
+        winrt::check_hresult(store->SetValue(ApplicationId, value));
+        const auto controlsOf = winrt::get_activation_factory<winrt::Windows::Media::SystemMediaTransportControls,
+                                                              ISystemMediaTransportControlsInterop>();
+        winrt::check_hresult(controlsOf->GetForWindow(
+            m_window, winrt::guid_of<winrt::Windows::Media::SystemMediaTransportControls>(), winrt::put_abi(m_controls)));
+        m_controls.IsEnabled(true);
+        m_controls.IsPlayEnabled(true);
+        m_controls.IsPauseEnabled(true);
+    }
+    ~FakePlayer() {
+        if (m_controls)
+            m_controls.IsEnabled(false);
+        m_controls = nullptr;
+        DestroyWindow(m_window);
+    }
+
+    void announce(const wchar_t *title, const wchar_t *artist) {
+        const auto display = m_controls.DisplayUpdater();
+        display.Type(winrt::Windows::Media::MediaPlaybackType::Music);
+        display.MusicProperties().Title(title);
+        display.MusicProperties().Artist(artist);
+        display.Update();
+    }
+    void play(bool on) {
+        m_controls.PlaybackStatus(on ? winrt::Windows::Media::MediaPlaybackStatus::Playing
+                                     : winrt::Windows::Media::MediaPlaybackStatus::Paused);
+    }
+
+private:
+    HWND m_window = nullptr;
+    winrt::Windows::Media::SystemMediaTransportControls m_controls{nullptr};
+};
+
+QString fromWindows(const winrt::hstring &string) {
+    return QString::fromWCharArray(string.c_str(), int(string.size()));
+}
+
+// The players Windows lists, each with whether it plays (4) or is paused (5)
+// and its track: what a failed test has to go on. Asked on a thread of its
+// own, since the answers are waited for and the main thread may not wait.
+QStringList playersWindowsLists() {
+    QStringList players;
+    std::thread([&players] {
+        winrt::init_apartment();
+        try {
+            using winrt::Windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
+            const auto manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync().get();
+            const auto current = manager.GetCurrentSession();
+            players << "current: " + (current ? fromWindows(current.SourceAppUserModelId()) : QString("none"));
+            for (const auto &session : manager.GetSessions()) {
+                const auto track = session.TryGetMediaPropertiesAsync().get();
+                players << QString("%1: status %2, \"%3\" by \"%4\"")
+                               .arg(fromWindows(session.SourceAppUserModelId()))
+                               .arg(int(session.GetPlaybackInfo().PlaybackStatus()))
+                               .arg(fromWindows(track.Title()), fromWindows(track.Artist()));
+            }
+        } catch (const winrt::hresult_error &error) {
+            players << "Windows said: " + fromWindows(error.message());
+        }
+        winrt::uninit_apartment();
+    }).join();
+    return players;
+}
+
+} // namespace
+#endif
+
 class TranceTests : public QObject {
     Q_OBJECT
 
@@ -1475,6 +1575,81 @@ private slots:
         }
 #else
         QSKIP("How Windows is listened to is only tried on Windows");
+#endif
+    }
+
+    // Titles on Windows come from its media controls. The test is the media
+    // players itself: two of them, saying what they play as a browser does.
+    // Trance has to take the track of one already playing when it starts,
+    // follow it to the next, leave a paused player's title be, and stay with
+    // the player it shows while that one plays, whatever another starts.
+    // TRANCE_TEST_TITLES asks for it, since a real player playing at the same
+    // time would be taken instead; GitHub's runner has none.
+    void titlesFollowWhatWindowsSaysIsPlaying()
+    {
+#ifdef Q_OS_WIN
+        if (!qEnvironmentVariableIsSet("TRANCE_TEST_TITLES"))
+            QSKIP("Plays the media player to Windows, with no real one playing: set TRANCE_TEST_TITLES");
+        const auto told = qScopeGuard([] {
+            if (QTest::currentTestFailed())
+                for (const QString &player : playersWindowsLists())
+                    qInfo().noquote() << "player:" << player;
+        });
+        try {
+            FakePlayer first(L"Trance.Tests.First");
+            first.announce(L"One", L"Somebody");
+            first.play(true);
+
+            // A player already playing when Trance starts.
+            NowPlaying nowPlaying;
+            QSignalSpy changed(&nowPlaying, &NowPlaying::changed);
+            QTRY_COMPARE_WITH_TIMEOUT(nowPlaying.title(), QString("One"), 10000);
+            QCOMPARE(nowPlaying.artist(), QString("Somebody"));
+            QCOMPARE(changed.count(), 1);
+
+            // Its next track.
+            first.announce(L" Two ", L"Somebody else");
+            QTRY_COMPARE(nowPlaying.title(), QString("Two"));
+            QCOMPARE(nowPlaying.artist(), QString("Somebody else"));
+
+            // Paused, it keeps the title it had, whatever it moves on to...
+            first.play(false);
+            QTest::qWait(300);
+            first.announce(L"Three", L"Somebody");
+            QTest::qWait(1500);
+            QCOMPARE(nowPlaying.title(), QString("Two"));
+            // ...until it plays again.
+            first.play(true);
+            QTRY_COMPARE(nowPlaying.title(), QString("Three"));
+
+            // Another player starting does not take over from the one shown.
+            auto second = std::make_unique<FakePlayer>(L"Trance.Tests.Second");
+            second->announce(L"Elsewhere", L"Nobody");
+            second->play(true);
+            QTest::qWait(1500);
+            // Windows lists the two apart, by the ids they gave.
+            const QStringList both = playersWindowsLists();
+            for (const QString &player : both)
+                qInfo().noquote() << "player:" << player;
+            QCOMPARE(both.filter(QRegularExpression("^Trance\\.Tests\\.(First|Second): status 4,")).size(), 2);
+            QCOMPARE(nowPlaying.title(), QString("Three"));
+            // It does once the one shown is paused...
+            first.play(false);
+            QTRY_COMPARE(nowPlaying.title(), QString("Elsewhere"));
+            // ...and is then the one stayed with.
+            first.announce(L"Four", L"Somebody");
+            first.play(true);
+            QTest::qWait(1500);
+            QCOMPARE(nowPlaying.title(), QString("Elsewhere"));
+            // When it closes, the one still playing is taken.
+            second.reset();
+            QTRY_COMPARE(nowPlaying.title(), QString("Four"));
+            QCOMPARE(changed.count(), 5);
+        } catch (const winrt::hresult_error &error) {
+            QFAIL(qPrintable("Windows said: " + fromWindows(error.message())));
+        }
+#else
+        QSKIP("Windows' media controls are only asked on Windows");
 #endif
     }
 

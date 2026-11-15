@@ -48,9 +48,12 @@ unix {
 win32 {
     SOURCES += \
         src/audiocapture_wasapi.cpp \
-        src/nowplaying_none.cpp
-    # What Windows' sound is reached through.
-    LIBS += -lole32 -lmmdevapi -lavrt
+        src/nowplaying_smtc.cpp
+    # What Windows' sound is reached through, and its media controls.
+    LIBS += -lole32 -lmmdevapi -lavrt -loleaut32 -lruntimeobject
+    # C++20 here, for C++/WinRT, which the media controls are asked through:
+    # under C++17 it leans on a coroutine header Microsoft is taking away.
+    CONFIG += c++20
     # A console program, so that a shell waits for a command and gets its
     # output; the manifest keeps Windows from opening a console for the window.
     CONFIG += console

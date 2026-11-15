@@ -80,6 +80,15 @@ jobs:
           Stop-Process -Id $tone.Id
           exit $failed
 
+      # The runner has no media players either. The test is two of them
+      # itself, saying what they play to Windows' media controls as a browser
+      # does, and Trance has to take the right titles from what Windows then
+      # reports.
+      - name: Titles
+        run: |
+          $env:TRANCE_TEST_TITLES = '1'
+          build\tests\trance_tests.exe titlesFollowWhatWindowsSaysIsPlaying
+
       - name: Commands
         run: |
           function Must { if ($LASTEXITCODE) { throw "That exited with $LASTEXITCODE." } }

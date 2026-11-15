@@ -12,8 +12,11 @@ SOURCES += trance_tests.cpp ../src/audio.cpp ../src/audiocapture.cpp ../src/back
 
 unix: SOURCES += ../src/audiocapture_pipewire.cpp ../src/theme_hyprland.cpp
 win32 {
-    SOURCES += ../src/audiocapture_wasapi.cpp
-    LIBS += -lole32 -lmmdevapi -lavrt
+    HEADERS += ../src/nowplaying.h
+    SOURCES += ../src/audiocapture_wasapi.cpp ../src/nowplaying_smtc.cpp
+    LIBS += -lole32 -lmmdevapi -lavrt -loleaut32 -lruntimeobject -luser32 -lshell32
+    # As in trance.pro: C++/WinRT wants C++20 of Microsoft's compiler.
+    CONFIG += c++20
     CONFIG -= debug_and_release
     # Every core, which Microsoft's compiler keeps to one of unless asked.
     CONFIG += msvc_mp
