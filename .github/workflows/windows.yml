@@ -15,7 +15,7 @@ jobs:
       # window have to say to a debugger instead, unless told otherwise.
       QT_FORCE_STDERR_LOGGING: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: jurplel/install-qt-action@v4
         with:
@@ -74,7 +74,7 @@ jobs:
           Stop-Process -Id $window.Id
           Get-Content window.out, window.err
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: trance-windows
