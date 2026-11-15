@@ -11,6 +11,11 @@ SOURCES += trance_tests.cpp ../src/audio.cpp ../src/audiocapture.cpp ../src/back
     ../src/expr.cpp ../src/library.cpp ../src/preset.cpp ../src/presetdocs.cpp ../src/remote.cpp ../src/theme.cpp
 
 unix: SOURCES += ../src/audiocapture_pipewire.cpp ../src/theme_hyprland.cpp
+win32 {
+    SOURCES += ../src/audiocapture_none.cpp
+    CONFIG -= debug_and_release
+    DEFINES += _USE_MATH_DEFINES NOMINMAX
+}
 
 RESOURCES += ../src/resources.qrc
 

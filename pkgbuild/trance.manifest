@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Trance is one program that is both a window and a set of commands. It is
+  built as a console program, so that a shell waits for a command to finish
+  and gets its output and exit code; "detached" asks Windows not to open a
+  console of its own when it is started from the Start menu or Explorer.
+  That needs Windows 11 24H2 or later. UTF-8 is for preset names and paths
+  outside the system's code page.
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <application>
+    <windowsSettings>
+      <consoleAllocationPolicy xmlns="http://schemas.microsoft.com/SMI/2024/WindowsSettings">detached</consoleAllocationPolicy>
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+    </windowsSettings>
+  </application>
+</assembly>

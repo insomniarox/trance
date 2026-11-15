@@ -1266,6 +1266,7 @@ private slots:
 
     void captureListsWhatThereIsToHear()
     {
+#ifdef Q_OS_UNIX
         const QByteArray dump = QByteArray(
             "[ { 'id': 80, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': "
             "'Stream/Output/Audio', 'application.name': 'Spotify', 'node.name': 'spotify', 'object.serial': 292 } } "
@@ -1292,12 +1293,16 @@ private slots:
         QVERIFY(!AudioCapture::isSource("speakers"));
         // An empty answer from PipeWire still leaves the two that always work.
         QCOMPARE(AudioCapture::describe(AudioCapture::parseNodes("not json"), "system").size(), 2);
+#else
+        QSKIP("What PipeWire says is only read where PipeWire is");
+#endif
     }
 
     // A laptop's sound card as PipeWire reports it: a node for every socket,
     // most with nothing plugged in, all named after the chipset.
     void captureLeavesOutWhatIsNotPluggedIn()
     {
+#ifdef Q_OS_UNIX
         const auto node = [](int id, const char *mediaClass, const char *name, const char *description, int socket) {
             return QString("{ 'id': %1, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': '%2', "
                            "'node.name': '%3', 'node.description': 'Alder Lake Audio Controller %4', 'device.id': 48, "
@@ -1365,6 +1370,9 @@ private slots:
         QCOMPARE(choice.at(1).toMap().value("section").toString(), QString("Outputs"));
         QCOMPARE(choice.at(3).toMap().value("section").toString(), QString("Inputs"));
         QVERIFY(choice.at(0).toMap().value("section").toString().isEmpty());
+#else
+        QSKIP("What PipeWire says is only read where PipeWire is");
+#endif
     }
 
     // What shows over the picture is the user's to ask for: nothing does
@@ -1508,6 +1516,7 @@ private slots:
 
     void themeFollowsHyprlandRounding()
     {
+#ifdef Q_OS_UNIX
         // A stand-in Hyprland: one socket answers questions and hangs up,
         // the other announces what happens.
         QTemporaryDir dir;
@@ -1581,6 +1590,9 @@ private slots:
         QTRY_COMPARE(closed, 5);
         QCOMPARE(theme.radius(), 12);
         QCOMPARE(late, 0);
+#else
+        QSKIP("Hyprland is not on this system");
+#endif
     }
 
 private:

@@ -45,6 +45,21 @@ unix {
         src/theme_hyprland.cpp
 }
 
+win32 {
+    SOURCES += \
+        src/audiocapture_none.cpp \
+        src/nowplaying_none.cpp
+    # A console program, so that a shell waits for a command and gets its
+    # output; the manifest keeps Windows from opening a console for the window.
+    CONFIG += console
+    CONFIG -= debug_and_release
+    QMAKE_LFLAGS += /MANIFEST:embed /MANIFESTINPUT:$$shell_quote($$shell_path($$PWD/pkgbuild/trance.manifest))
+    RC_ICONS = pkgbuild/trance.ico
+    # M_PI and its like, which Microsoft's <cmath> keeps back unless asked,
+    # and no min and max macros from its windows.h.
+    DEFINES += _USE_MATH_DEFINES NOMINMAX
+}
+
 RESOURCES += src/resources.qrc
 
 # Material.roundedScale, which the corners are drawn with, came in Qt 6.5.

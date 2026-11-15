@@ -31,7 +31,8 @@ QtObject {
     readonly property int control: 30   // the height of a field, list or button
     readonly property int row: 44       // the least height of a line of settings
     readonly property int pad: 16       // from a panel's edge to what is in it
-    readonly property string mono: "monospace"
+    // Windows has no font that answers to "monospace".
+    readonly property string mono: Qt.platform.os === "windows" ? "Consolas" : "monospace"
 
     // "1 layer", "3 layers": many has a %1 for the count.
     function count(n, one, many) { return n === 1 ? one : many.arg(n) }

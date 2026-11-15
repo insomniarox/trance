@@ -464,6 +464,15 @@ int skill(const QStringList &arguments) {
     if (!home.exists(".claude"))
         return 0;
     const QString link = home.filePath(".claude/skills/trance");
+#ifdef Q_OS_WIN
+    // A link is not to be had for the asking on Windows, so Claude Code
+    // gets a copy of its own.
+    QSaveFile copy(link + "/SKILL.md");
+    if (!QDir().mkpath(link) || !copy.open(QIODevice::WriteOnly) || copy.write(text) < 0 || !copy.commit())
+        return fail("Could not write " + copy.fileName());
+    print(stdout, "Installed " + copy.fileName());
+    return 0;
+#else
     const QFileInfo existing(link);
     if (existing.isSymLink())
         QFile::remove(link);
@@ -473,6 +482,7 @@ int skill(const QStringList &arguments) {
         return fail("Could not link " + link);
     print(stdout, "Linked " + link);
     return 0;
+#endif
 }
 
 int help(const QStringList &arguments) {

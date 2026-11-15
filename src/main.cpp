@@ -12,6 +12,10 @@
 #include <QUrl>
 #include <cstdio>
 
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#endif
+
 #include "backend.h"
 #include "cli.h"
 #include "nowplaying.h"
@@ -22,9 +26,18 @@
 int main(int argc, char *argv[]) {
     const QString command = argc > 1 ? QString::fromLocal8Bit(argv[1]) : QString();
 
-    // Commands that need no window run without a display.
+#ifdef Q_OS_WIN
+    // What is printed is UTF-8, whatever the console was set to.
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
+    // Commands that need no window run without a display. On Windows there
+    // always is one, and Qt's stand-in for a display has no OpenGL there to
+    // render and check with, so the real one is used and nothing is shown.
     if (isCliCommand(command)) {
+#ifndef Q_OS_WIN
         qputenv("QT_QPA_PLATFORM", "offscreen");
+#endif
         QGuiApplication app(argc, argv);
         app.setApplicationName("trance");
         return runCli(app.arguments());
@@ -45,9 +58,12 @@ int main(int argc, char *argv[]) {
     app.setApplicationVersion("0.1.0");
 
     // Matches the window to trance.desktop, so the compositor (Wayland app_id)
-    // and the launcher pick up the installed icon.
+    // and the launcher pick up the installed icon. On Windows the icon is in
+    // the program itself, and its windows get it unasked.
     app.setDesktopFileName("trance");
+#ifndef Q_OS_WIN
     app.setWindowIcon(QIcon::fromTheme("trance"));
+#endif
 
     QQuickStyle::setStyle("Material");
 

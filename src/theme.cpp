@@ -8,7 +8,13 @@
 #include <cmath>
 
 Theme::Theme(const QString &directory, QObject *parent, const QString &hyprland)
-    : QObject(parent), m_directory(directory.isEmpty() ? defaultDirectory() : directory) {
+    : QObject(parent), m_directory(directory) {
+#ifdef Q_OS_UNIX
+    // Omarchy is looked for where it would be. Elsewhere there is none to
+    // find, and only a directory that was asked for is followed.
+    if (m_directory.isEmpty())
+        m_directory = defaultDirectory();
+#endif
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(80);
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, [this] { m_debounce.start(); });
@@ -64,11 +70,13 @@ void Theme::reload() {
     if (!paths.isEmpty())
         m_watcher.removePaths(paths);
 
+    if (m_directory.isEmpty())
+        return;
     // A theme switch replaces symlinks and files, so watch the parents too and
     // re-arm after every change. Watching the nearest existing ancestor means
     // installing Omarchy later works without restarting the app.
     QString ancestor = m_directory;
-    while (!QFileInfo::exists(ancestor) && ancestor != "/")
+    while (!QFileInfo::exists(ancestor) && QFileInfo(ancestor).absolutePath() != ancestor)
         ancestor = QFileInfo(ancestor).absolutePath();
     QStringList candidates{ancestor, QFileInfo(ancestor).absolutePath(), m_directory,
                            m_directory + "/theme", m_directory + "/theme/colors.toml"};
