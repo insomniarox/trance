@@ -5,6 +5,10 @@ on:
     branches: [master, windows]
   workflow_dispatch:
 
+# Reading the code is all the run needs to do with the repository.
+permissions:
+  contents: read
+
 jobs:
   build:
     # Windows Server 2025 is the same build of Windows as Windows 11 24H2.
@@ -15,9 +19,12 @@ jobs:
       # window have to say to a debugger instead, unless told otherwise.
       QT_FORCE_STDERR_LOGGING: 1
     steps:
+      # GitHub's own actions are taken by version. The others are taken by the
+      # commit a version stood at, so that what runs here can't be changed
+      # under it.
       - uses: actions/checkout@v7
 
-      - uses: jurplel/install-qt-action@v4
+      - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
         with:
           version: '6.8.3'
           arch: win64_msvc2022_64
@@ -27,7 +34,7 @@ jobs:
       # Mesa draws in software, and is as strict about shaders as it is on
       # Linux. (The software renderer Qt brings along is a Mesa from 2016
       # that stops at OpenGL 3.0, short of the 3.3 Trance needs.)
-      - uses: ssciwr/setup-mesa-dist-win@v3
+      - uses: ssciwr/setup-mesa-dist-win@2dfeaebfa514f74c2b8cd8d27108c31486d33e72 # v3
         with:
           version: '26.0.3'
           build-type: 'release-msvc'
@@ -47,7 +54,13 @@ jobs:
       - name: A sound card
         id: sound
         continue-on-error: true
-        uses: LABSN/sound-ci-helpers@v1
+        uses: LABSN/sound-ci-helpers@d08c889a7bba7d9b1b059f8f76dac4672ea3a9cf # v1
+
+      # A run that went without is still green, so it says so where the run
+      # is summed up: it has not shown that anything is heard.
+      - name: No sound card
+        if: steps.sound.outcome != 'success'
+        run: echo "::warning title=Hearing not tried::The virtual cable could not be installed, so this run did not try what Trance hears."
 
       - name: Hearing
         if: steps.sound.outcome == 'success'
