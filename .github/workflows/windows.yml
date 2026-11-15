@@ -11,9 +11,6 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     env:
-      # The runner has no graphics card, so everything is drawn by the
-      # software renderer Qt brings along.
-      QT_OPENGL: software
       # With no console window to write to, Qt sends what the tests and the
       # window have to say to a debugger instead, unless told otherwise.
       QT_FORCE_STDERR_LOGGING: 1
@@ -25,6 +22,16 @@ jobs:
           version: '6.8.3'
           arch: win64_msvc2022_64
           cache: true
+
+      # The runner has no graphics card, and Windows by itself has OpenGL 1.1.
+      # Mesa draws in software, and is as strict about shaders as it is on
+      # Linux. (The software renderer Qt brings along is a Mesa from 2016
+      # that stops at OpenGL 3.0, short of the 3.3 Trance needs.)
+      - uses: ssciwr/setup-mesa-dist-win@v3
+        with:
+          version: '26.0.3'
+          build-type: 'release-msvc'
+          deployment-choice: '1'
 
       - name: Build
         run: bin\build.ps1
