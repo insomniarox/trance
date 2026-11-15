@@ -1,7 +1,6 @@
 // trance — a music visualizer for the Linux desktop: MilkDrop-style
 // feedback and SoundSpectrum-style flow, in the colors of your theme.
 
-#include <QDBusConnection>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QOffscreenSurface>
@@ -16,40 +15,9 @@
 #include "backend.h"
 #include "cli.h"
 #include "nowplaying.h"
+#include "remote.h"
 #include "theme.h"
 #include "visualizeritem.h"
-
-// What `trance next` and friends reach over D-Bus, so a key binding can
-// steer the window.
-class Remote : public QObject {
-    Q_OBJECT
-
-public:
-    explicit Remote(Backend *backend) : QObject(backend), m_backend(backend) {}
-
-public slots:
-    void Next() { m_backend->next(); }
-    void Previous() { m_backend->previous(); }
-    void Random() { m_backend->random(); }
-    bool Select(const QString &name) { return m_backend->select(name); }
-    void ToggleLock() { m_backend->setLocked(!m_backend->locked()); }
-    QString Current() { return m_backend->currentName(); }
-    bool Mashup() { return m_backend->mashup(); }
-    // Listens to something else: an id as `trance sources` prints them, or
-    // an application's name.
-    bool Source(const QString &source) {
-        QString wanted = source;
-        if (!AudioCapture::isSource(wanted))
-            wanted = "app:" + source;
-        if (source.trimmed().isEmpty())
-            return false;
-        m_backend->setSource(wanted);
-        return true;
-    }
-
-private:
-    Backend *m_backend;
-};
 
 int main(int argc, char *argv[]) {
     const QString command = argc > 1 ? QString::fromLocal8Bit(argv[1]) : QString();
@@ -116,10 +84,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    auto *remoteControl = new Remote(&backend);
-    QDBusConnection bus = QDBusConnection::sessionBus();
-    if (bus.isConnected() && bus.registerService(remote::WindowService))
-        bus.registerObject(remote::Path, remote::Interface, remoteControl, QDBusConnection::ExportAllSlots);
+    // What `trance next` and friends reach, so a key binding can steer the
+    // window. It belongs to the backend, and goes with it.
+    new remote::Server(&backend);
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("theme", &theme);
@@ -131,5 +98,3 @@ int main(int argc, char *argv[]) {
         return 1;
     return app.exec();
 }
-
-#include "main.moc"

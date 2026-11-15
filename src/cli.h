@@ -7,10 +7,3 @@
 bool isCliCommand(const QString &word);
 int runCli(const QStringList &arguments);
 QString cliSummary();
-
-// The D-Bus names a running Trance answers on.
-namespace remote {
-inline const char *const WindowService = "dev.trance.Visualizer";
-inline const char *const Path = "/Visualizer";
-inline const char *const Interface = "dev.trance.Visualizer";
-} // namespace remote

@@ -1,8 +1,6 @@
 #include "cli.h"
 
 #include <QCommandLineParser>
-#include <QDBusConnection>
-#include <QDBusMessage>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -29,6 +27,7 @@
 #include "engine.h"
 #include "library.h"
 #include "preset.h"
+#include "remote.h"
 #include "theme.h"
 
 namespace {
@@ -403,32 +402,32 @@ int steer(const QStringList &arguments) {
         return fail("Give preset a name; trance list shows them.");
     if (word == "source" && command.argument(0).isEmpty())
         return fail("Give source something to listen to; trance sources lists what there is.");
-    QDBusMessage call = QDBusMessage::createMethodCall(remote::WindowService, remote::Path, remote::Interface,
-                                                       methods.value(word));
+    QString request = methods.value(word);
     if (word == "preset" || word == "source")
-        call << command.argument(0);
-    const QDBusMessage reply = QDBusConnection::sessionBus().call(call, QDBus::Block, 2000);
-    if (reply.type() != QDBusMessage::ReplyMessage)
+        request += ' ' + command.argument(0);
+    QString reply;
+    if (!remote::send(request, &reply))
         return fail("Trance isn't running.");
-    if (word == "preset" && !reply.arguments().value(0).toBool())
+    const bool done = reply == "ok" || reply.startsWith("ok ");
+    if (word == "preset" && !done)
         return fail("No preset called '" + command.argument(0) + "'.");
-    if (word == "mashup" && !reply.arguments().value(0).toBool())
+    if (word == "mashup" && !done)
         return fail("No mash-up came together this time; try again.");
     if (word == "current")
-        print(stdout, reply.arguments().value(0).toString());
+        print(stdout, reply.mid(3));
     return 0;
 }
 
-// What there is to listen to, as PipeWire reports it right now.
+// What there is to listen to, as the sound system reports it right now.
 int sources(const QStringList &arguments) {
     Command command("sources", "List what Trance can listen to: everything, one application, or one device.");
     command.json();
     command.process(arguments);
-    QProcess dump;
-    dump.start("pw-dump", QStringList());
-    if (!dump.waitForFinished(4000) || dump.exitStatus() != QProcess::NormalExit)
-        return fail("Could not ask PipeWire (pw-dump) what is playing.");
-    const QVariantList list = AudioCapture::describe(AudioCapture::parseNodes(dump.readAllStandardOutput()), {});
+    QList<AudioCapture::Node> nodes;
+    QString error;
+    if (!AudioCapture::listNodes(&nodes, &error))
+        return fail(error);
+    const QVariantList list = AudioCapture::describe(nodes, {});
     if (command.parser.isSet("json")) {
         print(QJsonObject{{"sources", QJsonArray::fromVariantList(list)}});
         return 0;

@@ -36,6 +36,8 @@ signals:
 
 private:
     void reload();
+    // Hyprland's side, in theme_hyprland.cpp.
+    void followHyprland(const QString &directory, bool find);
     void listenToHyprland();
     void refreshRounding();
     void takeRounding(const QByteArray &reply);

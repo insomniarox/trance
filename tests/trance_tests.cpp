@@ -12,7 +12,9 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
+#include <atomic>
 #include <cmath>
+#include <thread>
 
 #include "audio.h"
 #include "audiocapture.h"
@@ -21,6 +23,7 @@
 #include "expr.h"
 #include "library.h"
 #include "preset.h"
+#include "remote.h"
 #include "theme.h"
 
 class TranceTests : public QObject {
@@ -1430,6 +1433,55 @@ private slots:
         QTemporaryDir older;
         write(older.path() + "/settings.ini", "[General]\nshowTitles=false\n");
         QCOMPARE(Backend(older.path(), false).titleStyle(), QString("off"));
+    }
+
+    // `trance next` and friends, as the window hears them. The command waits
+    // for its answer, so it is given a thread of its own to wait on.
+    void remoteSteersTheWindow()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const QString name = dir.filePath("remote.sock");
+        const auto ask = [&](const QString &request) {
+            QString answer;
+            std::atomic<bool> done{false};
+            std::thread asking([&] {
+                if (!remote::send(request, &answer, name, 1000))
+                    answer = "nobody";
+                done = true;
+            });
+            while (!done)
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+            asking.join();
+            return answer;
+        };
+        QCOMPARE(ask("Current"), QString("nobody"));
+
+        // What a window that crashed left in the way doesn't keep this one out.
+        write(name, "left behind");
+        remote::Server server(&backend, name);
+        QVERIFY(server.isListening());
+        QCOMPARE(ask("Current"), "ok " + backend.currentName());
+        QCOMPARE(ask("Select Whitecaps"), QString("ok"));
+        QCOMPARE(backend.currentName(), QString("Whitecaps"));
+        QCOMPARE(ask("Select Nothing By This Name"), QString("no"));
+        QCOMPARE(backend.currentName(), QString("Whitecaps"));
+        const bool locked = backend.locked();
+        QCOMPARE(ask("ToggleLock"), QString("ok"));
+        QCOMPARE(backend.locked(), !locked);
+        QCOMPARE(ask("Next"), QString("ok"));
+        // An application goes by its name alone; anything else by its id.
+        QCOMPARE(ask("Source Spotify"), QString("ok"));
+        QCOMPARE(backend.source(), QString("app:Spotify"));
+        QCOMPARE(ask("Source microphone"), QString("ok"));
+        QCOMPARE(backend.source(), QString("microphone"));
+        QCOMPARE(ask("Source"), QString("no"));
+        QCOMPARE(ask("Dance"), QString("no"));
+
+        // The first window keeps the place; one opened beside it is left out.
+        remote::Server second(&backend, name);
+        QVERIFY(!second.isListening());
+        QCOMPARE(ask("Current"), "ok " + backend.currentName());
     }
 
     void themeFallsBack()

@@ -1,23 +1,50 @@
+// What is playing on Linux: asked of the media players over MPRIS, on D-Bus.
 #include "nowplaying.h"
 
 #include <QDBusArgument>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
 #include <QHash>
+#include <QStringList>
+#include <QTimer>
+#include <QVariantMap>
+#include <functional>
 #include <memory>
 
 namespace {
+
 const char *const PlayerPath = "/org/mpris/MediaPlayer2";
 const char *const Properties = "org.freedesktop.DBus.Properties";
 const char *const PlayerInterface = "org.mpris.MediaPlayer2.Player";
-} // namespace
 
-NowPlaying::NowPlaying(QObject *parent) : QObject(parent) {
+// Listens for players announcing a change and then asks them all.
+class Mpris : public QObject {
+    Q_OBJECT
+
+public:
+    Mpris(std::function<void(const QString &, const QString &)> found, QObject *parent);
+
+private slots:
+    void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
+
+private:
+    void refresh();
+    void ask(const QStringList &players);
+
+    std::function<void(const QString &, const QString &)> m_found;
+    QTimer m_debounce;
+    QString m_player; // whose title is showing
+    int m_generation = 0;
+};
+
+Mpris::Mpris(std::function<void(const QString &, const QString &)> found, QObject *parent)
+    : QObject(parent), m_found(std::move(found)) {
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(150);
-    connect(&m_debounce, &QTimer::timeout, this, &NowPlaying::refresh);
+    connect(&m_debounce, &QTimer::timeout, this, &Mpris::refresh);
     QDBusConnection bus = QDBusConnection::sessionBus();
     if (!bus.isConnected())
         return;
@@ -27,12 +54,12 @@ NowPlaying::NowPlaying(QObject *parent) : QObject(parent) {
     m_debounce.start();
 }
 
-void NowPlaying::propertiesChanged(const QString &interface, const QVariantMap &, const QStringList &) {
+void Mpris::propertiesChanged(const QString &interface, const QVariantMap &, const QStringList &) {
     if (interface == QLatin1String(PlayerInterface))
         m_debounce.start();
 }
 
-void NowPlaying::refresh() {
+void Mpris::refresh() {
     QDBusConnection bus = QDBusConnection::sessionBus();
     auto *watcher = new QDBusPendingCallWatcher(bus.interface()->asyncCall("ListNames"), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher *call) {
@@ -52,7 +79,7 @@ void NowPlaying::refresh() {
 // one that is playing: the one already shown if it still is, so two playing
 // at once don't take turns, or else the first. A paused player keeps the
 // last title on screen.
-void NowPlaying::ask(const QStringList &players) {
+void Mpris::ask(const QStringList &players) {
     struct Round {
         int left = 0;
         QHash<QString, QVariantMap> playing;
@@ -85,11 +112,15 @@ void NowPlaying::ask(const QStringList &players) {
             const QString title = metadata.value("xesam:title").toString().trimmed();
             const QString artist = metadata.value("xesam:artist").toStringList().join(", ").trimmed();
             m_player = chosen;
-            if (title.isEmpty() || (title == m_title && artist == m_artist))
-                return;
-            m_title = title;
-            m_artist = artist;
-            emit changed();
+            m_found(title, artist);
         });
     }
 }
+
+} // namespace
+
+NowPlaying::NowPlaying(QObject *parent) : QObject(parent) {
+    new Mpris([this](const QString &title, const QString &artist) { take(title, artist); }, this);
+}
+
+#include "nowplaying_mpris.moc"
