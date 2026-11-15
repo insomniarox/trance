@@ -161,9 +161,16 @@ VisualizerItem::VisualizerItem(QQuickItem *parent) : QQuickFramebufferObject(par
     // music, the preset and the settings cross over to the render thread. A
     // renderer that re-arms itself keeps drawing, but with what it was given
     // on the first frame.
+    //
+    // The update is queued until the frame has been synchronized. Asked for
+    // at once, it does nothing when the item is already waiting for this
+    // frame, as it is after a resize (a panel opening or closing), and then
+    // nothing asks for the next frame and the picture stands still. After
+    // the sync the item is never waiting, so the update always asks.
     connect(this, &QQuickItem::windowChanged, this, [this](QQuickWindow *window) {
         if (window)
-            connect(window, &QQuickWindow::afterAnimating, this, &QQuickItem::update, Qt::UniqueConnection);
+            connect(window, &QQuickWindow::afterAnimating, this, &QQuickItem::update,
+                    Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
     });
 }
 
