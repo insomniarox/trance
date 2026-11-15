@@ -1427,6 +1427,57 @@ private slots:
 #endif
     }
 
+    // With a sound card, and a tone that comes and goes playing on it, each
+    // kind of source has to hear the tone, hear it stop, and hear it come
+    // back. Hearing it stop is the part that depends on silence being passed
+    // on: the analyzer holds on to the last sound it was given. GitHub runs
+    // this with a virtual cable for a sound card and tests/tone.ps1 for the
+    // tone; TRANCE_TEST_HEARS names the application that plays it.
+    void captureHearsWhatPlays()
+    {
+#ifdef Q_OS_WIN
+        const QString player = qEnvironmentVariable("TRANCE_TEST_HEARS");
+        if (player.isEmpty())
+            QSKIP("Needs a sound card and a tone playing on it: see tests/tone.ps1");
+        // The player is on the list while its tone sounds, and the devices are.
+        QStringList sources;
+        QElapsedTimer waited;
+        waited.start();
+        for (bool found = false; !found;) {
+            QList<AudioCapture::Node> nodes;
+            QString error;
+            QVERIFY2(AudioCapture::listNodes(&nodes, &error), qPrintable(error));
+            sources = {"system", "app:" + player, "microphone"};
+            for (const AudioCapture::Node &node : nodes) {
+                if (node.kind == AudioCapture::Node::Application)
+                    found = found || node.application.compare(player, Qt::CaseInsensitive) == 0;
+                else if (node.available)
+                    sources << (node.kind == AudioCapture::Node::Output ? "output:" : "input:") + node.name;
+            }
+            QVERIFY2(found || waited.elapsed() < 20000, "The application playing the tone never got on the list");
+            if (!found)
+                QTest::qWait(200);
+        }
+        QVERIFY2(sources.size() >= 5, "No output and input to hear the tone through");
+
+        for (const QString &source : sources) {
+            Analyzer analyzer;
+            AudioCapture capture(&analyzer);
+            capture.start(source);
+            QElapsedTimer since;
+            since.start();
+            const auto silent = [&] { return analyzer.analyze(since.restart() / 1000.0).silent; };
+            QTRY_VERIFY2_WITH_TIMEOUT(!silent(), qPrintable(source + " was not heard. " + capture.error()), 20000);
+            QTRY_VERIFY2_WITH_TIMEOUT(silent(), qPrintable(source + " was not heard to stop"), 20000);
+            QTRY_VERIFY2_WITH_TIMEOUT(!silent(), qPrintable(source + " was not heard again. " + capture.error()), 20000);
+            QVERIFY2(capture.error().isEmpty(), qPrintable(capture.error()));
+            qInfo().noquote() << "heard, heard to stop, and heard again:" << source;
+        }
+#else
+        QSKIP("How Windows is listened to is only tried on Windows");
+#endif
+    }
+
     // What shows over the picture is the user's to ask for: nothing does
     // until they have, and what they choose is remembered.
     void backendKeepsThePictureClearUnlessAsked()

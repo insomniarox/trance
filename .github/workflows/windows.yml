@@ -39,6 +39,34 @@ jobs:
       - name: Test
         run: bin\test.ps1
 
+      # The runner has no sound card. A virtual cable gives it an output, and
+      # an input that carries what the output plays, so that what Trance hears
+      # can be tried: a tone that comes and goes is played, and every kind of
+      # source has to hear it come and go. The cable is VB-Audio's and is
+      # fetched from them; without it the rest goes on, and this is left out.
+      - name: A sound card
+        id: sound
+        continue-on-error: true
+        uses: LABSN/sound-ci-helpers@v1
+
+      - name: Hearing
+        if: steps.sound.outcome == 'success'
+        run: |
+          Start-Service Audiosrv
+          # The runner's Windows keeps the microphone from applications.
+          $consent = 'Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
+          foreach ($key in "HKLM:\$consent", "HKCU:\$consent", "HKCU:\$consent\NonPackaged") {
+            if (-not (Test-Path $key)) { New-Item $key -Force | Out-Null }
+            Set-ItemProperty $key -Name Value -Value Allow
+          }
+          $tone = Start-Process powershell -PassThru -WindowStyle Hidden -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tests\tone.ps1'
+          $env:TRANCE_TEST_HEARS = 'powershell'
+          build\tests\trance_tests.exe captureHearsWhatPlays captureStartsAndStopsOnWindows
+          $failed = $LASTEXITCODE
+          build\trance.exe sources
+          Stop-Process -Id $tone.Id
+          exit $failed
+
       - name: Commands
         run: |
           function Must { if ($LASTEXITCODE) { throw "That exited with $LASTEXITCODE." } }
