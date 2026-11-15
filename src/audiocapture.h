@@ -14,9 +14,10 @@ class Analyzer;
 // speakers as before.
 //
 // How the listening is done differs by system, and so does the file it is
-// in: audiocapture_pipewire.cpp on Linux. What the sources are called, what
-// goes on the list of them, and trying again when the sound goes away are the
-// same everywhere, and are in audiocapture.cpp.
+// in: audiocapture_pipewire.cpp on Linux, audiocapture_wasapi.cpp on Windows.
+// What the sources are called, what goes on the list of them, and trying
+// again when the sound goes away are the same everywhere, and are in
+// audiocapture.cpp.
 class AudioCapture : public QObject {
     Q_OBJECT
 
@@ -26,7 +27,8 @@ public:
 
     // "system" (what is playing), "microphone" (the default input),
     // "app:Spotify" (that application only), or "output:<name>" /
-    // "input:<name>" for one device by the name its system knows it by.
+    // "input:<name>" for one device by the name its system knows it by:
+    // PipeWire's node name on Linux, the endpoint's id on Windows.
     void start(const QString &source);
     void stop();
     static bool isSource(const QString &source);

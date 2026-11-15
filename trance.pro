@@ -47,8 +47,10 @@ unix {
 
 win32 {
     SOURCES += \
-        src/audiocapture_none.cpp \
+        src/audiocapture_wasapi.cpp \
         src/nowplaying_none.cpp
+    # What Windows' sound is reached through.
+    LIBS += -lole32 -lmmdevapi -lavrt
     # A console program, so that a shell waits for a command and gets its
     # output; the manifest keeps Windows from opening a console for the window.
     CONFIG += console

@@ -1375,6 +1375,58 @@ private slots:
 #endif
     }
 
+    // On Windows the listening is threads of its own talking to the sound
+    // system. Without a sound card to hear, what can be checked is that each
+    // kind of source starts, says what is wrong when something is, and stops
+    // without waiting or falling over, however quickly it is asked to.
+    void captureStartsAndStopsOnWindows()
+    {
+#ifdef Q_OS_WIN
+        Analyzer analyzer;
+        {
+            AudioCapture capture(&analyzer);
+            capture.start("app:no-such-application");
+            QTRY_COMPARE_WITH_TIMEOUT(capture.error(), QString("Waiting for no-such-application to play something."),
+                                      8000);
+        }
+        for (const QString &source : {QString("output:no-such-device"), QString("input:no-such-device")}) {
+            AudioCapture capture(&analyzer);
+            capture.start(source);
+            QTRY_COMPARE_WITH_TIMEOUT(capture.error(), QString("Audio capture stopped: the device is not connected."),
+                                      8000);
+        }
+        // Whether these two can be heard depends on the computer, so what
+        // happened is only noted.
+        for (const QString &source : {QString("system"), QString("microphone")}) {
+            AudioCapture capture(&analyzer);
+            capture.start(source);
+            QTest::qWait(1500);
+            qInfo().noquote() << source << "gives:"
+                              << (capture.error().isEmpty() ? QString("sound, or silence") : capture.error());
+            for (int i = 0; i < 20; ++i) {
+                capture.start(source);
+                QTest::qWait(i * 5);
+            }
+            capture.stop();
+        }
+        // The list always has everything and the microphone on it.
+        AudioCapture capture(&analyzer);
+        QSignalSpy listed(&capture, &AudioCapture::sourcesChanged);
+        capture.refreshSources();
+        capture.refreshSources();
+        QTRY_COMPARE_WITH_TIMEOUT(listed.count(), 1, 8000);
+        QVERIFY(capture.sources().size() >= 2);
+        QList<AudioCapture::Node> nodes;
+        QString error;
+        QVERIFY2(AudioCapture::listNodes(&nodes, &error), qPrintable(error));
+        for (const auto &entry : AudioCapture::describe(nodes, {}))
+            qInfo().noquote() << "source:" << entry.toMap().value("id").toString() << "="
+                              << entry.toMap().value("label").toString();
+#else
+        QSKIP("How Windows is listened to is only tried on Windows");
+#endif
+    }
+
     // What shows over the picture is the user's to ask for: nothing does
     // until they have, and what they choose is remembered.
     void backendKeepsThePictureClearUnlessAsked()
