@@ -98,24 +98,38 @@ corners that follow the window rounding on Hyprland.
 
 ## Windows
 
-Trance runs on Windows 11 on x64 too, as fully as on Linux. Each change is
+Trance runs on Windows 11 24H2 or later, on x64, as fully as on Linux. Each change is
 built and tested on GitHub, where a virtual sound cable plays a tone for it
 to hear and two stand-in media players give it titles. It has also run on a
 real Windows 11 PC, though not yet across many sound cards and players.
 
-### Running it
+### Installing it
 
-Every build on GitHub leaves a ready-to-run copy: open the
+Each [release](https://github.com/insomniarox/trance/releases) comes two
+ways, and both bring Qt and Microsoft's C++ runtime along, so nothing has
+to be installed first:
+
+- **`trance-<version>-setup.exe`**, the installer. It installs for you
+  alone, into `%LOCALAPPDATA%\Programs\Trance`, without asking for an
+  administrator, and puts Trance in the Start menu (and on the desktop if
+  you tick it). It also tells Windows where `trance.exe` is, so
+  `trance next` works from Run (Win+R) and from AutoHotkey without a
+  path. A newer one installs over it; Settings > Apps uninstalls it.
+- **`trance-<version>-windows-x64.zip`**, to unzip anywhere and start
+  `trance\trance.exe`, with nothing written outside that folder.
+
+Windows may warn that it doesn't know the installer ("Windows protected
+your PC"), because it isn't signed yet: "More info", then "Run anyway".
+Either way, settings and your presets are kept in `%LOCALAPPDATA%\trance`,
+and uninstalling leaves them there.
+
+Every build on GitHub also leaves both, between releases: open the
 [Windows runs](https://github.com/insomniarox/trance/actions/workflows/windows.yml),
-pick the newest green one, and download `trance-windows` under Artifacts
-(GitHub asks you to sign in for that). Unzip it anywhere and start
-`dist\trance\trance.exe`. It brings Qt and Microsoft's C++ runtime along, so
-nothing has to be installed first. Settings and your presets are kept in
-`%LOCALAPPDATA%\trance`.
+pick the newest green one, and download `trance-release` under Artifacts
+(GitHub asks you to sign in for that).
 
-On Windows 11 before 24H2 a console window opens beside Trance's when it
-is started from Explorer or the Start menu; it can be ignored, and closing
-it closes Trance.
+On Windows before 24H2 the installer refuses, and the zip's Trance opens a
+console window beside its own; that version is not supported.
 
 ### Building it
 
@@ -128,6 +142,8 @@ It needs:
   build finds it under `C:\Qt` by itself; elsewhere, set `QTDIR` to the
   kit, as in `C:\Qt\6.8.3\msvc2022_64`.
 - A graphics driver with OpenGL 3.3, which every current one has.
+- For the installer only, [Inno Setup](https://jrsoftware.org/isinfo.php) 6
+  (`winget install JRSoftware.InnoSetup`).
 
 Then, in PowerShell:
 
@@ -137,7 +153,8 @@ cd trance
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # once: lets the build scripts run
 bin\build.ps1      # builds build\trance.exe
 bin\test.ps1       # the tests
-bin\package.ps1    # dist\trance: the program and all it needs, to zip and carry
+bin\package.ps1    # dist\trance: the program and all it needs, and a zip of it
+bin\installer.ps1  # dist\trance-<version>-setup.exe, with Inno Setup 6
 dist\trance\trance.exe
 ```
 
@@ -324,11 +341,22 @@ bin/build    # qmake6 + make into build/trance
 bin/test     # the test suite, offscreen
 ```
 
-On Windows, `bin\build.ps1`, `bin\test.ps1` and `bin\package.ps1` (see
-[Windows](#windows)). What differs by system is in files of its own, picked
+On Windows, `bin\build.ps1`, `bin\test.ps1`, `bin\package.ps1` and
+`bin\installer.ps1` (see [Windows](#windows)). What differs by system is in files of its own, picked
 in `trance.pro`: `audiocapture_pipewire.cpp` and `audiocapture_wasapi.cpp`
 for listening, `nowplaying_mpris.cpp` and `nowplaying_smtc.cpp` for track
 titles, and `theme_hyprland.cpp` for the corners.
+
+A release is made by raising `VERSION` in `trance.pro` (and `pkgver` in
+`pkgbuild/PKGBUILD` with it), then pushing a tag of the same number:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The Windows run for the tag builds and tests as for any push, and then
+publishes the zip and the installer as a release on GitHub, with notes
+made from the commits since the one before.
 
 ## Where the ideas come from
 

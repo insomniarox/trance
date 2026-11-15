@@ -3,6 +3,8 @@ name: Windows
 on:
   push:
     branches: [master]
+    # A tag such as v0.2.0 is a release: what is built is published as one.
+    tags: ['v*']
   workflow_dispatch:
 
 # Reading the code is all the run needs to do with the repository.
@@ -23,6 +25,15 @@ jobs:
       # commit a version stood at, so that what runs here can't be changed
       # under it.
       - uses: actions/checkout@v7
+
+      # A release has to be the version the program and installer say.
+      - name: The tag matches the version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          . bin\msvc.ps1
+          if ("v$(Get-TranceVersion)" -ne $env:GITHUB_REF_NAME) {
+            throw "The tag is $env:GITHUB_REF_NAME, but trance.pro gives VERSION = $(Get-TranceVersion)."
+          }
 
       - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
         with:
@@ -124,6 +135,47 @@ jobs:
           Stop-Process -Id $window.Id
           Get-Content window.out, window.err
 
+      # Inno Setup comes from its makers through Chocolatey, which the runner
+      # has, unless the runner has it already.
+      - name: Installer
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE) { throw "Inno Setup could not be installed." }
+          }
+          bin\installer.ps1
+
+      # As a user would: installed without a question, found where Windows
+      # looks, run, and then uninstalled without anything left behind.
+      - name: The installer installs and uninstalls
+        run: |
+          $setup = Get-ChildItem dist\trance-*-setup.exe | Select-Object -First 1
+          $p = Start-Process $setup.FullName -Wait -PassThru -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/LOG=install.log'
+          if ($p.ExitCode) { Get-Content install.log; throw "Setup exited with $($p.ExitCode)." }
+          $app = "$env:LOCALAPPDATA\Programs\Trance"
+          $menu = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Trance.lnk"
+          $paths = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\trance.exe'
+          if (-not (Test-Path "$app\trance.exe")) { throw "Trance is not in $app." }
+          if (-not (Test-Path $menu)) { throw "There is no Start menu entry." }
+          if ((Get-ItemProperty $paths).'(default)' -ne "$app\trance.exe") { throw "Windows is not told where trance.exe is." }
+          & "$app\trance.exe" check "Neon Tunnel"
+          if ($LASTEXITCODE) { throw "The installed Trance exited with $LASTEXITCODE." }
+          # The uninstaller hands over to a copy of itself and returns at once.
+          Start-Process "$app\unins000.exe" -Wait -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+          $until = (Get-Date).AddSeconds(60)
+          while ((Test-Path "$app\trance.exe") -and (Get-Date) -lt $until) { Start-Sleep -Milliseconds 500 }
+          if (Test-Path "$app\trance.exe") { throw "Trance is still in $app after uninstalling." }
+          if (Test-Path $menu) { throw "The Start menu entry is still there." }
+          if (Test-Path $paths) { throw "Windows is still told where trance.exe was." }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: trance-release
+          path: |
+            dist/trance-*-windows-x64.zip
+            dist/trance-*-setup.exe
+          if-no-files-found: error
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -132,3 +184,25 @@ jobs:
             dist/trance
             render.png
           if-no-files-found: ignore
+
+  # Only for a tag, and only once everything above has passed: the zip and
+  # the installer become a release on GitHub, with notes made from the commits
+  # since the release before. This is the one job that may write to the
+  # repository, and it runs nothing but GitHub's own tools.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: trance-release
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" trance-*-windows-x64.zip trance-*-setup.exe \
+            --repo "$GITHUB_REPOSITORY" --title "Trance ${GITHUB_REF_NAME#v}" --generate-notes

@@ -4,6 +4,11 @@ CONFIG += c++17 release
 TARGET = trance
 TEMPLATE = app
 
+# The one place the version is written. A release is tagged v and this, and
+# the Windows installer and the program's file details take it from here.
+VERSION = 0.1.0
+DEFINES += TRANCE_VERSION=\\\"$$VERSION\\\"
+
 HEADERS += \
     src/audio.h \
     src/audiocapture.h \
@@ -62,6 +67,11 @@ win32 {
     CONFIG += msvc_mp
     QMAKE_LFLAGS += /MANIFEST:embed /MANIFESTINPUT:$$shell_quote($$shell_path($$PWD/pkgbuild/trance.manifest))
     RC_ICONS = pkgbuild/trance.ico
+    # What Explorer's Details tab and Task Manager call the program.
+    QMAKE_TARGET_PRODUCT = Trance
+    QMAKE_TARGET_DESCRIPTION = Trance
+    QMAKE_TARGET_COMPANY = insomniarox
+    QMAKE_TARGET_COPYRIGHT = Copyright (c) 2026 insomniarox
     # M_PI and its like, which Microsoft's <cmath> keeps back unless asked,
     # and no min and max macros from its windows.h.
     DEFINES += _USE_MATH_DEFINES NOMINMAX

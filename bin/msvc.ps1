@@ -1,4 +1,5 @@
-# Puts the compiler and Qt within reach, for build.ps1 and test.ps1.
+# Puts the compiler and Qt within reach, for build.ps1 and test.ps1, and
+# says which version of Trance this is, for package.ps1 and installer.ps1.
 #
 # The compiler is Visual Studio 2022's (the free Build Tools will do) and is
 # found on its own. Qt is the MSVC 2022 64-bit kit: found through QTDIR (as in
@@ -45,4 +46,12 @@ function Invoke-Build([string]$project, [string]$directory) {
     }
     # Where Qt's own libraries are, for running what was built.
     $env:PATH = (Split-Path $qmake) + ';' + $env:PATH
+}
+
+# The version trance.pro gives, as in 0.1.0.
+function Get-TranceVersion {
+    $root = Split-Path -Parent $PSScriptRoot
+    $line = Select-String -Path "$root\trance.pro" -Pattern '^VERSION\s*=\s*(\S+)' | Select-Object -First 1
+    if (-not $line) { throw "trance.pro gives no VERSION." }
+    return $line.Matches[0].Groups[1].Value
 }

@@ -1,5 +1,6 @@
-# Puts Trance and everything it needs to run into dist\trance, to zip and
-# carry to a PC that has neither Qt nor Visual Studio. Run build.ps1 first.
+# Puts Trance and everything it needs to run into dist\trance, for a PC that
+# has neither Qt nor Visual Studio, and zips it as
+# dist\trance-<version>-windows-x64.zip. Run build.ps1 first.
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\msvc.ps1"
 
@@ -19,4 +20,8 @@ if ($LASTEXITCODE) { throw "windeployqt failed." }
 # Microsoft's C++ runtime beside the program, so none has to be installed.
 Copy-Item "$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\*.dll" $out
 Copy-Item "$root\LICENSE" "$out\LICENSE.txt"
-Write-Output "Packaged $out"
+
+$zip = "$root\dist\trance-$(Get-TranceVersion)-windows-x64.zip"
+if (Test-Path $zip) { Remove-Item $zip }
+Compress-Archive -Path $out -DestinationPath $zip
+Write-Output "Packaged $out and $zip"
