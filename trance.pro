@@ -53,6 +53,8 @@ win32 {
     # output; the manifest keeps Windows from opening a console for the window.
     CONFIG += console
     CONFIG -= debug_and_release
+    # Every core, which Microsoft's compiler keeps to one of unless asked.
+    CONFIG += msvc_mp
     QMAKE_LFLAGS += /MANIFEST:embed /MANIFESTINPUT:$$shell_quote($$shell_path($$PWD/pkgbuild/trance.manifest))
     RC_ICONS = pkgbuild/trance.ico
     # M_PI and its like, which Microsoft's <cmath> keeps back unless asked,

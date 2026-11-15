@@ -14,6 +14,9 @@ jobs:
       # The runner has no graphics card, so everything is drawn by the
       # software renderer Qt brings along.
       QT_OPENGL: software
+      # With no console window to write to, Qt sends what the tests and the
+      # window have to say to a debugger instead, unless told otherwise.
+      QT_FORCE_STDERR_LOGGING: 1
     steps:
       - uses: actions/checkout@v4
 

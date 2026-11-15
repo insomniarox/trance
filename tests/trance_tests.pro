@@ -14,6 +14,8 @@ unix: SOURCES += ../src/audiocapture_pipewire.cpp ../src/theme_hyprland.cpp
 win32 {
     SOURCES += ../src/audiocapture_none.cpp
     CONFIG -= debug_and_release
+    # Every core, which Microsoft's compiler keeps to one of unless asked.
+    CONFIG += msvc_mp
     DEFINES += _USE_MATH_DEFINES NOMINMAX
 }
 
