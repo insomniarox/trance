@@ -1,0 +1,74 @@
+name: Windows
+
+on:
+  push:
+    branches: [master, windows]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Windows Server 2025 is the same build of Windows as Windows 11 24H2.
+    runs-on: windows-2025
+    timeout-minutes: 30
+    env:
+      # The runner has no graphics card, so everything is drawn by the
+      # software renderer Qt brings along.
+      QT_OPENGL: software
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: win64_msvc2022_64
+          cache: true
+
+      - name: Build
+        run: bin\build.ps1
+
+      - name: Test
+        run: bin\test.ps1
+
+      - name: Commands
+        run: |
+          function Must { if ($LASTEXITCODE) { throw "That exited with $LASTEXITCODE." } }
+          build\trance.exe list | Select-Object -First 5; Must
+          build\trance.exe sources; Must
+          build\trance.exe check "Neon Tunnel" Whitecaps; Must
+          build\trance.exe render "Neon Tunnel" -o render.png --seconds 2; Must
+
+      - name: Package
+        run: bin\package.ps1
+
+      # As on a PC without Qt: the window has to come up from the package
+      # alone, and answer the commands that steer it.
+      - name: The package runs on its own
+        run: |
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch '\\Qt\\' }) -join ';'
+          Remove-Item Env:QT_PLUGIN_PATH, Env:QML2_IMPORT_PATH, Env:QT_ROOT_DIR -ErrorAction SilentlyContinue
+          $trance = "dist\trance\trance.exe"
+          $window = Start-Process $trance -PassThru -RedirectStandardOutput window.out -RedirectStandardError window.err
+          $until = (Get-Date).AddSeconds(90)
+          do {
+            Start-Sleep -Milliseconds 500
+            $first = & $trance current 2>$null
+          } until ($LASTEXITCODE -eq 0 -or $window.HasExited -or (Get-Date) -gt $until)
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content window.out, window.err
+            throw "The window did not come up."
+          }
+          & $trance preset Whitecaps
+          if ((& $trance current) -ne "Whitecaps") { throw "The window did not change preset." }
+          Start-Sleep -Seconds 3
+          if ($window.HasExited) { Get-Content window.out, window.err; throw "The window went away." }
+          Stop-Process -Id $window.Id
+          Get-Content window.out, window.err
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trance-windows
+          path: |
+            dist/trance
+            render.png
+          if-no-files-found: ignore
