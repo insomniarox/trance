@@ -3,6 +3,7 @@
 #include <QImage>
 #include <QOpenGLExtraFunctions>
 #include <QString>
+#include <algorithm>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -202,7 +203,27 @@ private:
     void drawVectors(const Block &layer);
     void darkenCenter();
 
-    void vertex(float x, float y, const float *rgba, float ex, float ey, float u = -1, float v = 0);
+    // Tens of thousands of times a frame, so kept to plain stores, here
+    // where every caller can have it inlined. rgba must not point into
+    // m_vertices, which may move.
+    void vertex(float x, float y, const float *rgba, float ex, float ey, float u = -1, float v = 0) {
+        if (m_used + 10 > m_vertices.size())
+            m_vertices.resize(std::max<size_t>(2 * m_vertices.size(), size_t(1) << 16));
+        float *const into = m_vertices.data() + m_used;
+        into[0] = x;
+        into[1] = y;
+        into[2] = rgba[0];
+        into[3] = rgba[1];
+        into[4] = rgba[2];
+        // m_layerAlpha is how much of the scene being drawn shows: all of it
+        // normally, part of it while presets change over or a visitor fades.
+        into[5] = rgba[3] * m_layerAlpha;
+        into[6] = ex;
+        into[7] = ey;
+        into[8] = u;
+        into[9] = v;
+        m_used += 10;
+    }
     void polyline(const std::vector<Point> &points, bool closed, float halfWidth);
     void dot(const Point &point, float halfSize);
     void flush(bool additive);

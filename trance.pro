@@ -1,6 +1,8 @@
 QT += core gui qml quick quickcontrols2 opengl network
 
 CONFIG += c++17 release
+# Not with -ffast-math or /fp:fast: the engine and formulas rely on NaN
+# comparing unequal to everything, as the standard has it.
 TARGET = trance
 TEMPLATE = app
 
