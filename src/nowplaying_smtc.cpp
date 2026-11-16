@@ -7,6 +7,7 @@
 // which waits there, and hands what it finds to the thread Trance lives on.
 #include "nowplaying.h"
 
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -65,6 +66,16 @@ struct Bell {
         }
         rung.notify_all();
     }
+
+    // Waits this long, or less when closing, and says whether it is. If not,
+    // what is playing is to be asked for again.
+    bool rest(std::chrono::seconds time) {
+        std::unique_lock<std::mutex> lock(mutex);
+        if (rung.wait_for(lock, time, [this] { return closing; }))
+            return true;
+        changed = true;
+        return false;
+    }
 };
 
 class Smtc : public QObject {
@@ -80,7 +91,9 @@ private:
         Session::PlaybackInfoChanged_revoker playback;
     };
 
-    void watch(const Manager &manager);
+    // Until closing, which it says, or until the manager stops answering.
+    // looked is set once it has.
+    bool watch(const Manager &manager, bool *looked);
     void look(const Manager &manager);
 
     std::function<void(const QString &, const QString &)> m_found;
@@ -94,12 +107,24 @@ Smtc::Smtc(std::function<void(const QString &, const QString &)> found, QObject 
     : QObject(parent), m_found(std::move(found)) {
     m_watching = std::thread([this] {
         winrt::init_apartment();
-        try {
-            // The first question of all can find Windows still starting what answers it.
-            if (const Manager manager = answer(Manager::RequestAsync(), 5000ms))
-                watch(manager);
-        } catch (const winrt::hresult_error &) {
-            // No media controls to ask: no titles.
+        // Asked for again until closing: the first question of all can find
+        // Windows still starting what answers it, as at login, and what
+        // answers can restart. A little longer each time it fails, and from
+        // the start again once it has worked.
+        for (std::chrono::seconds pause = 1s;; pause = std::min<std::chrono::seconds>(2 * pause, 60s)) {
+            bool looked = false;
+            try {
+                if (const Manager manager = answer(Manager::RequestAsync(), 5000ms))
+                    if (watch(manager, &looked))
+                        break;
+            } catch (const winrt::hresult_error &) {
+                // No media controls to ask, for now.
+            }
+            m_players.clear();
+            if (looked)
+                pause = 1s;
+            if (m_bell->rest(pause))
+                break;
         }
         m_players.clear();
         winrt::clear_factory_cache();
@@ -112,7 +137,7 @@ Smtc::~Smtc() {
     m_watching.join();
 }
 
-void Smtc::watch(const Manager &manager) {
+bool Smtc::watch(const Manager &manager, bool *looked) {
     const std::shared_ptr<Bell> bell = m_bell;
     const auto ring = [bell](const auto &, const auto &) { bell->ring(&Bell::changed); };
     const auto listChanged = manager.SessionsChanged(winrt::auto_revoke, ring);
@@ -120,7 +145,9 @@ void Smtc::watch(const Manager &manager) {
     const auto stirred = [&] { return bell->changed || bell->closing; };
     std::unique_lock<std::mutex> lock(bell->mutex);
     for (;;) {
-        bell->rung.wait(lock, stirred);
+        // Looked at every so often even when nothing rings, as nothing would
+        // if what answers had gone: the looking then fails, and says so.
+        bell->rung.wait_for(lock, 30s, stirred);
         // A new track is announced in several steps: look once they have
         // stopped coming for a moment.
         while (bell->changed && !bell->closing) {
@@ -128,13 +155,16 @@ void Smtc::watch(const Manager &manager) {
             bell->rung.wait_for(lock, 150ms, stirred);
         }
         if (bell->closing)
-            return;
+            return true;
         lock.unlock();
         try {
             look(manager);
         } catch (const winrt::hresult_error &) {
-            // A player that went away while it was asked: its going rings again.
+            // What answers has gone, or a player did while it was asked:
+            // asked for again from the start, which covers both.
+            return false;
         }
+        *looked = true;
         lock.lock();
     }
 }

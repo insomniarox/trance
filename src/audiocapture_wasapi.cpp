@@ -13,7 +13,11 @@
 
 #include <QElapsedTimer>
 #include <QHash>
+#include <algorithm>
+#include <atomic>
 #include <cstring>
+#include <memory>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -79,16 +83,28 @@ struct Handle {
 };
 
 // Told by Windows, on a thread of its choosing, that the listening to a
-// process that was asked for is ready to be picked up.
+// process that was asked for is ready to be picked up. What was asked for is
+// kept here, not on the stack of the one asking: Windows holds on to this
+// until it answers, and a listening told to stop doesn't wait for that.
 class Activated : public RuntimeClass<RuntimeClassFlags<ClassicCom>, FtmBase, IActivateAudioInterfaceCompletionHandler> {
 public:
-    Activated() : done(CreateEventW(nullptr, TRUE, FALSE, nullptr)) {}
+    Activated(DWORD process, bool only) : done(CreateEventW(nullptr, TRUE, FALSE, nullptr)) {
+        wanted.ActivationType = AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK;
+        wanted.ProcessLoopbackParams.TargetProcessId = process;
+        wanted.ProcessLoopbackParams.ProcessLoopbackMode =
+            only ? PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE : PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
+        wrapped.vt = VT_BLOB;
+        wrapped.blob.cbSize = sizeof(wanted);
+        wrapped.blob.pBlobData = reinterpret_cast<BYTE *>(&wanted);
+    }
     ~Activated() { CloseHandle(done); }
     STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *) override {
         SetEvent(done);
         return S_OK;
     }
     const HANDLE done;
+    AUDIOCLIENT_ACTIVATION_PARAMS wanted = {};
+    PROPVARIANT wrapped = {};
 };
 
 // Told by Windows when another microphone becomes the default one, which is
@@ -107,6 +123,22 @@ public:
     STDMETHOD(OnDeviceRemoved)(LPCWSTR) override { return S_OK; }
     STDMETHOD(OnPropertyValueChanged)(LPCWSTR, const PROPERTYKEY) override { return S_OK; }
     const HANDLE moved;
+};
+
+// Being told of the default microphone changing, for as long as this lives.
+struct Following {
+    explicit Following(IMMDeviceEnumerator *enumerator) : enumerator(enumerator), told(Make<DefaultInput>()) {
+        if (told && FAILED(enumerator->RegisterEndpointNotificationCallback(told.Get())))
+            told.Reset();
+    }
+    Following(const Following &) = delete;
+    Following &operator=(const Following &) = delete;
+    ~Following() {
+        if (told)
+            enumerator->UnregisterEndpointNotificationCallback(told.Get());
+    }
+    IMMDeviceEnumerator *const enumerator;
+    ComPtr<DefaultInput> told;
 };
 
 // A running process: the one that started it, and its program's name
@@ -134,8 +166,9 @@ QHash<DWORD, Running> processes() {
 }
 
 // The processes that have sound open on any output right now. Windows' own
-// sounds are left out, and so is Trance.
-QList<DWORD> playing(IMMDeviceEnumerator *enumerator) {
+// sounds are left out, and so is Trance. Those whose sound is running, not
+// just open, as a paused player's is, also go into sounding, if given.
+QList<DWORD> playing(IMMDeviceEnumerator *enumerator, QList<DWORD> *sounding = nullptr) {
     QList<DWORD> found;
     ComPtr<IMMDeviceCollection> outputs;
     UINT count = 0;
@@ -162,9 +195,13 @@ QList<DWORD> playing(IMMDeviceEnumerator *enumerator) {
             // of an application that played earlier.
             if (details->IsSystemSoundsSession() == S_OK || FAILED(session->GetState(&state)) ||
                 state == AudioSessionStateExpired || FAILED(details->GetProcessId(&process)) || process == 0 ||
-                process == GetCurrentProcessId() || found.contains(process))
+                process == GetCurrentProcessId())
                 continue;
-            found << process;
+            // One process can have several, a paused one among them.
+            if (!found.contains(process))
+                found << process;
+            if (sounding && state == AudioSessionStateActive && !sounding->contains(process))
+                *sounding << process;
         }
     }
     return found;
@@ -187,7 +224,8 @@ DWORD topmost(const QHash<DWORD, Running> &all, DWORD process) {
 }
 
 // The process to ask for to hear this application, or 0 if it isn't running.
-DWORD processOf(const QString &application, IMMDeviceEnumerator *enumerator) {
+// With onlySounding, the one that is playing right now, or 0 if none is.
+DWORD processOf(const QString &application, IMMDeviceEnumerator *enumerator, bool onlySounding = false) {
     const QHash<DWORD, Running> all = processes();
     const auto called = [&](DWORD process) {
         const auto found = all.constFind(process);
@@ -199,8 +237,16 @@ DWORD processOf(const QString &application, IMMDeviceEnumerator *enumerator) {
             any = process.key();
     if (!any)
         return 0;
-    // Started twice, it is the one with sound open that is meant.
-    for (const DWORD process : playing(enumerator))
+    // Started twice, it is the one playing that is meant, or else one with
+    // sound open.
+    QList<DWORD> sounding;
+    const QList<DWORD> open = playing(enumerator, &sounding);
+    for (const DWORD process : sounding)
+        if (called(process))
+            return topmost(all, process);
+    if (onlySounding)
+        return 0;
+    for (const DWORD process : open)
         if (called(process))
             return topmost(all, process);
     return topmost(all, any);
@@ -272,22 +318,12 @@ bool ask(QList<AudioCapture::Node> *nodes) {
 // everything but those. The answer comes later and elsewhere, and is waited
 // for here, unless told to stop first.
 HRESULT processLoopback(DWORD process, bool only, HANDLE stop, ComPtr<IAudioClient> *client) {
-    AUDIOCLIENT_ACTIVATION_PARAMS wanted = {};
-    wanted.ActivationType = AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK;
-    wanted.ProcessLoopbackParams.TargetProcessId = process;
-    wanted.ProcessLoopbackParams.ProcessLoopbackMode =
-        only ? PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE : PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
-    PROPVARIANT wrapped = {};
-    wrapped.vt = VT_BLOB;
-    wrapped.blob.cbSize = sizeof(wanted);
-    wrapped.blob.pBlobData = reinterpret_cast<BYTE *>(&wanted);
-
-    const ComPtr<Activated> activated = Make<Activated>();
+    const ComPtr<Activated> activated = Make<Activated>(process, only);
     if (!activated)
         return E_OUTOFMEMORY;
     ComPtr<IActivateAudioInterfaceAsyncOperation> operation;
-    HRESULT hr = ActivateAudioInterfaceAsync(VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK, __uuidof(IAudioClient), &wrapped,
-                                             activated.Get(), &operation);
+    HRESULT hr = ActivateAudioInterfaceAsync(VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK, __uuidof(IAudioClient),
+                                             &activated.Get()->wrapped, activated.Get(), &operation);
     if (FAILED(hr))
         return hr;
     const HANDLE either[2] = {stop, activated.Get()->done};
@@ -322,66 +358,97 @@ QString reason(HRESULT hr, const QString &source) {
 } // namespace
 
 struct AudioCapture::Platform {
-    // How a listening came to its end: told to, by something going wrong or
-    // away, or by the default microphone having become another.
-    enum Ended { Stopped, Lost, Moved };
+    // How a listening came to its end: told to, or by something going wrong
+    // or away, which is tried again in a while. Or to be started again at
+    // once: what its source means has become another (the default
+    // microphone, or which of an application's copies is playing), or its
+    // device was changed under it.
+    enum Ended { Stopped, Lost, Again };
 
-    explicit Platform(AudioCapture *capture) : q(capture), stop(CreateEventW(nullptr, TRUE, FALSE, nullptr)) {}
-    ~Platform() { CloseHandle(stop); }
+    // One listening's thread, and what tells it to stop.
+    struct Listening {
+        const Handle stop{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+        std::thread thread;
+        std::atomic<bool> finished{false};
+    };
 
-    Ended listen(const QString &source, int rate, quint64 mine, QString *why);
+    explicit Platform(AudioCapture *capture) : q(capture) {}
+
+    // Joins the stopped listenings that have finished, or with all, every
+    // one, waiting for those that haven't.
+    void reap(bool all);
+    Ended listen(const QString &source, int rate, quint64 mine, HANDLE stop, QString *why);
 
     AudioCapture *q;
-    const HANDLE stop;
-    std::thread listening, listing;
+    std::unique_ptr<Listening> listening;
+    // Listenings told to stop, left to finish on their own threads. Windows
+    // can take seconds to start a device, as a Bluetooth headset changing to
+    // hands-free, and the window would freeze for as long if it were waited
+    // for.
+    std::vector<std::unique_ptr<Listening>> stopping;
+    std::thread listing;
     // Which listening is the current one. What an earlier one sent before it
     // was stopped may still be on its way, and is told apart by this.
     quint64 current = 0;
 };
+
+void AudioCapture::Platform::reap(bool all) {
+    for (auto it = stopping.begin(); it != stopping.end();) {
+        if (all || (*it)->finished) {
+            (*it)->thread.join();
+            it = stopping.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
 
 void AudioCapture::setUp() { m_platform = new Platform(this); }
 
 void AudioCapture::tearDown() {
     if (m_platform->listing.joinable())
         m_platform->listing.join();
+    m_platform->reap(true);
     delete m_platform;
     m_platform = nullptr;
 }
 
 void AudioCapture::open() {
     Platform *p = m_platform;
-    if (p->listening.joinable())
+    p->reap(false);
+    if (p->listening)
         return;
-    ResetEvent(p->stop);
-    p->listening = std::thread([this, p, source = m_source, rate = m_analyzer->sampleRate(), mine = p->current] {
+    p->listening = std::make_unique<Platform::Listening>();
+    Platform::Listening *own = p->listening.get();
+    own->thread = std::thread([this, p, own, source = m_source, rate = m_analyzer->sampleRate(), mine = p->current] {
         QString why;
-        const Platform::Ended ended = p->listen(source, rate, mine, &why);
-        if (ended == Platform::Stopped)
-            return;
-        QMetaObject::invokeMethod(this, [this, p, mine, ended, why] {
-            if (mine != p->current)
-                return;
-            close();
-            if (ended == Platform::Moved)
-                launch();
-            else
-                lost(why);
-        }, Qt::QueuedConnection);
+        const Platform::Ended ended = p->listen(source, rate, mine, own->stop.handle, &why);
+        if (ended != Platform::Stopped)
+            QMetaObject::invokeMethod(this, [this, p, mine, ended, why] {
+                if (mine != p->current)
+                    return;
+                close();
+                if (ended == Platform::Again)
+                    launch();
+                else
+                    lost(why);
+            }, Qt::QueuedConnection);
+        own->finished = true;
     });
 }
 
 void AudioCapture::close() {
     Platform *p = m_platform;
     ++p->current;
-    if (!p->listening.joinable())
+    if (!p->listening)
         return;
-    SetEvent(p->stop);
-    p->listening.join();
+    SetEvent(p->listening->stop.handle);
+    p->stopping.push_back(std::move(p->listening));
 }
 
 // One listening from start to end, on its own thread.
 AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &source, int rate, quint64 mine,
-                                                             QString *why) {
+                                                             HANDLE stop, QString *why) {
     const Com com;
     const auto failed = [&](HRESULT hr) -> Ended {
         if (WaitForSingleObject(stop, 0) == WAIT_OBJECT_0)
@@ -395,17 +462,26 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
     if (FAILED(hr))
         return failed(hr);
 
+    // The microphone is whichever input is the default one, so a change of
+    // default is followed. A device chosen by name is kept to. Told of it
+    // from before the default is asked for, so no change goes unheard.
+    std::optional<Following> following;
+    if (source == "microphone")
+        following.emplace(enumerator.Get());
+
     ComPtr<IAudioClient> client;
     Handle application;
+    const bool only = source.startsWith("app:");
+    const QString applicationName = only ? source.mid(4) : QString();
+    DWORD process = 0;
     // An application that can't be waited on, looked for instead.
     DWORD lookedFor = 0;
     DWORD flags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM;
-    if (source == "system" || source.startsWith("app:")) {
+    if (source == "system" || only) {
         // Everything is all the sound but Trance's own, which it has none of.
-        const bool only = source != "system";
-        DWORD process = GetCurrentProcessId();
+        process = GetCurrentProcessId();
         if (only) {
-            process = processOf(source.mid(4), enumerator.Get());
+            process = processOf(applicationName, enumerator.Get());
             // Not running: lost() says that it is being waited for.
             if (!process)
                 return Lost;
@@ -463,20 +539,12 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
     if (FAILED(hr))
         return failed(hr);
 
-    // The microphone is whichever input is the default one, so a change of
-    // default is followed. A device chosen by name is kept to.
-    ComPtr<DefaultInput> following;
-    if (source == "microphone") {
-        following = Make<DefaultInput>();
-        if (following && FAILED(enumerator->RegisterEndpointNotificationCallback(following.Get())))
-            following.Reset();
-    }
-
     // Besides sound and being told to stop, one more thing can end it: the
     // application closing, or the default microphone changing.
+    const bool moving = following && following->told;
     HANDLE waiting[3] = {stop, ready.handle, application.handle};
-    if (following)
-        waiting[2] = following.Get()->moved;
+    if (moving)
+        waiting[2] = following->told.Get()->moved;
     const DWORD count = waiting[2] ? 3 : 2;
 
     const auto deliver = [this, mine](std::vector<float> &samples) {
@@ -490,9 +558,11 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
     // Ahead of ordinary work, as Windows offers to threads that handle sound.
     DWORD task = 0;
     const HANDLE priority = AvSetMmThreadCharacteristicsW(L"Audio", &task);
-    QElapsedTimer quiet, sinceLooked;
+    QElapsedTimer quiet, sounded, sinceLooked, running;
     quiet.start();
+    sounded.start();
     sinceLooked.start();
+    running.start();
     std::vector<float> samples;
     Ended ended = Stopped;
     for (;;) {
@@ -500,7 +570,7 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
         if (woke == WAIT_OBJECT_0)
             break;
         if (woke == WAIT_OBJECT_0 + 2) {
-            ended = following ? Moved : Lost;
+            ended = moving ? Again : Lost;
             break;
         }
         if (woke == WAIT_FAILED) {
@@ -518,14 +588,25 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
                 break;
             const size_t had = samples.size();
             samples.resize(had + size_t(frames) * 2);
-            if (!(kind & AUDCLNT_BUFFERFLAGS_SILENT))
-                std::memcpy(samples.data() + had, data, size_t(frames) * 2 * sizeof(float));
+            if (!(kind & AUDCLNT_BUFFERFLAGS_SILENT)) {
+                float *const into = samples.data() + had;
+                std::memcpy(into, data, size_t(frames) * 2 * sizeof(float));
+                if (only && std::any_of(into, into + size_t(frames) * 2, [](float sample) { return sample != 0.f; }))
+                    sounded.restart();
+            }
             hr = packets->ReleaseBuffer(frames);
             if (FAILED(hr))
                 break;
         }
         if (FAILED(hr)) {
             ended = failed(hr);
+            // Changed under it rather than gone, as by a new sample rate, or
+            // the default microphone unplugged before the new default is
+            // announced: started again at once, which says so if it is gone.
+            // Not when it had only just started, so as not to go round and
+            // round.
+            if (ended == Lost && hr == AUDCLNT_E_DEVICE_INVALIDATED && running.elapsed() >= 1000)
+                ended = Again;
             break;
         }
         // Nothing for a while is silence, and is passed on as that much of
@@ -536,18 +617,31 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
             samples.assign(size_t(qMin<qint64>(quiet.restart(), 4 * Gap) * rate / 1000) * 2, 0.f);
         if (!samples.empty())
             deliver(samples);
-        if (lookedFor && sinceLooked.elapsed() >= 2000) {
+        // Every so often: whether an application that can't be waited on is
+        // still running, by its name too, as its number may have gone to
+        // another program since. And once the application has been quiet a
+        // while, whether another copy of it is playing, to change to that.
+        if ((lookedFor || only) && sinceLooked.elapsed() >= 2000) {
             sinceLooked.restart();
-            if (!processes().contains(lookedFor)) {
-                ended = Lost;
-                break;
+            if (lookedFor) {
+                const QHash<DWORD, Running> all = processes();
+                const auto found = all.constFind(lookedFor);
+                if (found == all.constEnd() || found->name.compare(applicationName, Qt::CaseInsensitive) != 0) {
+                    ended = Lost;
+                    break;
+                }
+            }
+            if (only && sounded.elapsed() >= 3000) {
+                const DWORD other = processOf(applicationName, enumerator.Get(), true);
+                if (other && other != process) {
+                    ended = Again;
+                    break;
+                }
             }
         }
     }
     if (priority)
         AvRevertMmThreadCharacteristics(priority);
-    if (following)
-        enumerator->UnregisterEndpointNotificationCallback(following.Get());
     client->Stop();
     return ended;
 }
