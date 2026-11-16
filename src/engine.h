@@ -3,6 +3,7 @@
 #include <QImage>
 #include <QOpenGLExtraFunctions>
 #include <QString>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -154,6 +155,16 @@ private:
         // Visitors only: when it came, how long it stays, how much it shows.
         double age = 0, life = 0;
         std::vector<double> scratch;
+        // What flowAt worked out last and the settings it was from, as it is
+        // asked point after point and they seldom differ from one to the
+        // next. Not a number to begin with, which nothing equals.
+        struct {
+            double zoom = std::numeric_limits<double>::quiet_NaN(), sx = zoom, sy = zoom, rot = zoom, k = zoom;
+            double warpTime = zoom;
+            double zoomK = 0, sxK = 0, syK = 0, ca = 1, sa = 0;
+            double f0 = 0, f1 = 0, f2 = 0, f3 = 0;
+        } flow;
+        bool pixelReadsAngle = true;
     };
 
     void initialize();
@@ -239,7 +250,10 @@ private:
     int m_width = 0, m_height = 0;
     float m_aspect = 1;
 
+    // The triangles waiting to be drawn, ten floats a corner: the first
+    // m_used of m_vertices, which only grows.
     std::vector<float> m_vertices, m_uniforms;
+    size_t m_used = 0;
     int m_frameVertices = 0, m_lastVertices = 0;
     std::vector<Point> m_points;
     AudioFrame m_audio;

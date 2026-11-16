@@ -94,11 +94,27 @@ double random01() {
     return double(state >> 11) / double(1ull << 53);
 }
 
+// std::floor, which is a call into the C library unless the build may use
+// SSE4.1, and the noise below is in the innermost loop particles have.
+// Beyond these sizes every number is whole already.
+float floorOf(float v) {
+    if (!(std::abs(v) < 8388608.f))
+        return v;
+    const float whole = float(int32_t(v));
+    return whole > v ? whole - 1 : whole;
+}
+double floorOf(double v) {
+    if (!(std::abs(v) < 4503599627370496.0))
+        return v;
+    const double whole = double(int64_t(v));
+    return whole > v ? whole - 1 : whole;
+}
+
 // The shader's f_hash, step for step and in the same single precision, so
 // that noise() in pixel code gives the CPU (which works out where particles
 // and motion vectors are carried) the same field the picture flows along.
 float latticeHash(float x, float y) {
-    const auto fract = [](float v) { return v - std::floor(v); };
+    const auto fract = [](float v) { return v - floorOf(v); };
     float qx = fract(x * 0.1031f), qy = fract(y * 0.1031f), qz = fract(x * 0.1031f);
     const float d = qx * (qy + 33.33f) + qy * (qz + 33.33f) + qz * (qx + 33.33f);
     qx += d;
@@ -810,7 +826,7 @@ float f_rand(float stream) { return f_hash(gl_FragCoord.xy + vec2(u_seed * 61.7 
 }
 
 double noise(double x, double y) {
-    const double fx = std::floor(x), fy = std::floor(y);
+    const double fx = floorOf(x), fy = floorOf(y);
     double tx = x - fx, ty = y - fy;
     tx = tx * tx * (3 - 2 * tx);
     ty = ty * ty * (3 - 2 * ty);

@@ -381,6 +381,7 @@ std::unique_ptr<Engine::Scene> Engine::makeScene(const CompiledPreset &preset, b
         scene->s.band[band] = vars.find(bandInfo(band).name);
         scene->s.bandAtt[band] = vars.find(QString(bandInfo(band).name) + "_att");
     }
+    scene->pixelReadsAngle = scene->p.pixel.reads(scene->s.ang);
     // The lists below point into these tables, which this scene now owns
     // alone and never changes again.
     scene->p.feedback.numbers.detach();
@@ -1132,7 +1133,8 @@ void Engine::flowAt(Scene &scene, float x, float y, float *toX, float *toY) {
         scene.scratch[size_t(s.x)] = x;
         scene.scratch[size_t(s.y)] = y;
         scene.scratch[size_t(s.rad)] = rad;
-        scene.scratch[size_t(s.ang)] = (x == 0 && y == 0) ? 0.0 : std::atan2(double(y), double(x));
+        if (scene.pixelReadsAngle)
+            scene.scratch[size_t(s.ang)] = (x == 0 && y == 0) ? 0.0 : std::atan2(double(y), double(x));
         scene.p.pixel.run(scene.scratch);
         V = &scene.scratch;
         px = (*V)[size_t(s.x)];
@@ -1140,20 +1142,45 @@ void Engine::flowAt(Scene &scene, float x, float y, float *toX, float *toY) {
     }
     const auto value = [&](int slot) { return (*V)[size_t(slot)]; };
     const double k = m_dt * 60.0;
-    const double z = std::pow(std::max(value(s.zoom), 0.01),
-                              std::pow(std::max(value(s.zoomexp), 0.01), rad * 2 - 1) * k);
+    // What follows from the settings alone, worked out again only when one
+    // of them differs from the last point's.
+    auto &memo = scene.flow;
+    const double zoom = std::max(value(s.zoom), 0.01), zoomexp = std::max(value(s.zoomexp), 0.01);
+    const double sx = std::max(value(s.sx), 0.01), sy = std::max(value(s.sy), 0.01), rot = value(s.rot);
+    if (zoom != memo.zoom || sx != memo.sx || sy != memo.sy || rot != memo.rot || k != memo.k) {
+        memo.zoom = zoom;
+        memo.sx = sx;
+        memo.sy = sy;
+        memo.rot = rot;
+        memo.k = k;
+        memo.zoomK = std::pow(zoom, k);
+        memo.sxK = std::pow(sx, k);
+        memo.syK = std::pow(sy, k);
+        const double a = -rot * k;
+        memo.ca = std::cos(a);
+        memo.sa = std::sin(a);
+    }
+    // Any power of 1 is exactly 1, so without zoomexp the zoom is the same
+    // everywhere.
+    const double z = zoomexp == 1 ? memo.zoomK : std::pow(zoom, std::pow(zoomexp, rad * 2 - 1) * k);
     const double cx = value(s.cx), cy = value(s.cy);
-    double qx = (px - cx) / z / std::pow(std::max(value(s.sx), 0.01), k);
-    double qy = (py - cy) / z / std::pow(std::max(value(s.sy), 0.01), k);
-    const double a = -value(s.rot) * k, ca = std::cos(a), sa = std::sin(a);
+    double qx = (px - cx) / z / memo.sxK;
+    double qy = (py - cy) / z / memo.syK;
+    const double ca = memo.ca, sa = memo.sa;
     const double rx = qx * ca - qy * sa, ry = qx * sa + qy * ca;
     qx = rx + cx - value(s.dx) * k;
     qy = ry + cy - value(s.dy) * k;
     const double warp = value(s.warp);
     if (warp != 0) {
         const double w = warp * k * 0.007, t = scene.warpTime;
-        const double f0 = 11.68 + 4.0 * std::cos(t * 1.413 + 10.0), f1 = 8.77 + 3.0 * std::cos(t * 1.113 + 7.0);
-        const double f2 = 10.54 + 3.0 * std::cos(t * 1.233 + 3.0), f3 = 11.49 + 4.0 * std::cos(t * 0.933 + 5.0);
+        if (t != memo.warpTime) {
+            memo.warpTime = t;
+            memo.f0 = 11.68 + 4.0 * std::cos(t * 1.413 + 10.0);
+            memo.f1 = 8.77 + 3.0 * std::cos(t * 1.113 + 7.0);
+            memo.f2 = 10.54 + 3.0 * std::cos(t * 1.233 + 3.0);
+            memo.f3 = 11.49 + 4.0 * std::cos(t * 0.933 + 5.0);
+        }
+        const double f0 = memo.f0, f1 = memo.f1, f2 = memo.f2, f3 = memo.f3;
         const double scale = 0.5 / std::max(value(s.warpScale), 0.01), mx = px * scale, my = py * scale;
         qx += w * std::sin(t * 0.333 + (mx * f0 - my * f3));
         qy += w * std::cos(t * 0.375 - (mx * f2 + my * f1));
@@ -1166,24 +1193,37 @@ void Engine::flowAt(Scene &scene, float x, float y, float *toX, float *toY) {
 
 // ----------------------------------------------------------------- geometry
 
-void Engine::vertex(float x, float y, const float *rgba, float ex, float ey, float u, float v) {
+// Tens of thousands of times a frame, so kept to plain stores.
+inline void Engine::vertex(float x, float y, const float *rgba, float ex, float ey, float u, float v) {
+    if (m_used + 10 > m_vertices.size())
+        m_vertices.resize(std::max<size_t>(2 * m_vertices.size(), size_t(1) << 16));
+    float *const into = m_vertices.data() + m_used;
+    into[0] = x;
+    into[1] = y;
+    into[2] = rgba[0];
+    into[3] = rgba[1];
+    into[4] = rgba[2];
     // m_layerAlpha is how much of the scene being drawn shows: all of it
     // normally, part of it while presets change over or a visitor fades.
-    const float data[10] = {x, y, rgba[0], rgba[1], rgba[2], rgba[3] * m_layerAlpha, ex, ey, u, v};
-    m_vertices.insert(m_vertices.end(), data, data + 10);
+    into[5] = rgba[3] * m_layerAlpha;
+    into[6] = ex;
+    into[7] = ey;
+    into[8] = u;
+    into[9] = v;
+    m_used += 10;
 }
 
 void Engine::flush(bool additive) {
-    if (m_vertices.empty())
+    if (!m_used)
         return;
     if (additive)
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
     else
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
-    m_frameVertices += int(m_vertices.size() / 10);
-    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(m_vertices.size() * sizeof(float)), m_vertices.data(), GL_STREAM_DRAW);
-    glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_vertices.size() / 10));
-    m_vertices.clear();
+    m_frameVertices += int(m_used / 10);
+    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(m_used * sizeof(float)), m_vertices.data(), GL_STREAM_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_used / 10));
+    m_used = 0;
 }
 
 // A line of even width with mitred corners, as triangles. Mitres mean no
@@ -1287,21 +1327,26 @@ void Engine::buildWave(const Block &layer, WaveShape &out) {
     }
 
     const float ca = std::cos(angle), sa = std::sin(angle);
+    // Told apart once, not at every point.
+    enum { Line, Circle, Xy, Still } const form =
+        shape == "line" ? Line : shape == "circle" ? Circle : shape == "xy" ? Xy : Still;
+    const bool mirrorX = out.mirror == "x" || out.mirror == "quad", mirrorY = out.mirror == "y" || out.mirror == "quad";
+    const bool mirrorBoth = out.mirror == "quad";
     out.points.clear();
     out.levels.clear();
     for (int i = 0; i < count; ++i) {
         const float t = out.closed ? float(i) / float(count) : float(i) / float(count - 1);
         const float value = first[size_t(i)];
         float x = 0, y = 0;
-        if (shape == "line") {
+        if (form == Line) {
             const float lx = (t * 2 - 1) * m_aspect * width, ly = value * scale;
             x = x0 + lx * ca - ly * sa;
             y = y0 + lx * sa + ly * ca;
-        } else if (shape == "circle") {
+        } else if (form == Circle) {
             const float r = radius + value * scale, a = angle + t * Tau;
             x = x0 + r * std::cos(a);
             y = y0 + r * std::sin(a);
-        } else if (shape == "xy") {
+        } else if (form == Xy) {
             const float lx = value * scale, ly = second[size_t(i)] * scale;
             x = x0 + lx * ca - ly * sa;
             y = y0 + lx * sa + ly * ca;
@@ -1331,11 +1376,11 @@ void Engine::buildWave(const Block &layer, WaveShape &out) {
         out.levels.push_back(std::abs(value));
         // Particles born "at the wave" come from wherever it is right now.
         m_c->waveSpots.push_back(Spot{point.x, point.y, std::abs(value)});
-        if (out.mirror == "x" || out.mirror == "quad")
+        if (mirrorX)
             m_c->waveSpots.push_back(Spot{-point.x, point.y, std::abs(value)});
-        if (out.mirror == "y" || out.mirror == "quad")
+        if (mirrorY)
             m_c->waveSpots.push_back(Spot{point.x, -point.y, std::abs(value)});
-        if (out.mirror == "quad")
+        if (mirrorBoth)
             m_c->waveSpots.push_back(Spot{-point.x, -point.y, std::abs(value)});
     }
 }
@@ -1670,34 +1715,54 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
     }
     state.phase = std::fmod(state.phase, 1.0);
 
-    // Where a form puts the point that is `s` of the way across the sheet
-    // and `age` of the way back in time, standing `h` high.
-    const auto place = [&](int which, float s, float age, float h, float out[3]) {
-        const float turn = (s * 2 - 1) * Pi;
+    // What each column of the sheet keeps from one row to the next: how
+    // far across it is, where it reads the spectrum, and the sine and cosine
+    // of its turn round a tube, ring or sphere.
+    struct Column {
+        float s, t, fraction, sinTurn, cosTurn;
+        int below;
+    };
+    static thread_local std::vector<Column> columns;
+    columns.resize(size_t(across));
+    for (int col = 0; col < across; ++col) {
+        Column &c = columns[size_t(col)];
+        c.s = float(col) / float(across - 1);
+        c.t = folded ? 1 - std::abs(c.s * 2 - 1) : c.s;
+        const float at = c.t * float(bins - 1);
+        c.below = std::min(int(at), bins - 2);
+        c.fraction = at - float(c.below);
+        const float turn = (c.s * 2 - 1) * Pi;
+        c.sinTurn = std::sin(turn);
+        c.cosTurn = std::cos(turn);
+    }
+
+    // Where a form puts the point in this column `age` of the way back in
+    // time, standing `h` high.
+    const auto place = [&](int which, const Column &c, float age, float h, float out[3]) {
         switch (which) {
         case Tube:
-            out[0] = (radius + h) * std::sin(turn);
-            out[1] = (radius + h) * std::cos(turn);
+            out[0] = (radius + h) * c.sinTurn;
+            out[1] = (radius + h) * c.cosTurn;
             out[2] = (age * 2 - 1) * depth;
             break;
         case Ring: {
             // The newest sample is the hole in the middle; it spreads outward.
             const float reach = radius * (0.15f + 0.85f * age);
-            out[0] = reach * std::sin(turn);
+            out[0] = reach * c.sinTurn;
             out[1] = h;
-            out[2] = reach * std::cos(turn);
+            out[2] = reach * c.cosTurn;
             break;
         }
         case Sphere: {
             // Pole to pole, leaving a small cap open at each.
             const float down = Pi * (0.08f + 0.84f * age), ring = (radius + h) * std::sin(down);
-            out[0] = ring * std::sin(turn);
+            out[0] = ring * c.sinTurn;
             out[1] = (radius + h) * std::cos(down);
-            out[2] = ring * std::cos(turn);
+            out[2] = ring * c.cosTurn;
             break;
         }
         default:
-            out[0] = (s * 2 - 1) * width;
+            out[0] = (c.s * 2 - 1) * width;
             out[1] = h;
             out[2] = (age * 2 - 1) * depth;
         }
@@ -1720,20 +1785,18 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
         // The oldest row thins out as it leaves instead of vanishing.
         const float rowAlpha = row == rows ? alpha * (1 - float(state.phase)) : alpha;
         for (int col = 0; col < across; ++col) {
-            const float s = float(col) / float(across - 1);
-            const float t = folded ? 1 - std::abs(s * 2 - 1) : s;
-            const float at = t * float(bins - 1);
-            const int below = std::min(int(at), bins - 2);
-            const float value = values[below] + (values[below + 1] - values[below]) * (at - float(below));
-            V[m_s.t] = t;
+            const Column &column = columns[size_t(col)];
+            const int below = column.below;
+            const float value = values[below] + (values[below + 1] - values[below]) * column.fraction;
+            V[m_s.t] = column.t;
             V[m_s.i] = age;
             V[m_s.v] = value;
             float rgb[3], p[3];
             evalColor(color, rgb);
-            place(form, s, age, value * height, p);
+            place(form, column, age, value * height, p);
             if (morph > 0) {
                 float q[3];
-                place(form2, s, age, value * height, q);
+                place(form2, column, age, value * height, q);
                 for (int c = 0; c < 3; ++c)
                     p[c] += (q[c] - p[c]) * morph;
             }
