@@ -1,0 +1,49 @@
+{
+  "name": "Moire",
+  "author": "Trance",
+  "description": "Two sets of rings laid over each other and slid apart, so that where their lines cross a third pattern appears that neither of them has. The rings tremble with their part of the spectrum and the two centers circle with the bass.",
+  "palette": "spectral",
+  "init": "ph = rand(6)\ndir = rand() < 0.5 ? -1 : 1",
+  "frame": "spin = spin + dir*dt*(0.15 + 0.35*min(bass_att, 2))\nsep = 0.18 + 0.1*sin(time*0.13 + ph)",
+  "feedback": {
+    "decay": 0.6,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 30,
+      "x": "sep*cos(spin)",
+      "y": "sep*sin(spin)",
+      "radius": "0.055*(n + 1) + 0.012*min(v*3, 1)",
+      "angle": "spin",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(t + spin*0.05)",
+      "borderAlpha": 0.8,
+      "borderWidth": 2.4,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 30,
+      "x": "-sep*cos(spin)",
+      "y": "-sep*sin(spin)",
+      "radius": "0.055*(n + 1) + 0.012*min(v*3, 1)",
+      "angle": "-spin",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(t + spin*0.05 + 0.5)",
+      "borderAlpha": 0.8,
+      "borderWidth": 2.4,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 0.4,
+    "bloomThreshold": 0.6,
+    "vignette": 0.5
+  }
+}

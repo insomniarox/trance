@@ -65,6 +65,7 @@
         <file alias="presets/loom.json">presets/loom.json</file>
         <file alias="presets/magnetosphere.json">presets/magnetosphere.json</file>
         <file alias="presets/mainframe.json">presets/mainframe.json</file>
+        <file alias="presets/moire.json">presets/moire.json</file>
         <file alias="presets/molten.json">presets/molten.json</file>
         <file alias="presets/moons.json">presets/moons.json</file>
         <file alias="presets/mother-of-pearl.json">presets/mother-of-pearl.json</file>
@@ -77,7 +78,9 @@
         <file alias="presets/orrery.json">presets/orrery.json</file>
         <file alias="presets/oscilloscope.json">presets/oscilloscope.json</file>
         <file alias="presets/pendulum.json">presets/pendulum.json</file>
+        <file alias="presets/plasma-globe.json">presets/plasma-globe.json</file>
         <file alias="presets/prism.json">presets/prism.json</file>
+        <file alias="presets/projection.json">presets/projection.json</file>
         <file alias="presets/pulse-grid.json">presets/pulse-grid.json</file>
         <file alias="presets/radar.json">presets/radar.json</file>
         <file alias="presets/rain.json">presets/rain.json</file>
@@ -90,9 +93,11 @@
         <file alias="presets/rosette.json">presets/rosette.json</file>
         <file alias="presets/scroll.json">presets/scroll.json</file>
         <file alias="presets/seismograph.json">presets/seismograph.json</file>
+        <file alias="presets/shoal.json">presets/shoal.json</file>
         <file alias="presets/signal-garden.json">presets/signal-garden.json</file>
         <file alias="presets/skyline.json">presets/skyline.json</file>
         <file alias="presets/sonar.json">presets/sonar.json</file>
+        <file alias="presets/spectrogram.json">presets/spectrogram.json</file>
         <file alias="presets/spirograph.json">presets/spirograph.json</file>
         <file alias="presets/starwake.json">presets/starwake.json</file>
         <file alias="presets/strata.json">presets/strata.json</file>
@@ -106,6 +111,7 @@
         <file alias="presets/undertow.json">presets/undertow.json</file>
         <file alias="presets/urchin.json">presets/urchin.json</file>
         <file alias="presets/vectorscope.json">presets/vectorscope.json</file>
+        <file alias="presets/venetian.json">presets/venetian.json</file>
         <file alias="presets/vinyl.json">presets/vinyl.json</file>
         <file alias="presets/vortex.json">presets/vortex.json</file>
         <file alias="presets/whitecaps.json">presets/whitecaps.json</file>

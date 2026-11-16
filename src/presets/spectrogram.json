@@ -1,0 +1,64 @@
+{
+  "name": "Spectrogram",
+  "author": "Trance",
+  "description": "The last few seconds of the music laid out as a lab would plot it: pitch across, time running back, loudness standing up as a sheet seen from high above, on graph paper, in a color map that reads the same to every eye.",
+  "palette": "cividis",
+  "init": "ph = rand(6)",
+  "frame": "lean = 0.18*sin(time*0.04 + ph)",
+  "feedback": {
+    "decay": 0.5,
+    "edge": "black"
+  },
+  "background": {
+    "style": "grid",
+    "intensity": 0.22,
+    "tint": 0.25,
+    "spread": 0.1,
+    "scale": 1.5,
+    "speed": 0
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "style": "mesh",
+      "bins": 56,
+      "rows": 36,
+      "speed": 14,
+      "low": 40,
+      "high": 12000,
+      "tilt": 12,
+      "smooth": 0.3,
+      "fade": 0.6,
+      "height": "0.55 + 0.15*min(vol_att, 2)",
+      "width": 1.7,
+      "depth": 1.1,
+      "yaw": "lean",
+      "pitch": 0.85,
+      "distance": 4,
+      "y": -0.1,
+      "thickness": 1.6,
+      "fog": 0.35,
+      "color": "palette(0.22 + 0.78*min(v*2.2, 1))",
+      "alpha": 1,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "source": "spectrum",
+      "shape": "line",
+      "y": -0.88,
+      "width": 0.95,
+      "scale": 0.16,
+      "smooth": 0.4,
+      "thickness": 2.5,
+      "color": "palette(0.55 + 0.45*t)",
+      "alpha": 0.9,
+      "additive": false
+    }
+  ],
+  "post": {
+    "bloom": 0.5,
+    "bloomThreshold": 0.55,
+    "vignette": 0.35
+  }
+}

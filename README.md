@@ -15,7 +15,7 @@ Every preset can be changed while it runs.
 
 ![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
 
-- **87 presets** built in, changing on the beat. A change is not a cut: for
+- **93 presets** built in, changing on the beat. A change is not a cut: for
   a few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next. Search them, filter them by
   color or by what they are made of, and keep the changes to what matches.
@@ -25,7 +25,7 @@ Every preset can be changed while it runs.
 - **Wireframes in space.** The last few seconds of the spectrum as a sheet
   of lines, laid flat like a sea, rolled into a tube, spread into a ring or
   wrapped round a ball, folding from one form into another while a camera
-  turns round it. Seventeen presets are built on it.
+  turns round it. Nineteen presets are built on it.
 - **Everything works on everything else.** Flow fields bend the picture,
   waves and bars throw particles, the particles ride the flow, and one
   palette colors all of it.

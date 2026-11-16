@@ -1,0 +1,71 @@
+{
+  "name": "Shoal",
+  "author": "Trance",
+  "description": "A reef in shallow water: a bed of coral that grows with the spectrum, light rippling down through the waves, and a shoal of bright fish darting back and forth in lanes, quicker when the music picks up, while bubbles rise from the coral on the cymbals.",
+  "palette": "reef",
+  "init": "ph = rand(6)",
+  "frame": "swim = swim + dt*(0.05 + 0.08*min(vol_att, 2))",
+  "feedback": {
+    "decay": 0.8,
+    "blur": 0.25,
+    "edge": "black"
+  },
+  "pixel": "dx = 0.0012*sin(y*9 + time*1.3)\ndy = 0.0008*sin(x*7 - time*0.9)",
+  "background": {
+    "style": "rays",
+    "intensity": "0.22 + 0.1*min(bass_att, 2)",
+    "tint": 0.55,
+    "spread": 0.15,
+    "speed": 0.4
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "count": 40,
+      "width": 1,
+      "height": 0.4,
+      "gap": 0.5,
+      "fade": 0.75,
+      "peaks": false,
+      "symmetric": true,
+      "color": "palette(t*3 + 0.1)",
+      "alpha": 0.85
+    },
+    {
+      "type": "shape",
+      "sides": 3,
+      "instances": 48,
+      "x": "(n % 2 == 0 ? 1 : -1)*aspect*1.15*(2*fract(swim*(0.8 + 1.2*noise(n*2.3)) + n*0.381966) - 1)",
+      "y": "-0.45 + 1.25*fract(n*0.618034 + 0.07) + 0.04*sin(swim*30 + n)",
+      "radius": "0.022 + 0.018*noise(n*1.7) + 0.01*min(v*3, 1)",
+      "angle": "n % 2 == 0 ? 0 : 3.1416",
+      "color": "palette(n*0.137)",
+      "alpha": 1,
+      "color2": "palette(n*0.137 + 0.15)",
+      "alpha2": 1,
+      "additive": false
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 600,
+      "rate": "60 + 500*max(0, air - 0.7)",
+      "speed": 0.05,
+      "gravity": -0.4,
+      "drag": 0.5,
+      "field": 0.3,
+      "life": 2.5,
+      "size": 3,
+      "color": "palette(0.42)",
+      "alpha": 0.7,
+      "additive": true
+    }
+  ],
+  "post": {
+    "bloom": 0.6,
+    "bloomThreshold": 0.55,
+    "saturation": 1.1,
+    "vignette": 0.5
+  }
+}
