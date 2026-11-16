@@ -1,0 +1,88 @@
+name: Linux
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Reading the code is all the run needs to do with the repository.
+permissions:
+  contents: read
+
+jobs:
+  # What Trance is mostly run on: Arch's current Qt and GCC, built the way
+  # the package builds it.
+  arch:
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    timeout-minutes: 30
+    steps:
+      # The container has no graphics card: Mesa draws in software, on a
+      # display that is only in memory.
+      - name: Tools and Qt
+        run: |
+          pacman -Syu --noconfirm --needed base-devel qt6-base qt6-declarative qt6-wayland \
+            pipewire pipewire-audio mesa xorg-server-xvfb
+
+      # GitHub's own actions are taken by version, as in the Windows run.
+      - uses: actions/checkout@v7
+
+      - name: Build
+        run: bin/build
+
+      # Tests that need OpenGL skip without it, and a run that skipped them
+      # would still be green, so a skip for that reason fails it here.
+      - name: Test
+        run: |
+          xvfb-run -a bin/test 2>&1 | tee test.log
+          if grep -q "No OpenGL context" test.log; then
+            echo "::error title=No OpenGL::The tests that draw were skipped."
+            exit 1
+          fi
+
+      - name: Commands
+        run: |
+          build/trance list | wc -l
+          build/trance check src/presets/*.json src/visitors/*.json > /dev/null
+          xvfb-run -a build/trance render "Neon Tunnel" -o render.png --seconds 2
+
+      # makepkg won't run as root.
+      - name: Package
+        run: |
+          useradd -m builder
+          chown -R builder .
+          su builder -c 'cd pkgbuild && makepkg --nodeps --noconfirm'
+          ls pkgbuild/*.pkg.tar.*
+
+  # The oldest Qt Trance says it builds with (trance.pro asks for 6.5), so
+  # that nothing newer creeps in unnoticed, built by Clang rather than GCC.
+  oldest-qt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      QMAKESPEC: linux-clang
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
+        with:
+          version: '6.5.3'
+          cache: true
+
+      - name: Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang xvfb libgl1-mesa-dri libegl1 libxcb-cursor0
+          # bin/build asks for qmake6, which Qt's own installs may only call qmake.
+          command -v qmake6 || sudo ln -s "$(command -v qmake)" /usr/local/bin/qmake6
+
+      - name: Build
+        run: bin/build
+
+      - name: Test
+        run: |
+          xvfb-run -a bin/test 2>&1 | tee test.log
+          if grep -q "No OpenGL context" test.log; then
+            echo "::error title=No OpenGL::The tests that draw were skipped."
+            exit 1
+          fi
