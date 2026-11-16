@@ -19,6 +19,7 @@ ApplicationWindow {
     Material.roundedScale: theme.radius
 
     property bool helpVisible: false
+    property bool aboutVisible: false
     property bool browserVisible: false
     // The right side holds one panel at a time: "editor" for the preset
     // that is showing, "settings" for the app, or "" for neither.
@@ -46,6 +47,15 @@ ApplicationWindow {
         browserVisible = !browserVisible
         if (browserVisible)
             browser.focusSearch()
+    }
+    // The shortcuts and the About screen take the same place, one at a time.
+    function toggleHelp() {
+        helpVisible = !helpVisible
+        aboutVisible = false
+    }
+    function toggleAbout() {
+        aboutVisible = !aboutVisible
+        helpVisible = false
     }
     function toggleFullScreen() { visibility = fullScreen ? Window.Windowed : Window.FullScreen }
 
@@ -93,7 +103,8 @@ ApplicationWindow {
         }
     }
 
-    Shortcut { sequence: "?"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.helpVisible = !win.helpVisible }
+    Shortcut { sequence: "?"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.toggleHelp() }
+    Shortcut { sequence: "A"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.toggleAbout() }
     Shortcut { sequence: "Q"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.quit() }
     Shortcut { sequence: "Space"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.next() }) }
     Shortcut { sequence: "Backspace"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.previous() }) }
@@ -183,6 +194,8 @@ ApplicationWindow {
                 content.forceActiveFocus()
             else if (win.helpVisible)
                 win.helpVisible = false
+            else if (win.aboutVisible)
+                win.aboutVisible = false
             else if (win.browserVisible)
                 win.browserVisible = false
             else if (win.sidePanel.length > 0)
@@ -246,6 +259,7 @@ ApplicationWindow {
             width: Math.min(440, parent.width * 0.5)
             anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
             onCloseRequested: win.sidePanel = ""
+            onAboutRequested: win.toggleAbout()
         }
 
         Visualizer {
@@ -385,7 +399,7 @@ ApplicationWindow {
                 onNext: win.guarded(function () { backend.next() })
                 onEdit: win.toggleSide("editor")
                 onSettings: win.toggleSide("settings")
-                onHelp: win.helpVisible = !win.helpVisible
+                onHelp: win.toggleHelp()
                 onToggleFullScreen: win.toggleFullScreen()
             }
         }
@@ -394,6 +408,14 @@ ApplicationWindow {
             anchors.fill: parent
             visible: win.helpVisible
             onDismissed: win.helpVisible = false
+        }
+
+        AboutOverlay {
+            anchors.fill: parent
+            visible: win.aboutVisible
+            view: picture
+            onDismissed: win.aboutVisible = false
+            onCopied: win.toast(qsTr("Details copied"))
         }
     }
 

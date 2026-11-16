@@ -1,9 +1,14 @@
 #include "backend.h"
 
+#include <QClipboard>
+#include <QDesktopServices>
 #include <QFontMetrics>
 #include <QGuiApplication>
 #include <QPainter>
+#include <QSysInfo>
+#include <QUrl>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -290,6 +295,66 @@ QVariantList Backend::featureList() const {
         list << QVariantMap{{"name", feature},
                             {"label", feature == "ranges" ? QString("Six ranges") : presets::fieldDoc("type", feature).label}};
     return list;
+}
+
+// ------------------------------------------------------------------ about
+
+namespace {
+
+QString compiler() {
+#if defined(_MSC_VER) && !defined(__clang__)
+    return QString("MSVC %1.%2.%3").arg(_MSC_VER / 100).arg(_MSC_VER % 100).arg(_MSC_FULL_VER % 100000);
+#elif defined(__clang__)
+    return QString("Clang %1.%2.%3").arg(__clang_major__).arg(__clang_minor__).arg(__clang_patchlevel__);
+#elif defined(__GNUC__)
+    return QString("GCC %1.%2.%3").arg(__GNUC__).arg(__GNUC_MINOR__).arg(__GNUC_PATCHLEVEL__);
+#else
+    return QString("an unknown compiler");
+#endif
+}
+
+} // namespace
+
+QVariantMap Backend::about() const {
+    int yours = 0;
+    for (const auto &preset : m_library.presets())
+        yours += preset.builtin ? 0 : 1;
+#ifdef Q_OS_WIN
+    const QString sound = "WASAPI", titles = "Windows media controls";
+#else
+    const QString sound = "PipeWire", titles = "MPRIS";
+#endif
+    return {{"version", QCoreApplication::applicationVersion()},
+            {"qt", QString::fromLatin1(qVersion())},
+            {"qtBuilt", QString::fromLatin1(QT_VERSION_STR)},
+            {"compiler", compiler()},
+            {"system", QSysInfo::prettyProductName()},
+            {"kernel", QSysInfo::kernelVersion()},
+            {"architecture", QSysInfo::currentCpuArchitecture()},
+            {"display", QGuiApplication::platformName()},
+            {"sound", sound},
+            {"titles", titles},
+            {"builtinPresets", int(m_library.presets().size()) - yours},
+            {"yourPresets", yours},
+            // theme and accent are the desktop theme's, and counted apart.
+            {"palettes", int(presets::paletteNames().size()) - 2},
+            {"visitors", int(m_visitorPool.size())},
+            {"presetsFolder", QDir::toNativeSeparators(m_library.userDirectory())},
+            {"settingsFile", QDir::toNativeSeparators(m_settings->fileName())}};
+}
+
+void Backend::copyText(const QString &text) {
+    if (auto *clipboard = QGuiApplication::clipboard())
+        clipboard->setText(text);
+}
+
+bool Backend::openFolder(const QString &which) {
+    const QString folder = which == "presets"    ? m_library.userDirectory()
+                           : which == "settings" ? QFileInfo(m_settings->fileName()).absolutePath()
+                                                 : QString();
+    if (folder.isEmpty() || !QDir().mkpath(folder))
+        return false;
+    return QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
 }
 
 void Backend::setFilterColor(const QString &family) {

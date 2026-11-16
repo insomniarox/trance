@@ -191,6 +191,7 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
 | `Ctrl+Z` `Ctrl+Shift+Z` | Undo, redo |
 | `Esc` | Close a panel, or leave full screen |
 | `?` | Show every shortcut |
+| `A` | About Trance: its version, the system it runs on, where your presets are |
 | `Q` | Quit |
 
 In the editor, double-click a setting's name to put it back to its default.

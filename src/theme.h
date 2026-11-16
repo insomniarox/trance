@@ -16,6 +16,8 @@ class Theme : public QObject {
     Q_PROPERTY(QString accent READ accent NOTIFY changed)
     Q_PROPERTY(QString accentForeground READ accentForeground NOTIFY changed)
     Q_PROPERTY(int radius READ radius NOTIFY changed)
+    // Whether the colors are the desktop theme's, rather than the built-in set.
+    Q_PROPERTY(bool fromDesktop READ fromDesktop NOTIFY changed)
 
 public:
     // hyprland is the directory its sockets are in, found when left empty.
@@ -24,6 +26,7 @@ public:
     QString accent() const { return m_accent; }
     QString accentForeground() const;
     int radius() const { return m_radius; }
+    bool fromDesktop() const { return !m_colors.isEmpty(); }
     // Every color the theme names (accent, red, background, ...).
     QHash<QString, QColor> colors() const { return m_colors; }
 

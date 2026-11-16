@@ -71,6 +71,9 @@ class Backend : public QObject {
     Q_PROPERTY(int matchCount READ matchCount NOTIFY presetsChanged)
     Q_PROPERTY(QVariantList colorFamilies READ colorFamilies NOTIFY paletteChanged)
     Q_PROPERTY(QVariantList featureList READ featureList CONSTANT)
+    // What the About screen shows: this copy's version and build, the
+    // system it runs on, what is in its library, and where it keeps things.
+    Q_PROPERTY(QVariantMap about READ about NOTIFY presetsChanged)
 
 public:
     // Tests pass a temporary folder and listen = false, so nothing touches
@@ -90,6 +93,7 @@ public:
     int matchCount() const;
     QVariantList colorFamilies() const;
     QVariantList featureList() const;
+    QVariantMap about() const;
     void setFilterColor(const QString &family);
     void setFilterFeatures(const QStringList &features);
     void setKeepToFilter(bool keep);
@@ -208,6 +212,12 @@ public:
     Q_INVOKABLE bool newPreset(const QString &name);
     Q_INVOKABLE bool deleteCurrent();
     Q_INVOKABLE QString cyclePalette();
+
+    // For the About screen: puts text on the clipboard, and opens the
+    // folder of your presets ("presets") or of the settings ("settings") in
+    // the file manager, making it first if it isn't there yet.
+    Q_INVOKABLE void copyText(const QString &text);
+    Q_INVOKABLE bool openFolder(const QString &which);
 
     // For the renderer, called while the window's thread is paused.
     const AudioFrame &audioFrame();

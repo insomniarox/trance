@@ -4,6 +4,7 @@
         <file alias="PresetBrowser.qml">PresetBrowser.qml</file>
         <file alias="EditorPanel.qml">EditorPanel.qml</file>
         <file alias="HelpOverlay.qml">HelpOverlay.qml</file>
+        <file alias="AboutOverlay.qml">AboutOverlay.qml</file>
         <file alias="ParamRow.qml">ParamRow.qml</file>
         <file alias="CodeField.qml">CodeField.qml</file>
         <file alias="CompactField.qml">CompactField.qml</file>

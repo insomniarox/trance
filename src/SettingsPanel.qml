@@ -11,6 +11,8 @@ SidePanel {
     id: panel
     title: qsTr("Settings")
     scope: qsTr("For every preset")
+    signal aboutRequested()
+    tools: IconButton { glyph: "info"; tip: qsTr("About Trance"); onClicked: panel.aboutRequested() }
 
     // One setting: what it is on the left, the control for it on the right.
     component Setting: Item {
