@@ -28,17 +28,6 @@ using Manager = winrt::Windows::Media::Control::GlobalSystemMediaTransportContro
 using Session = winrt::Windows::Media::Control::GlobalSystemMediaTransportControlsSession;
 using Status = winrt::Windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus;
 
-// What Windows answers, or nothing when it takes too long over it: a player
-// that has stopped responding must not keep Trance from closing.
-template <typename Question>
-auto answer(const Question &question, std::chrono::milliseconds patience = 1500ms) -> decltype(question.GetResults()) {
-    if (question.wait_for(patience) != AsyncStatus::Completed) {
-        question.Cancel();
-        return nullptr;
-    }
-    return question.GetResults();
-}
-
 bool playing(const Session &session) {
     try {
         return session && session.GetPlaybackInfo().PlaybackStatus() == Status::Playing;
@@ -67,6 +56,11 @@ struct Bell {
         rung.notify_all();
     }
 
+    bool isClosing() {
+        const std::lock_guard<std::mutex> lock(mutex);
+        return closing;
+    }
+
     // Waits this long, or less when closing, and says whether it is. If not,
     // what is playing is to be asked for again.
     bool rest(std::chrono::seconds time) {
@@ -77,6 +71,33 @@ struct Bell {
         return false;
     }
 };
+
+// What Windows answers, or nothing when it takes too long over it, or when
+// Trance is closing: a player, or the media controls, having stopped
+// responding must not keep Trance from closing.
+template <typename Question>
+auto answer(const Question &question, Bell &bell, std::chrono::milliseconds patience = 1500ms)
+    -> decltype(question.GetResults()) {
+    const auto until = std::chrono::steady_clock::now() + patience;
+    for (;;) {
+        const AsyncStatus status = question.wait_for(std::min<std::chrono::milliseconds>(100ms, patience));
+        if (status == AsyncStatus::Completed)
+            return question.GetResults();
+        if (status != AsyncStatus::Started || std::chrono::steady_clock::now() >= until || bell.isClosing()) {
+            question.Cancel();
+            return nullptr;
+        }
+    }
+}
+
+// The id Windows gives a player's application, or nothing for one gone.
+winrt::hstring idOf(const Session &session) {
+    try {
+        return session.SourceAppUserModelId();
+    } catch (const winrt::hresult_error &) {
+        return {};
+    }
+}
 
 class Smtc : public QObject {
 public:
@@ -114,7 +135,7 @@ Smtc::Smtc(std::function<void(const QString &, const QString &)> found, QObject 
         for (std::chrono::seconds pause = 1s;; pause = std::min<std::chrono::seconds>(2 * pause, 60s)) {
             bool looked = false;
             try {
-                if (const Manager manager = answer(Manager::RequestAsync(), 5000ms))
+                if (const Manager manager = answer(Manager::RequestAsync(), *m_bell, 5000ms))
                     if (watch(manager, &looked))
                         break;
             } catch (const winrt::hresult_error &) {
@@ -160,8 +181,8 @@ bool Smtc::watch(const Manager &manager, bool *looked) {
         try {
             look(manager);
         } catch (const winrt::hresult_error &) {
-            // What answers has gone, or a player did while it was asked:
-            // asked for again from the start, which covers both.
+            // What answers has gone: it is asked for again from the start.
+            // A player that is gone is passed over in look() instead.
             return false;
         }
         *looked = true;
@@ -190,7 +211,7 @@ void Smtc::look(const Manager &manager) {
 
     Session chosen = nullptr;
     for (const Player &player : m_players)
-        if (player.session.SourceAppUserModelId() == m_player && playing(player.session)) {
+        if (idOf(player.session) == m_player && playing(player.session)) {
             chosen = player.session;
             break;
         }
@@ -204,13 +225,18 @@ void Smtc::look(const Manager &manager) {
             chosen = player->session;
     if (!chosen)
         return;
-    const auto track = answer(chosen.TryGetMediaPropertiesAsync());
-    if (!track)
-        return;
-    m_player = chosen.SourceAppUserModelId();
-    QMetaObject::invokeMethod(this, [this, title = text(track.Title()), artist = text(track.Artist())] {
-        m_found(title, artist);
-    }, Qt::QueuedConnection);
+    try {
+        const auto track = answer(chosen.TryGetMediaPropertiesAsync(), *m_bell);
+        if (!track)
+            return;
+        QString title = text(track.Title()), artist = text(track.Artist());
+        m_player = chosen.SourceAppUserModelId();
+        QMetaObject::invokeMethod(this, [this, title = std::move(title), artist = std::move(artist)] {
+            m_found(title, artist);
+        }, Qt::QueuedConnection);
+    } catch (const winrt::hresult_error &) {
+        // gone since it was chosen: its going rings again
+    }
 }
 
 } // namespace

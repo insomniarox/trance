@@ -26,6 +26,7 @@
 #include <audioclient.h>
 #include <audioclientactivationparams.h>
 #include <audiopolicy.h>
+#include <endpointvolume.h>
 #include <avrt.h>
 #include <mmdeviceapi.h>
 #include <mmreg.h>
@@ -165,9 +166,21 @@ QHash<DWORD, Running> processes() {
     return all;
 }
 
+// Whether a session that is running has any sound in it right now, by the
+// meter Windows keeps of each. Without a meter, running is taken for it.
+bool audible(IAudioSessionControl *session) {
+    ComPtr<IAudioMeterInformation> meter;
+    float peak = 0;
+    if (FAILED(session->QueryInterface(IID_PPV_ARGS(&meter))) || FAILED(meter->GetPeakValue(&peak)))
+        return true;
+    return peak > 0;
+}
+
 // The processes that have sound open on any output right now. Windows' own
-// sounds are left out, and so is Trance. Those whose sound is running, not
-// just open, as a paused player's is, also go into sounding, if given.
+// sounds are left out, and so is Trance. Those that can be heard right now
+// also go into sounding, if given: not a paused player, whose sound is only
+// open, nor one that keeps it running in silence, as a game or a muted tab
+// may.
 QList<DWORD> playing(IMMDeviceEnumerator *enumerator, QList<DWORD> *sounding = nullptr) {
     QList<DWORD> found;
     ComPtr<IMMDeviceCollection> outputs;
@@ -200,7 +213,7 @@ QList<DWORD> playing(IMMDeviceEnumerator *enumerator, QList<DWORD> *sounding = n
             // One process can have several, a paused one among them.
             if (!found.contains(process))
                 found << process;
-            if (sounding && state == AudioSessionStateActive && !sounding->contains(process))
+            if (sounding && state == AudioSessionStateActive && !sounding->contains(process) && audible(session.Get()))
                 *sounding << process;
         }
     }
@@ -224,8 +237,10 @@ DWORD topmost(const QHash<DWORD, Running> &all, DWORD process) {
 }
 
 // The process to ask for to hear this application, or 0 if it isn't running.
-// With onlySounding, the one that is playing right now, or 0 if none is.
-DWORD processOf(const QString &application, IMMDeviceEnumerator *enumerator, bool onlySounding = false) {
+// With onlySounding, one that can be heard right now other than besides, or
+// 0 if there is none.
+DWORD processOf(const QString &application, IMMDeviceEnumerator *enumerator, bool onlySounding = false,
+                DWORD besides = 0) {
     const QHash<DWORD, Running> all = processes();
     const auto called = [&](DWORD process) {
         const auto found = all.constFind(process);
@@ -242,7 +257,7 @@ DWORD processOf(const QString &application, IMMDeviceEnumerator *enumerator, boo
     QList<DWORD> sounding;
     const QList<DWORD> open = playing(enumerator, &sounding);
     for (const DWORD process : sounding)
-        if (called(process))
+        if (called(process) && topmost(all, process) != besides)
             return topmost(all, process);
     if (onlySounding)
         return 0;
@@ -377,6 +392,10 @@ struct AudioCapture::Platform {
     // Joins the stopped listenings that have finished, or with all, every
     // one, waiting for those that haven't.
     void reap(bool all);
+    // Whether a listening that ended with Again is started again at once:
+    // only a few times in a row. A device that keeps dropping its sound is
+    // then said to have stopped, and tried again in a while, as one gone.
+    bool again();
     Ended listen(const QString &source, int rate, quint64 mine, HANDLE stop, QString *why);
 
     AudioCapture *q;
@@ -390,12 +409,21 @@ struct AudioCapture::Platform {
     // Which listening is the current one. What an earlier one sent before it
     // was stopped may still be on its way, and is told apart by this.
     quint64 current = 0;
+    int againInARow = 0;
+    QElapsedTimer sinceAgain;
 };
+
+bool AudioCapture::Platform::again() {
+    againInARow = sinceAgain.isValid() && sinceAgain.elapsed() < 10000 ? againInARow + 1 : 1;
+    sinceAgain.start();
+    return againInARow <= 3;
+}
 
 void AudioCapture::Platform::reap(bool all) {
     for (auto it = stopping.begin(); it != stopping.end();) {
         if (all || (*it)->finished) {
-            (*it)->thread.join();
+            if ((*it)->thread.joinable())
+                (*it)->thread.join();
             it = stopping.erase(it);
         } else {
             ++it;
@@ -428,7 +456,7 @@ void AudioCapture::open() {
                 if (mine != p->current)
                     return;
                 close();
-                if (ended == Platform::Again)
+                if (ended == Platform::Again && p->again())
                     launch();
                 else
                     lost(why);
@@ -558,19 +586,25 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
     // Ahead of ordinary work, as Windows offers to threads that handle sound.
     DWORD task = 0;
     const HANDLE priority = AvSetMmThreadCharacteristicsW(L"Audio", &task);
-    QElapsedTimer quiet, sounded, sinceLooked, running;
+    QElapsedTimer quiet, sounded, sinceLooked, sinceAsked, running;
     quiet.start();
     sounded.start();
     sinceLooked.start();
+    sinceAsked.start();
     running.start();
+    // How often another copy of a quiet application is looked for: less
+    // often the longer it stays quiet, as a paused player can for hours.
+    qint64 askEvery = 2000;
     std::vector<float> samples;
     Ended ended = Stopped;
     for (;;) {
         const DWORD woke = WaitForMultipleObjects(count, waiting, FALSE, Gap);
         if (woke == WAIT_OBJECT_0)
             break;
+        // A copy of the application closing may leave another playing,
+        // which starting again finds, or says it is waiting for.
         if (woke == WAIT_OBJECT_0 + 2) {
-            ended = moving ? Again : Lost;
+            ended = moving || (only && running.elapsed() >= 1000) ? Again : Lost;
             break;
         }
         if (woke == WAIT_FAILED) {
@@ -617,26 +651,28 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
             samples.assign(size_t(qMin<qint64>(quiet.restart(), 4 * Gap) * rate / 1000) * 2, 0.f);
         if (!samples.empty())
             deliver(samples);
-        // Every so often: whether an application that can't be waited on is
+        // Every so often, whether an application that can't be waited on is
         // still running, by its name too, as its number may have gone to
-        // another program since. And once the application has been quiet a
-        // while, whether another copy of it is playing, to change to that.
-        if ((lookedFor || only) && sinceLooked.elapsed() >= 2000) {
+        // another program since.
+        if (lookedFor && sinceLooked.elapsed() >= 2000) {
             sinceLooked.restart();
-            if (lookedFor) {
-                const QHash<DWORD, Running> all = processes();
-                const auto found = all.constFind(lookedFor);
-                if (found == all.constEnd() || found->name.compare(applicationName, Qt::CaseInsensitive) != 0) {
-                    ended = Lost;
-                    break;
-                }
+            const QHash<DWORD, Running> all = processes();
+            const auto found = all.constFind(lookedFor);
+            if (found == all.constEnd() || found->name.compare(applicationName, Qt::CaseInsensitive) != 0) {
+                ended = Lost;
+                break;
             }
-            if (only && sounded.elapsed() >= 3000) {
-                const DWORD other = processOf(applicationName, enumerator.Get(), true);
-                if (other && other != process) {
-                    ended = Again;
-                    break;
-                }
+        }
+        // And once the application has been quiet a while, whether another
+        // copy of it can be heard, to change to that.
+        if (only && sounded.elapsed() < 3000)
+            askEvery = 2000;
+        else if (only && sinceAsked.elapsed() >= askEvery) {
+            sinceAsked.restart();
+            askEvery = qMin<qint64>(2 * askEvery, 10000);
+            if (processOf(applicationName, enumerator.Get(), true, process)) {
+                ended = Again;
+                break;
             }
         }
     }
