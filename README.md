@@ -36,7 +36,7 @@ Every preset can be changed while it runs.
   slider and an explanation, and any number can instead be a formula of the
   music, such as `1.02 + 0.05*bass_att`. Nothing is written until you save.
 - **Your colors.** `T` recolors every preset with your desktop theme's
-  colors on [Omarchy](https://omarchy.org), or with one of 41 palettes.
+  colors on [Omarchy](https://omarchy.org), or with one of 47 palettes.
 - **Glass.** `G` makes black see-through, so your desktop shows behind the
   picture.
 - **Mash-ups and visitors.** `X` builds a new preset from parts of others,
@@ -160,7 +160,7 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
   Media Player report there. Players that don't, such as VLC, show no
   title.
 - **Colors.** There is no desktop theme to follow, so "theme" is the
-  built-in set; the 41 palettes are the same everywhere.
+  built-in set; the 47 palettes are the same everywhere.
 - **Key bindings.** `trance.exe next` and the others work from any tool
   that runs a command on a key, such as PowerToys' Keyboard Manager or
   AutoHotkey.

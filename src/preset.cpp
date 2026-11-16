@@ -194,6 +194,23 @@ const QHash<QString, QStringList> &palettes() {
         // meet, so palette(t + time*0.1) turns without a seam anywhere.
         {"twilight", {"#e2d9e2", "#a8b8d2", "#6f7fc0", "#5a4aa4", "#3b1a5e", "#2a0f2c", "#6e2347", "#b0545a",
                       "#d99a86"}},
+        // Three more from black. Cividis is the plotting world's map that
+        // reads the same to eyes that confuse red and green; noir is black
+        // and white film with a red flare where it is brightest; storm is
+        // slate and gunmetal up to the violet white of lightning.
+        {"cividis", {"#00224e", "#123570", "#3b496c", "#575d6d", "#707173", "#8a8678", "#a59c74", "#c3b369",
+                     "#e1cc55", "#fee838"}},
+        {"noir", {"#000000", "#141414", "#383838", "#6b6b6b", "#a6a6a6", "#e6e6e6", "#ff2b2b"}},
+        {"storm", {"#020308", "#0e1424", "#23304d", "#3f4f7a", "#6b6fb8", "#b79cff", "#f4f0ff"}},
+        // Two bright ones: the plotting world's spectral, softer than the
+        // rainbow, and a coral reef's coral, sun, turquoise and violet.
+        {"spectral", {"#9e0142", "#d53e4f", "#f46d43", "#fdae61", "#fee08b", "#e6f598", "#abdda4", "#66c2a5",
+                      "#3288bd", "#5e4fa2"}},
+        {"reef", {"#ff6f61", "#ffb347", "#ffe066", "#3ddbd9", "#0091ad", "#7b5cd6", "#e85d9f"}},
+        // Bright and light all the way round, as a hologram's foil turns:
+        // cyan, periwinkle, violet, pink, peach, lemon and mint, whose ends
+        // meet, so a palette that keeps turning has no seam.
+        {"hologram", {"#7ff3ff", "#8fa8ff", "#c77dff", "#ff7ad9", "#ffb38a", "#f5f08a", "#a6ffcf"}},
         {"mono", {"#000000", "#ffffff"}},
     };
     return all;
@@ -691,7 +708,8 @@ QStringList paletteNames() {
             "ice",     "gold",   "rainbow", "magma",   "inferno", "viridis", "lagoon", "forest",   "dusk",
             "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "sepia",    "steel",  "rose",
             "abyss",   "tropic", "twilight", "thermal", "nova", "jade",    "retro",  "carnival", "phase",
-            "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "mono"};
+            "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "cividis", "noir", "storm",
+            "spectral", "reef", "hologram", "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }
