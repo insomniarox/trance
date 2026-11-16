@@ -2,12 +2,10 @@
 
 ![Trance showing the Neon Tunnel preset with the editor open](docs/screenshot.png)
 
-A music visualizer for the Linux desktop, and for Windows 11. It listens to
-whatever your speakers are playing and draws it: feedback tunnels in the
-spirit of MilkDrop, flow fields and spectrum landscapes in the spirit of
-SoundSpectrum's G-Force and WhiteCap, and plain analyzers when that's all you
-want. Every preset can be changed while it runs, and the colors can follow
-your desktop theme.
+A music visualizer for Linux and Windows 11. It listens to whatever your
+speakers play and draws it: feedback tunnels, flow fields, wireframe
+landscapes and particle storms, or plain analyzers when that's all you want.
+Every preset can be changed while it runs.
 
 ![Twelve of the built-in presets](docs/gallery.jpg)
 
@@ -17,54 +15,38 @@ your desktop theme.
 
 ![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
 
-- **87 presets** built in, changing on the beat every 30 seconds (or held,
-  shuffled, or picked from a list you can search and filter). Filter by
-  color, or by what a preset is made of, such as wireframes or the six
-  ranges, and the changes can keep to what matches, for a mood that lasts.
-  A change is not a cut: for a
-  few seconds both presets run on the one picture, and the wave of one
-  reshapes itself into the wave of the next.
+- **87 presets** built in, changing on the beat. A change is not a cut: for
+  a few seconds both presets run on the one picture, and the wave of one
+  reshapes itself into the wave of the next. Search them, filter them by
+  color or by what they are made of, and keep the changes to what matches.
 - **A layer for every part of the sound.** Besides bass, mid and treble,
   formulas can follow six narrower ranges (`sub`, `low`, `lowmid`,
-  `highmid`, `presence`, `air`), so each layer of a preset can move to its
-  own. Two dozen presets are built that way, from Strata and Clockwork to
-  Jellyfish, Corona, Prism and Gyroscope.
+  `highmid`, `presence`, `air`), so each layer of a preset moves to its own.
 - **Wireframes in space.** The last few seconds of the spectrum as a sheet
   of lines, laid flat like a sea, rolled into a tube, spread into a ring or
   wrapped round a ball, folding from one form into another while a camera
-  turns round it. It hears the music the way WhiteCap does, in even steps
-  of pitch and without decibels, so it shows what stands out where the bars
-  show everything, and the two never move alike. Seventeen presets are built
-  on it, from Whitecaps and Borehole to a Seismograph whose pens draw back
-  across the paper in perspective, and Terraces and Moons, where each of
-  the six ranges of the sound has a wireframe of its own.
+  turns round it. Seventeen presets are built on it.
 - **Everything works on everything else.** Flow fields bend the picture,
-  waves and bars throw particles, the particles ride the flow, backgrounds
-  fill the dark, and one palette colors all of it.
-- **Mash-ups and visitors.** `X` builds a new preset from parts of others:
-  one's motion, another's layers, a third's colors. A dozen small extras
-  drop in over any preset for a while and leave again: a comet, fireflies,
-  a globe made of one range of the music, a ripple on every kick, a row of
-  six lights for the six ranges, a flurry that falls with the cymbals.
-- **Listen to one app.** Follow everything that's playing, or only Spotify,
-  or only your browser. The app keeps playing through your speakers; no
-  virtual cables or rerouting.
+  waves and bars throw particles, the particles ride the flow, and one
+  palette colors all of it.
+- **Listen to one app.** Everything that's playing, or only Spotify, or only
+  your browser. It goes on playing through your speakers, with no virtual
+  cables or rerouting.
 - **Edit anything live.** Press `E`: every setting has a plain name, a
-  slider, and an explanation when the pointer rests on it, and any number
-  can instead be a formula of the music, such as `1.02 + 0.05*bass_att`.
-  What you have changed since the last save is marked in the accent color. Layers of waves, bars, shapes, terrain,
-  wireframes and particles can be added, reordered and removed. Nothing is written until
-  you save, and your presets are kept apart from the built-in ones.
-- **Follows your theme.** Presets can use the theme's colors by name, and
-  `T` recolors every preset with the theme's colors or one of 41 palettes. On
-  [Omarchy](https://omarchy.org) those are the desktop theme's colors, and a
-  theme switch shows up immediately; elsewhere a built-in set stands in.
-- **Glass.** `G` makes black see-through, so your desktop, and your
-  compositor's blur if it has one, show behind the picture. A slider in the settings says how dark
-  the glass is, from clear to solid.
-- **Track titles** from whatever player is running (Spotify, a browser, mpv)
-  when the song changes: in the corner, or written into the picture for the
-  flow to carry off.
+  slider and an explanation, and any number can instead be a formula of the
+  music, such as `1.02 + 0.05*bass_att`. Nothing is written until you save.
+- **Your colors.** `T` recolors every preset with your desktop theme's
+  colors on [Omarchy](https://omarchy.org), or with one of 41 palettes.
+- **Glass.** `G` makes black see-through, so your desktop shows behind the
+  picture.
+- **Mash-ups and visitors.** `X` builds a new preset from parts of others,
+  and small extras drop in over any preset for a while: a comet, fireflies,
+  a ripple on every kick.
+- **Track titles** from whatever player is running, in the corner or written
+  into the picture for the flow to carry off.
+- **Light on the processor.** The picture is drawn on the graphics card.
+  Even the heaviest preset takes under 2 ms of a laptop processor's time to
+  draw a 1080p frame.
 
 ## Install
 
@@ -347,6 +329,11 @@ in `trance.pro`: `audiocapture_pipewire.cpp` and `audiocapture_wasapi.cpp`
 for listening, `nowplaying_mpris.cpp` and `nowplaying_smtc.cpp` for track
 titles, and `theme_hyprland.cpp` for the corners.
 
+`src/engine.cpp` is the renderer (plain OpenGL 3.3, no window needed),
+`src/expr.cpp` the formula language (it runs formulas on the CPU and turns
+the per-pixel ones into GLSL), `src/preset.cpp` the preset format, and
+`src/audio.cpp` the analysis. The window is Qt Quick, in `src/*.qml`.
+
 A release is made by raising `VERSION` in `trance.pro` (and `pkgver` in
 `pkgbuild/PKGBUILD` with it), then pushing a tag of the same number:
 
@@ -358,24 +345,10 @@ The Windows run for the tag builds and tests as for any push, and then
 publishes the zip and the installer as a release on GitHub, with notes
 made from the commits since the one before.
 
-## Where the ideas come from
-
-From MilkDrop: the feedback loop, per-pixel code, custom waves and shapes,
-motion vectors, darken-center, and mash-ups. From SoundSpectrum's G-Force
-and WhiteCap: flow fields whose numbers are rolled anew each time they load,
-color maps that bend and drift on their own, waves that morph into each
-other, changes that glide instead of cut, particles that come and go by
-chance (the visitors), track titles drawn into the picture, the spectrum
-as a landscape, and WhiteCap's wireframe: a sheet of spectrum samples that
-formulas place in space, read in bins of even width that rise at once and
-sink slowly. Trance shares no code or presets with either.
-
-`src/engine.cpp` is the renderer (plain OpenGL 3.3, no window needed),
-`src/expr.cpp` the formula language (it runs formulas on the CPU and turns
-the per-pixel ones into GLSL), `src/preset.cpp` the preset format, and
-`src/audio.cpp` the analysis. The window is Qt Quick, in `src/*.qml`.
-
 ## License
 
-MIT. Theme following is adapted from Omacut and Monologue by David
-Heinemeier Hansson.
+MIT: see [LICENSE](LICENSE).
+
+Trance owes its love of feedback, flow and spectrum landscapes to MilkDrop
+and to SoundSpectrum's G-Force and WhiteCap. No code or presets were copied
+from any of them.
