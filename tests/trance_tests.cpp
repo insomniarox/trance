@@ -1368,7 +1368,7 @@ private slots:
     {
 #ifdef Q_OS_UNIX
         const QByteArray dump = QByteArray(
-            "[ { 'id': 80, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': "
+            "[ { 'id': 80, 'type': 'PipeWire:Interface:Node', 'info': { 'state': 'running', 'props': { 'media.class': "
             "'Stream/Output/Audio', 'application.name': 'Spotify', 'node.name': 'spotify', 'object.serial': 292 } } "
             "}, { 'id': 81, 'type': 'PipeWire:Interface:Node', 'info': { 'props': { 'media.class': "
             "'Stream/Input/Audio', 'node.name': 'trance' } } }, { 'id': 58, 'type': 'PipeWire:Interface:Node', "
@@ -1381,6 +1381,9 @@ private slots:
         QCOMPARE(nodes.size(), 3);
         QCOMPARE(nodes.first().application, QString("Spotify"));
         QCOMPARE(nodes.first().serial, 292);
+        // A stream that is playing is told from one paused or idle.
+        QVERIFY(nodes.first().running);
+        QVERIFY(!nodes.at(1).running);
         QStringList ids;
         for (const auto &entry : AudioCapture::describe(nodes, "app:Firefox"))
             ids << entry.toMap().value("id").toString();

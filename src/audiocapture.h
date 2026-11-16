@@ -58,6 +58,9 @@ public:
         // False for a socket with nothing in it (an HDMI port without a
         // screen, a headphone jack without headphones).
         bool available = true;
+        // An application's stream that is playing right now, not paused or
+        // idle. PipeWire only.
+        bool running = false;
     };
     static QVariantList describe(const QList<Node> &nodes, const QString &current);
     // What there is right now, waited for rather than announced: for a
@@ -96,4 +99,5 @@ private:
     QString m_error;
     QVariantList m_sources;
     bool m_wanted = false;
+    bool m_retriedSoon = false; // since sound, not silence, last arrived
 };

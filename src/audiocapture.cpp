@@ -1,5 +1,7 @@
 #include "audiocapture.h"
 
+#include <algorithm>
+
 #include "audio.h"
 
 AudioCapture::AudioCapture(Analyzer *analyzer, QObject *parent) : QObject(parent), m_analyzer(analyzer) {
@@ -23,6 +25,7 @@ void AudioCapture::start(const QString &source) {
     stop();
     m_source = isSource(source) ? source : QString("system");
     m_wanted = true;
+    m_retriedSoon = false;
     launch();
 }
 
@@ -43,6 +46,9 @@ void AudioCapture::heard(const float *interleavedStereo, int frames) {
     if (!m_wanted)
         return;
     m_analyzer->push(interleavedStereo, frames);
+    if (m_retriedSoon && std::any_of(interleavedStereo, interleavedStereo + 2 * frames,
+                                     [](float sample) { return sample != 0.f; }))
+        m_retriedSoon = false;
     setError({});
 }
 
@@ -52,6 +58,15 @@ void AudioCapture::heard(const float *interleavedStereo, int frames) {
 void AudioCapture::lost(const QString &detail) {
     if (!m_wanted)
         return;
+    // An application may end one stream and open the next at once, as a
+    // browser can between tracks: looked for again straight away the first
+    // time, and only then said to be waited for.
+    if (m_source.startsWith("app:") && !m_retriedSoon) {
+        m_retriedSoon = true;
+        m_retry.start(300);
+        return;
+    }
+    m_retry.setInterval(2000);
     if (m_source.startsWith("app:"))
         setError(tr("Waiting for %1 to play something.").arg(m_source.mid(4)));
     else

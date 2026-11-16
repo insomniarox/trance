@@ -8,7 +8,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
+#include <QElapsedTimer>
 #include <QStandardPaths>
+#include <QTimer>
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -20,6 +23,26 @@ namespace {
 // from the things worth listening to.
 const char *const OwnNode = "trance";
 
+// The stream to tap for an application: of those it has, one that is
+// playing, and of several the newest. With onlyRunning, none unless one
+// plays, and not besides. -1 for none.
+qint64 streamOf(const QList<AudioCapture::Node> &nodes, const QString &application, bool onlyRunning,
+                qint64 besides = -1) {
+    qint64 best = -1;
+    bool bestRunning = false;
+    for (const AudioCapture::Node &node : nodes) {
+        if (node.kind != AudioCapture::Node::Application || node.serial < 0 ||
+            node.application.compare(application, Qt::CaseInsensitive) != 0 || (onlyRunning && !node.running) ||
+            node.serial == besides)
+            continue;
+        if (best < 0 || (node.running && !bestRunning) || (node.running == bestRunning && node.serial > best)) {
+            best = node.serial;
+            bestRunning = node.running;
+        }
+    }
+    return best;
+}
+
 } // namespace
 
 struct AudioCapture::Platform {
@@ -29,13 +52,27 @@ struct AudioCapture::Platform {
 
     void capture(const QStringList &target);
     void read();
+    void startDump();
     void dumped();
+    // While an application is quiet, whether another of its streams plays.
+    void lookAround();
 
     AudioCapture *q;
     QString program, dumpProgram;
     QProcess process, dump;
+    // A pw-dump that hangs, as on a PipeWire that has stopped answering, is
+    // stopped after this long, rather than leaving the listening waiting.
+    QTimer dumpWatch;
     QByteArray pending;
     bool resolving = false; // the listing in progress is to find the application to tap
+    bool lookingAround = false; // it is to see whether another of the application's streams plays
+    bool switching = false; // pw-cat is being stopped to tap another stream
+    qint64 tapped = -1;     // the stream being tapped
+    // How long the tapped stream has been quiet, and how often another is
+    // looked for then: less often the longer it lasts, as a paused player
+    // can for hours.
+    QElapsedTimer sounded;
+    QTimer looking;
 };
 
 void AudioCapture::setUp() {
@@ -46,12 +83,26 @@ void AudioCapture::setUp() {
         if (!m_wanted || error != QProcess::FailedToStart)
             return;
         setError(tr("Could not start pw-cat, which Trance listens through."));
-        m_retry.start();
+        m_retry.start(2000);
     });
     connect(&p->process, &QProcess::finished, this, [this, p] {
-        lost(QString::fromUtf8(p->process.readAllStandardError()).trimmed().section('\n', -1));
+        p->looking.stop();
+        if (p->switching)
+            return;
+        const QString said = QString::fromUtf8(p->process.readAllStandardError()).trimmed();
+        // A target that isn't there is said in the line before the last,
+        // which is "stream node 4294967295 unconnected".
+        if (said.contains("target not found"))
+            lost(tr("the device is not connected."));
+        else
+            lost(said.section('\n', -1));
     });
     connect(&p->dump, &QProcess::finished, this, [p] { p->dumped(); });
+    p->dumpWatch.setSingleShot(true);
+    p->dumpWatch.setInterval(5000);
+    connect(&p->dumpWatch, &QTimer::timeout, this, [p] { p->dump.kill(); });
+    p->looking.setSingleShot(true);
+    connect(&p->looking, &QTimer::timeout, this, [p] { p->lookAround(); });
     connect(&p->dump, &QProcess::errorOccurred, this, [this, p](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart && p->resolving) {
             p->resolving = false;
@@ -61,6 +112,9 @@ void AudioCapture::setUp() {
 }
 
 void AudioCapture::tearDown() {
+    // A listing cut short here has nobody left to tell.
+    disconnect(&m_platform->dump, nullptr, this, nullptr);
+    m_platform->dumpWatch.stop();
     if (m_platform->dump.state() != QProcess::NotRunning) {
         m_platform->dump.kill();
         m_platform->dump.waitForFinished(500);
@@ -82,8 +136,7 @@ void AudioCapture::open() {
         // new number each time, so it is looked up by name at the moment of
         // listening. dumped() carries on from here.
         p.resolving = true;
-        if (p.dump.state() == QProcess::NotRunning)
-            p.dump.start(p.dumpProgram.isEmpty() ? QString("pw-dump") : p.dumpProgram, {});
+        p.startDump();
         return;
     }
     if (m_source.startsWith("output:"))
@@ -97,6 +150,9 @@ void AudioCapture::open() {
 void AudioCapture::close() {
     Platform &p = *m_platform;
     p.resolving = false;
+    p.lookingAround = false;
+    p.looking.stop();
+    p.tapped = -1;
     if (p.process.state() != QProcess::NotRunning) {
         p.process.kill();
         p.process.waitForFinished(1000);
@@ -118,9 +174,21 @@ void AudioCapture::Platform::capture(const QStringList &target) {
         properties.prepend("stream.capture.sink = true, ");
     if (target.size() > 1) {
         arguments << "--target" << target.at(1);
-        // If the chosen thing goes away, stop rather than quietly listen to
-        // something else; the retry finds it again when it is back.
-        properties.append(", node.dont-reconnect = true");
+        // If the chosen thing is not there, or goes away, stop rather than
+        // quietly listen to the default instead: the retry finds it again
+        // when it is back.
+        properties.append(", node.dont-reconnect = true, node.dont-fallback = true");
+    }
+    tapped = target.first() == "stream" ? target.at(1).toLongLong() : -1;
+    if (tapped >= 0) {
+        // A stream changed to while looking around keeps the quiet it was
+        // found in, and how often to look again: two that run in silence
+        // are then changed between ever less often.
+        if (!switching) {
+            sounded.start();
+            looking.setInterval(2000);
+        }
+        looking.start();
     }
     arguments << "-P" << "{ " + properties + " }" << "-";
     pending.clear();
@@ -129,25 +197,63 @@ void AudioCapture::Platform::capture(const QStringList &target) {
 
 void AudioCapture::refreshSources() {
     Platform &p = *m_platform;
-    if (p.dump.state() == QProcess::NotRunning && !p.dumpProgram.isEmpty())
-        p.dump.start(p.dumpProgram, {});
+    if (!p.dumpProgram.isEmpty())
+        p.startDump();
+}
+
+void AudioCapture::Platform::startDump() {
+    if (dump.state() != QProcess::NotRunning)
+        return;
+    dump.start(dumpProgram.isEmpty() ? QString("pw-dump") : dumpProgram, {});
+    dumpWatch.start();
+}
+
+void AudioCapture::Platform::lookAround() {
+    if (tapped < 0 || process.state() == QProcess::NotRunning)
+        return;
+    if (sounded.elapsed() < 3000) {
+        looking.start(2000);
+        return;
+    }
+    lookingAround = true;
+    startDump();
+    looking.start(qMin(2 * looking.interval(), 10000));
 }
 
 void AudioCapture::Platform::dumped() {
-    const QList<Node> nodes = parseNodes(dump.readAllStandardOutput());
-    q->listed(nodes);
-    if (!resolving || !q->m_wanted)
+    dumpWatch.stop();
+    const bool around = lookingAround;
+    lookingAround = false;
+    // Stopped, failed or cut short, what it printed may be nothing or half
+    // of the list, which is not to be taken for what there is.
+    const QByteArray printed = dump.readAllStandardOutput();
+    const bool answered = dump.exitStatus() == QProcess::NormalExit && dump.exitCode() == 0 && !printed.isEmpty();
+    const QList<Node> nodes = answered ? parseNodes(printed) : QList<Node>();
+    if (answered)
+        q->listed(nodes);
+    if (!q->m_wanted)
+        return;
+    if (around && answered && !resolving && tapped >= 0) {
+        // Another of the application's streams is playing while the one
+        // tapped is quiet: that one is listened to instead.
+        const qint64 other = streamOf(nodes, q->m_source.mid(4), true, tapped);
+        if (other >= 0) {
+            switching = true;
+            process.kill();
+            process.waitForFinished(1000);
+            capture({"stream", QString::number(other)});
+            switching = false;
+        }
+        return;
+    }
+    if (!resolving)
         return;
     resolving = false;
-    const QString wanted = q->m_source.mid(4);
-    for (const Node &node : nodes) {
-        if (node.kind == Node::Application && node.application.compare(wanted, Qt::CaseInsensitive) == 0 &&
-            node.serial >= 0) {
-            capture({"stream", QString::number(node.serial)});
-            return;
-        }
-    }
-    q->lost({});
+    const qint64 stream = answered ? streamOf(nodes, q->m_source.mid(4), false) : -1;
+    if (stream >= 0)
+        capture({"stream", QString::number(stream)});
+    else
+        q->lost({});
 }
 
 bool AudioCapture::listNodes(QList<Node> *nodes, QString *error) {
@@ -228,6 +334,7 @@ QList<AudioCapture::Node> AudioCapture::parseNodes(const QByteArray &dump) {
             node.description = node.name;
         node.label = node.description;
         node.serial = qint64(props.value("object.serial").toDouble(-1));
+        node.running = info.value("state").toString() == "running";
         if (props.contains("device.id")) {
             cardOf.insert(int(nodes.size()), props.value("device.id").toInt(-1));
             socketOf.insert(int(nodes.size()), props.value("card.profile.device").toInt(-1));
@@ -299,6 +406,11 @@ void AudioCapture::Platform::read() {
     static thread_local std::vector<float> samples;
     samples.resize(size_t(frames) * 2);
     std::memcpy(samples.data(), pending.constData(), samples.size() * sizeof(float));
+    if (tapped >= 0 && std::any_of(samples.begin(), samples.end(), [](float sample) { return sample != 0.f; })) {
+        sounded.restart();
+        if (looking.interval() != 2000)
+            looking.setInterval(2000);
+    }
     pending.remove(0, frames * qsizetype(2 * sizeof(float)));
     q->heard(samples.data(), int(frames));
 }
