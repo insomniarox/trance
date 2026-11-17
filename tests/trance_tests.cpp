@@ -19,6 +19,7 @@
 #include "audio.h"
 #include "audiocapture.h"
 #include "backend.h"
+#include "cli.h"
 #include "engine.h"
 #include "expr.h"
 #include "library.h"
@@ -1771,6 +1772,43 @@ private slots:
         remote::Server second(&backend, name);
         QVERIFY(!second.isListening());
         QCOMPARE(ask("Current"), "ok " + backend.currentName());
+    }
+
+    // render --frames: every frame from --start on, numbered from one, for
+    // ffmpeg to make a video of.
+    void renderWritesFrames()
+    {
+        QOpenGLContext context; // only to know whether there is OpenGL here
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        QTemporaryDir dir;
+        const QString frames = dir.filePath("frames");
+        const QStringList render{"trance", "render", "Whitecaps", "--size", "64x36", "--fps", "10", "--seconds", "2"};
+        QCOMPARE(runCli(render + QStringList{"--frames", frames, "--start", "1.5", "--then", "Starwake", "--drift"}),
+                 0);
+        QCOMPARE(QDir(frames).entryList(QDir::Files),
+                 (QStringList{"00001.png", "00002.png", "00003.png", "00004.png", "00005.png"}));
+        QCOMPARE(QImage(frames + "/00005.png").size(), QSize(64, 36));
+        // One picture or every frame, not both; and a start within the run.
+        QCOMPARE(runCli(render + QStringList{"--frames", frames, "--sheet", "4"}), 1);
+        QCOMPARE(runCli(render + QStringList{"--frames", frames, "-o", dir.filePath("one.png")}), 1);
+        QCOMPARE(runCli(render + QStringList{"--start", "1", "-o", dir.filePath("one.png")}), 1);
+        QCOMPARE(runCli(render + QStringList{"--frames", frames, "--start", "2"}), 1);
+        QVERIFY(!QFile::exists(dir.filePath("one.png")));
+    }
+
+    // Colors drifting on their own always go somewhere new, never to mono,
+    // and stay in a family of colors when given one.
+    void colorsDriftSomewhereElse()
+    {
+        for (int i = 0; i < 200; ++i) {
+            const QString next = presets::driftPalette("ocean");
+            QVERIFY(next != "ocean" && next != "mono");
+            QVERIFY(next.isEmpty() || presets::paletteNames().contains(next));
+            const QString blue = presets::driftPalette("ocean", "blue");
+            QVERIFY(blue != "ocean");
+            QVERIFY(blue.isEmpty() || presets::colorFamily(presets::paletteStops(blue)) == "blue");
+        }
     }
 
     void themeFallsBack()

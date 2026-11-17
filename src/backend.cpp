@@ -188,18 +188,9 @@ void Backend::tick() {
     if (m_colorDrift && m_sinceDrift.elapsed() / 1000.0 > m_driftAfter) {
         m_sinceDrift.restart();
         m_driftAfter = 22 + QRandomGenerator::global()->bounded(20.0);
-        QStringList names = presets::paletteNames();
-        names.removeAll("mono");
         // Kept to a family of colors, the drift stays in it too.
-        if (m_keepToFilter && !m_filterColor.isEmpty())
-            names.removeIf([this](const QString &name) {
-                return presets::colorFamily(presets::paletteStops(name)) != m_filterColor;
-            });
-        names.removeAll(m_driftPalette);
-        names << QString(""); // each preset's own
-        m_driftPalette = names.at(QRandomGenerator::global()->bounded(int(names.size())));
-        if (m_driftPalette.isNull())
-            m_driftPalette = QString("");
+        m_driftPalette =
+            presets::driftPalette(m_driftPalette, m_keepToFilter ? m_filterColor : QString());
         emit paletteChanged();
     }
     // Moving on: when the time is up, wait for the next beat (a few seconds

@@ -92,6 +92,10 @@ QStringList layerTypes();
 QStringList transitionStyles(); // "mixed" first, then the patterns in the engine's order
 QStringList paletteNames();
 QStringList paletteStops(const QString &name);
+// Where colors drifting on their own go next from the palette they are on:
+// any palette but mono and that one, or "" for each preset's own. Given a
+// family of colors, only that family's palettes.
+QString driftPalette(const QString &current, const QString &family = QString());
 QStringList themeColorNames();
 QStringList variableNames();
 QVariantMap schema();

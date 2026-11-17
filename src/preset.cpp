@@ -4,6 +4,7 @@
 
 #include <QColor>
 #include <QJsonArray>
+#include <QRandomGenerator>
 #include <QSet>
 #include <QRegularExpression>
 #include <algorithm>
@@ -807,6 +808,16 @@ QStringList colorFamilies() { return {"red", "orange", "green", "blue", "violet"
 // its brightest and darkest channel), so black and white pull not at all.
 // Averaged round the color wheel, the pull says which hue leads, and its
 // strength how much it leads: under half, the stops pull different ways.
+QString driftPalette(const QString &current, const QString &family) {
+    QStringList names = paletteNames();
+    names.removeAll("mono");
+    if (!family.isEmpty())
+        names.removeIf([&](const QString &name) { return colorFamily(paletteStops(name)) != family; });
+    names.removeAll(current);
+    names << QString(""); // each preset's own
+    return names.at(QRandomGenerator::global()->bounded(int(names.size())));
+}
+
 QString colorFamily(const QStringList &stops) {
     if (stops.isEmpty())
         return {};

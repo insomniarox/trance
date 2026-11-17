@@ -88,7 +88,9 @@ trance render "Night Drive" -o look.png --sheet 6 --seconds 8
 
 `render --sheet 6` tiles six moments into one picture, so motion shows in a
 still. `--audio song.mp3` renders against real music instead of the built-in
-test loop.
+test loop. To see it move for real, `--frames dir --start 4` writes every
+frame after the first four seconds as `dir/00001.png` and on, and
+`ffmpeg -framerate 60 -i dir/%05d.png look.mp4` makes a video of them.
 
 The smallest preset that does something:
 

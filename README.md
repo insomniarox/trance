@@ -309,13 +309,17 @@ trance new "Night Drive" --from Horizon
 trance check "Night Drive"          # every problem, by setting
 trance render "Night Drive" -o look.png --sheet 6 --audio song.mp3
 trance render Tidewater --then Starwake --sheet 12   # watch two presets change over
+trance render Whitecaps --frames frames --seconds 12 --start 4   # every frame, for a video
 trance sources                      # what there is to listen to
 trance skill install                # teach your coding agent to write presets
 ```
 
 `render` draws a preset to a PNG, reacting to a built-in test loop or to an
 audio file (which takes `ffmpeg`); `--sheet 6` tiles six moments into one
-picture so you can see it move.
+picture so you can see it move. `--frames dir` writes every frame instead,
+as `dir/00001.png` and on, for `ffmpeg` to make a video of; `--start` leaves
+out the first seconds, while the trails build up, and `--drift` lets the
+colors drift as they do in the window.
 
 ## Development
 

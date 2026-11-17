@@ -15,6 +15,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QPainter>
 #include <QProcess>
+#include <QRandomGenerator>
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <cmath>
@@ -217,8 +218,8 @@ QImage titleImage(const QString &text) {
 }
 
 int render(const QStringList &arguments) {
-    Command command("render", "Render a preset to a PNG without opening a window, reacting to a built-in "
-                              "test loop or to an audio file.");
+    Command command("render", "Render a preset to a PNG, or every frame to PNGs, without opening a window, "
+                              "reacting to a built-in test loop or to an audio file.");
     command.parser.addPositionalArgument("preset", "A preset's name, or a file.");
     command.parser.addOptions({
         {{"o", "output"}, "Where to write the PNG (default: <preset>.png).", "file"},
@@ -233,6 +234,10 @@ int render(const QStringList &arguments) {
         {"transition", "The change's pattern: " + presets::transitionStyles().join(", ") + ".", "style", "mixed"},
         {"title", "Write this into the picture, as a new track's name is.", "text"},
         {"visitors", "Let the built-in visitors drop in, as they do in the window."},
+        {"drift", "Let the colors drift, as they do in the window, but every few seconds."},
+        {"frames", "Write every frame instead, as <dir>/00001.png and on, to make a video from.", "dir"},
+        {"start", "With --frames, the first frame to write, in seconds (default 0), so the trails have built "
+                  "up.", "seconds", "0"},
     });
     command.json();
     command.process(arguments);
@@ -255,7 +260,17 @@ int render(const QStringList &arguments) {
         return fail("--size wants WIDTHxHEIGHT, such as 1920x1080.");
     if (seconds <= 0 || seconds > 3600 || fps < 1 || fps > 480)
         return fail("--seconds and --fps want positive numbers.");
-    const QString palette = command.parser.value("palette");
+    const QString frames = command.parser.value("frames");
+    const double start = command.parser.value("start").toDouble();
+    if (!frames.isEmpty() && (sheet > 1 || command.parser.isSet("output")))
+        return fail("--frames writes every frame, so it takes neither --sheet nor --output.");
+    if (command.parser.isSet("start") && frames.isEmpty())
+        return fail("--start is for --frames.");
+    if (start < 0 || start >= seconds)
+        return fail("--start wants a time before --seconds is up.");
+    if (!frames.isEmpty() && !QDir().mkpath(frames))
+        return fail("Could not make " + frames);
+    QString palette = command.parser.value("palette");
     if (!palette.isEmpty() && !presets::paletteNames().contains(palette))
         return fail("Unknown palette '" + palette + "'. Use one of: " + presets::paletteNames().join(", "));
 
@@ -277,6 +292,11 @@ int render(const QStringList &arguments) {
     if (fromFile && !decodeAudio(command.parser.value("audio"), &samples, &error))
         return fail(error);
 
+    const int total = qMax(1, int(std::lround(seconds * fps)));
+    // What is written begins here; the change and the title fall in it.
+    const int first = qMin(total - 1, int(std::lround(start * fps)));
+    const int written = total - first;
+
     Headless gl;
     if (!gl.create())
         return fail("Could not create an OpenGL context to render with.");
@@ -296,7 +316,7 @@ int render(const QStringList &arguments) {
         }
         QOpenGLFramebufferObject target(width, height);
         Analyzer analyzer;
-        const int total = qMax(1, int(std::lround(seconds * fps)));
+        double nextDrift = 4 + QRandomGenerator::global()->bounded(3.0);
         const int perFrame = analyzer.sampleRate() / fps;
         std::vector<float> chunk(size_t(perFrame) * 2);
         const int columns = int(std::ceil(std::sqrt(double(sheet))));
@@ -318,14 +338,25 @@ int render(const QStringList &arguments) {
                 synthesize(chunk.data(), perFrame, position, analyzer.sampleRate());
             }
             analyzer.push(chunk.data(), perFrame);
-            if (frame == total / 2 && command.parser.isSet("then"))
+            if (frame == first + written / 2 && command.parser.isSet("then"))
                 engine.setPreset(second, qMax(0.0, command.parser.value("blend").toDouble()));
-            if (frame == total / 3 && command.parser.isSet("title"))
+            if (frame == first + written / 3 && command.parser.isSet("title"))
                 engine.showText(titleImage(command.parser.value("title")));
+            if (command.parser.isSet("drift") && double(frame) / fps >= nextDrift) {
+                nextDrift += 4 + QRandomGenerator::global()->bounded(3.0);
+                palette = presets::driftPalette(palette);
+                engine.setPaletteOverride(palette);
+            }
             engine.setProgress(double(frame) / total);
             engine.render(analyzer.analyze(1.0 / fps), 1.0 / fps, target.handle(), width, height);
             if (!engine.error().isEmpty())
                 return fail(command.argument(0) + ": " + engine.error());
+            if (!frames.isEmpty() && frame >= first) {
+                const QString path = QDir(frames).filePath(QString("%1.png").arg(frame - first + 1, 5, 10, QChar('0')));
+                // Light compression: these are for ffmpeg, and the heavy kind takes longer than the drawing.
+                if (!target.toImage().convertToFormat(QImage::Format_RGB32).save(path, "PNG", 80))
+                    return fail("Could not write " + path);
+            }
             // Sheet frames are spread over the run and end on the last one.
             if (sheet > 1 && frame + 1 == (qint64(taken + 1) * total) / sheet) {
                 QPainter painter(&result);
@@ -335,6 +366,16 @@ int render(const QStringList &arguments) {
         }
         if (sheet == 1)
             result = target.toImage().convertToFormat(QImage::Format_RGB32);
+    }
+
+    if (!frames.isEmpty()) {
+        if (command.parser.isSet("json"))
+            print({{"frames", QFileInfo(frames).absoluteFilePath()}, {"count", written}, {"fps", fps},
+                   {"width", width}, {"height", height}, {"preset", compiled.name},
+                   {"problems", problemsJson(compiled.problems)}});
+        else
+            print(stdout, QString("Wrote %1 frames to %2").arg(written).arg(frames));
+        return 0;
     }
 
     QString output = command.parser.value("output");
@@ -518,7 +559,7 @@ QString cliSummary() {
            "  show <preset>                 Print a preset's JSON\n"
            "  new <name> [--from preset]    Start a preset of your own\n"
            "  check <preset>...             Report every problem in a preset\n"
-           "  render <preset>               Render a preset to a PNG\n"
+           "  render <preset>               Render a preset to a PNG, or every frame of it\n"
            "  help format                   The preset format, in brief\n"
            "  help manual                   How to make an effect: every setting and why\n"
            "  skill [install]               Print the skill for coding agents, or install it";
