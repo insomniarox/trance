@@ -1,0 +1,81 @@
+{
+  "name": "Glowstring",
+  "author": "Trance",
+  "description": "Strings stretched across a dark room under ultraviolet light, plucked by the music. They fly away into the distance as they tremble, the lint on them glowing as it drifts off, and only the loudest notes burn highlighter green.",
+  "palette": "blacklight",
+  "init": "ph = rand(6)",
+  "frame": "lean = 0.3*sin(time*0.05 + ph)",
+  "feedback": {
+    "decay": 0.93,
+    "zoom": "1.012 + 0.025*min(bass_att, 2)",
+    "rot": "0.002*sin(time*0.1 + ph)",
+    "darkenCenter": true,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "source": "left",
+      "shape": "line",
+      "y": 0.35,
+      "angle": "lean",
+      "width": 1.2,
+      "scale": "0.15 + 0.1*min(vol_att, 2)",
+      "smooth": 0.4,
+      "thickness": 2,
+      "color": "white",
+      "alpha": "0.45 + 0.4*min(mid_att, 1.5)/1.5",
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "source": "mix",
+      "shape": "line",
+      "y": 0,
+      "angle": "-lean*0.6",
+      "width": 1.2,
+      "scale": "0.15 + 0.1*min(vol_att, 2)",
+      "smooth": 0.4,
+      "thickness": 2,
+      "color": "white",
+      "alpha": "0.45 + 0.4*min(bass_att, 1.5)/1.5",
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "source": "right",
+      "shape": "line",
+      "y": -0.35,
+      "angle": "lean*0.4",
+      "width": 1.2,
+      "scale": "0.15 + 0.1*min(vol_att, 2)",
+      "smooth": 0.4,
+      "thickness": 2,
+      "color": "white",
+      "alpha": "0.45 + 0.4*min(treb_att, 1.5)/1.5",
+      "additive": true
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 1200,
+      "rate": "80 + 600*beat",
+      "speed": 0.04,
+      "drag": 0.5,
+      "field": 0.5,
+      "flow": 1,
+      "life": 2,
+      "size": 2,
+      "color": "white",
+      "alpha": 0.5,
+      "additive": true
+    }
+  ],
+  "post": {
+    "colorize": 1,
+    "colorCurve": 1.4,
+    "bloom": 0.9,
+    "bloomThreshold": 0.45,
+    "vignette": 0.6
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "name": "Misprint",
+  "author": "Trance",
+  "description": "A risograph poster run off in two inks that never quite line up. A rose of the spectrum is printed in pink and again in blue, slipping out of register on every beat, in a coarse dot screen with the grain of cheap paper.",
+  "palette": "riso",
+  "init": "ph = rand(6)\nslip = 0",
+  "frame": "slip = max(slip*0.9, beat)\nturn = turn + dt*(0.05 + 0.1*min(mid_att, 2))",
+  "feedback": {
+    "decay": 0.5,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "x": "0.1*sin(time*0.05 + ph)",
+      "y": "0.08*cos(time*0.04 + ph)",
+      "radius": "0.62 + 0.04*min(bass_att, 2)",
+      "color": "palette(0.43)",
+      "alpha": 0.22,
+      "color2": "palette(0.43)",
+      "alpha2": 0.22,
+      "additive": false
+    },
+    {
+      "type": "bars",
+      "layout": "radial",
+      "count": 48,
+      "radius": 0.18,
+      "height": 1.3,
+      "gap": 0.2,
+      "angle": "turn",
+      "symmetric": true,
+      "peaks": false,
+      "fade": 0,
+      "color": "palette(0)",
+      "alpha": 0.85,
+      "additive": true
+    },
+    {
+      "type": "bars",
+      "layout": "radial",
+      "count": 48,
+      "x": "0.012 + 0.05*slip",
+      "y": "-0.008 - 0.03*slip",
+      "radius": 0.18,
+      "height": 1.3,
+      "gap": 0.2,
+      "angle": "turn + 0.01 + 0.04*slip",
+      "symmetric": true,
+      "peaks": false,
+      "fade": 0,
+      "color": "palette(0.71)",
+      "alpha": 0.85,
+      "additive": true
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": 0.18,
+      "scale": 0.1,
+      "smooth": 0.5,
+      "thickness": 3,
+      "color": "palette(0.15)",
+      "alpha": 0.9,
+      "additive": true
+    }
+  ],
+  "shade": "hx = fract(x*14) - 0.5\nhy = fract(y*14) - 0.5\nk = smoothstep(0.05, -0.05, length(hx, hy) - 0.72*sqrt(min(lum*1.5, 1)))\nr = r*(0.3 + 0.7*k)\ng = g*(0.3 + 0.7*k)\nb = b*(0.3 + 0.7*k)",
+  "post": {
+    "bloom": 0.2,
+    "bloomThreshold": 0.8,
+    "saturation": 1.15,
+    "vignette": 0.3,
+    "grain": 0.14
+  }
+}

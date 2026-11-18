@@ -24,6 +24,7 @@
         <file alias="ControlBar.qml">ControlBar.qml</file>
         <file alias="HelpTip.qml">HelpTip.qml</file>
         <file alias="presets/aurora.json">presets/aurora.json</file>
+        <file alias="presets/blueprint.json">presets/blueprint.json</file>
         <file alias="presets/borehole.json">presets/borehole.json</file>
         <file alias="presets/breath.json">presets/breath.json</file>
         <file alias="presets/clockwork.json">presets/clockwork.json</file>
@@ -38,6 +39,7 @@
         <file alias="presets/curtain.json">presets/curtain.json</file>
         <file alias="presets/deep-current.json">presets/deep-current.json</file>
         <file alias="presets/deep-field.json">presets/deep-field.json</file>
+        <file alias="presets/doppler.json">presets/doppler.json</file>
         <file alias="presets/double-helix.json">presets/double-helix.json</file>
         <file alias="presets/drift.json">presets/drift.json</file>
         <file alias="presets/drumhead.json">presets/drumhead.json</file>
@@ -51,9 +53,11 @@
         <file alias="presets/fractal-bloom.json">presets/fractal-bloom.json</file>
         <file alias="presets/fumarole.json">presets/fumarole.json</file>
         <file alias="presets/galaxy.json">presets/galaxy.json</file>
+        <file alias="presets/glowstring.json">presets/glowstring.json</file>
         <file alias="presets/gyroscope.json">presets/gyroscope.json</file>
         <file alias="presets/hall-of-mirrors.json">presets/hall-of-mirrors.json</file>
         <file alias="presets/halo.json">presets/halo.json</file>
+        <file alias="presets/hanami.json">presets/hanami.json</file>
         <file alias="presets/heartbeat.json">presets/heartbeat.json</file>
         <file alias="presets/horizon.json">presets/horizon.json</file>
         <file alias="presets/hyperdrive.json">presets/hyperdrive.json</file>
@@ -65,6 +69,7 @@
         <file alias="presets/loom.json">presets/loom.json</file>
         <file alias="presets/magnetosphere.json">presets/magnetosphere.json</file>
         <file alias="presets/mainframe.json">presets/mainframe.json</file>
+        <file alias="presets/misprint.json">presets/misprint.json</file>
         <file alias="presets/moire.json">presets/moire.json</file>
         <file alias="presets/molten.json">presets/molten.json</file>
         <file alias="presets/moons.json">presets/moons.json</file>
@@ -115,6 +120,7 @@
         <file alias="presets/vinyl.json">presets/vinyl.json</file>
         <file alias="presets/vortex.json">presets/vortex.json</file>
         <file alias="presets/whitecaps.json">presets/whitecaps.json</file>
+        <file alias="presets/windfall.json">presets/windfall.json</file>
         <file alias="presets/windmap.json">presets/windmap.json</file>
         <file alias="visitors/bubbles.json">visitors/bubbles.json</file>
         <file alias="visitors/comet.json">visitors/comet.json</file>
