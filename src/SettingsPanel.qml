@@ -182,7 +182,8 @@ SidePanel {
                     Picker {
                         // In the order of the schema's transitions.
                         model: [qsTr("Mixed"), qsTr("Dissolve"), qsTr("From the middle"), qsTr("From the edges"),
-                                qsTr("Sweep"), qsTr("Clouds"), qsTr("Wipe")]
+                                qsTr("Sweep"), qsTr("Clouds"), qsTr("Wipe"), qsTr("Blinds"), qsTr("Tiles"),
+                                qsTr("Spiral"), qsTr("Shards")]
                         currentIndex: Math.max(0, backend.schema.transitions.indexOf(backend.transition))
                         onActivated: backend.transition = backend.schema.transitions[currentIndex]
                     }

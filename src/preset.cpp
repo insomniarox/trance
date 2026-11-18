@@ -418,7 +418,9 @@ float f_blendAt(vec2 uv) {
   if (u_pattern < 0.5) return u_blend;
   vec2 p = vec2((uv.x * 2.0 - 1.0) * u_aspect, uv.y * 2.0 - 1.0);
   float reach = length(vec2(u_aspect, 1.0));
-  float g;
+  // g, from 0 to 1, is when a place changes over; soft is how much of the
+  // change it takes there, so a pattern with edges of its own keeps them.
+  float g, soft = 0.5;
   if (u_pattern < 1.5) {
     g = length(p) / reach;
   } else if (u_pattern < 2.5) {
@@ -428,11 +430,48 @@ float f_blendAt(vec2 uv) {
   } else if (u_pattern < 4.5) {
     vec2 q = p * 1.3 + u_patternSeed * 37.0;
     g = f_noise(q) * 0.6 + f_noise(q * 2.3 + 11.0) * 0.4;
-  } else {
+  } else if (u_pattern < 5.5) {
     float a = u_patternSeed * 6.28318530718;
     g = dot(p, vec2(cos(a), sin(a))) / reach * 0.5 + 0.5;
+  } else if (u_pattern < 6.5) {
+    // Blinds: eight slats at a slant, each opening from one side, the
+    // first a little before the last.
+    float a = u_patternSeed * 6.28318530718;
+    float d = dot(p, vec2(cos(a), sin(a))) / reach * 0.5 + 0.5;
+    g = fract(d * 8.0) * 0.8 + d * 0.2;
+    soft = 0.2;
+  } else if (u_pattern < 7.5) {
+    // Tiles: square ones, turning over in no order.
+    vec2 cell = floor(p * 4.0 + u_patternSeed * 13.0);
+    g = f_hash(cell + vec2(u_patternSeed * 91.0, u_patternSeed * 37.0));
+    soft = 0.15;
+  } else if (u_pattern < 8.5) {
+    // Spiral: two fronts setting off from one arm of a spiral and going
+    // round it opposite ways, to meet on the far side.
+    float turn = f_atan2(p.y, p.x) / 6.28318530718 + length(p) / reach * 1.5;
+    g = abs(fract(turn + u_patternSeed) * 2.0 - 1.0);
+    soft = 0.35;
+  } else {
+    // Shards: the picture breaks into cells of broken glass, which fall
+    // away from the middle outward and in no order among neighbours.
+    vec2 q = p * 2.5 + u_patternSeed * 17.0;
+    vec2 base = floor(q), best = base;
+    float nearest = 9.0;
+    for (int j = -1; j <= 1; ++j)
+      for (int i = -1; i <= 1; ++i) {
+        vec2 cell = base + vec2(float(i), float(j));
+        vec2 point = cell + vec2(f_hash(cell), f_hash(cell + 17.3));
+        float d = dot(point - q, point - q);
+        if (d < nearest) {
+          nearest = d;
+          best = cell;
+        }
+      }
+    vec2 middle = (best + 0.5 - u_patternSeed * 17.0) / 2.5;
+    g = clamp(f_hash(best + 5.1) * 0.65 + length(middle) / reach * 0.35, 0.0, 1.0);
+    soft = 0.15;
   }
-  float w = clamp((u_blend * 1.5 - g) / 0.5, 0.0, 1.0);
+  float w = clamp((u_blend * (1.0 + soft) - g) / soft, 0.0, 1.0);
   return w * w * (3.0 - 2.0 * w);
 }
 )";
@@ -720,7 +759,9 @@ const QList<Field> &fields(const QString &section) {
 
 QStringList layerTypes() { return {"wave", "bars", "shape", "terrain", "wireframe", "particles", "vectors"}; }
 
-QStringList transitionStyles() { return {"mixed", "dissolve", "center", "edges", "sweep", "clouds", "wipe"}; }
+QStringList transitionStyles() {
+    return {"mixed", "dissolve", "center", "edges", "sweep", "clouds", "wipe", "blinds", "tiles", "spiral", "shards"};
+}
 
 QStringList paletteNames() {
     return {"theme",   "accent", "fire",   "ocean",    "neon",   "sunset", "aurora", "vapor",    "acid",
