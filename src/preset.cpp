@@ -212,6 +212,24 @@ const QHash<QString, QStringList> &palettes() {
         // cyan, periwinkle, violet, pink, peach, lemon and mint, whose ends
         // meet, so a palette that keeps turning has no seam.
         {"hologram", {"#7ff3ff", "#8fa8ff", "#c77dff", "#ff7ad9", "#ffb38a", "#f5f08a", "#a6ffcf"}},
+        // Three more from black: ultraviolet up to the green of a
+        // highlighter under it, a cyanotype's Prussian blue up to the paper,
+        // and the bark of a cherry tree up through blossom to petal white,
+        // with the green of young leaves where it is brightest.
+        {"blacklight", {"#000000", "#0c0221", "#2a0a5e", "#5b14b8", "#8f2cff", "#c86bff", "#39ff14", "#eaffd0"}},
+        {"cyanotype", {"#02060d", "#061a33", "#0b3263", "#12508f", "#2f74a8", "#6d9fc2", "#b6cfdf", "#f4f1e6"}},
+        {"sakura", {"#0a0507", "#2b1420", "#6b2f48", "#c25d82", "#f29bb8", "#ffd9e5", "#fff6f8", "#b9e08f"}},
+        // Two bright ones: autumn leaves, from burgundy through rust,
+        // pumpkin and mustard to moss and chestnut; and a risograph's
+        // inks, fluorescent pink, orange, yellow, green, teal, blue and
+        // purple.
+        {"autumn", {"#8c1c13", "#bf4e1d", "#e8871e", "#edb92e", "#a3a83b", "#5f7a36", "#7a3b2e"}},
+        {"riso", {"#ff48b0", "#ff6c2f", "#ffe800", "#00a95c", "#00838a", "#3255a4", "#765ba7"}},
+        // The plotting world's better rainbow: dark blue up through cyan,
+        // green and yellow, and down through orange to dark red, evenly
+        // brighter toward the middle.
+        {"turbo", {"#30123b", "#4145ab", "#4675ed", "#39a2fc", "#1bcfd4", "#24eca6", "#61fc6c", "#a4fc3b",
+                   "#d1e834", "#f3c63a", "#fe9b2d", "#f36315", "#d93806", "#b11901", "#7a0402"}},
         {"mono", {"#000000", "#ffffff"}},
     };
     return all;
@@ -710,7 +728,8 @@ QStringList paletteNames() {
             "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "sepia",    "steel",  "rose",
             "abyss",   "tropic", "twilight", "thermal", "nova", "jade",    "retro",  "carnival", "phase",
             "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "cividis", "noir", "storm",
-            "spectral", "reef", "hologram", "mono"};
+            "spectral", "reef", "hologram", "blacklight", "cyanotype", "sakura", "autumn", "riso", "turbo",
+            "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }

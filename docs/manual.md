@@ -730,12 +730,13 @@ The theme's colors are `accent`, `foreground`, `background`, `selection`,
 | | |
 |---|---|
 | `theme` `accent` | Built from the desktop theme, and follow it live |
-| `fire` `ocean` `ice` `gold` `magma` `inferno` `viridis` `lagoon` `forest` `dusk` `arctic` `amethyst` `copper` `phosphor` `sepia` `steel` `rose` `abyss` `thermal` `nova` `jade` `crimson` `sulfur` `cobalt` `cividis` `noir` `storm` | Run from dark to bright, which is what Colorize wants |
-| `neon` `sunset` `aurora` `vapor` `acid` `rainbow` `cyber` `candy` `tropic` `retro` `carnival` `bauhaus` `citrus` `spectral` `reef` | Bright all the way round, for coloring layers apart |
+| `fire` `ocean` `ice` `gold` `magma` `inferno` `viridis` `lagoon` `forest` `dusk` `arctic` `amethyst` `copper` `phosphor` `sepia` `steel` `rose` `abyss` `thermal` `nova` `jade` `crimson` `sulfur` `cobalt` `cividis` `noir` `storm` `blacklight` `cyanotype` `sakura` | Run from dark to bright, which is what Colorize wants |
+| `neon` `sunset` `aurora` `vapor` `acid` `rainbow` `cyber` `candy` `tropic` `retro` `carnival` `bauhaus` `citrus` `spectral` `reef` `autumn` `riso` | Bright all the way round, for coloring layers apart |
 | `twilight` | Pale, down through dark and back up: its ends meet, so a palette that keeps turning has no seam |
 | `phase` | Every hue at about the same brightness, so a palette that keeps turning changes color without pulsing |
 | `opal` | Pale all the way round, for a glow that changes color but never darkens; its ends meet too |
 | `hologram` | Light and bright all the way round, like the foil of a hologram turning; its ends meet too |
+| `turbo` | A rainbow from the plotting world, dark blue up through cyan, green and yellow and down through orange to dark red: dark at both ends and brightest in the middle |
 | `mono` | Black to white |
 
 A palette is a strip of colors that blends from each to the next and then
