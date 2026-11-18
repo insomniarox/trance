@@ -1,0 +1,34 @@
+{
+  "name": "Scope",
+  "init": "px = (rand(2) - 1)*0.7\npy = (rand(2) - 1)*0.55\nturn = rand(6)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "xy",
+      "samples": 256,
+      "x": "px*aspect + 0.05*sin(time*0.3)",
+      "y": "py + 0.05*cos(time*0.4)",
+      "scale": 0.2,
+      "smooth": 0.3,
+      "angle": "turn + time*0.15",
+      "thickness": 1.6,
+      "color": "palette(0.6 + 0.3*t + time*0.05)",
+      "alpha": 0.85,
+      "additive": true
+    },
+    {
+      "type": "shape",
+      "sides": 4,
+      "x": "px*aspect + 0.05*sin(time*0.3)",
+      "y": "py + 0.05*cos(time*0.4)",
+      "radius": 0.24,
+      "angle": "turn + time*0.15 + 0.7854",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.6)",
+      "borderAlpha": 0.25,
+      "borderWidth": 1,
+      "additive": true
+    }
+  ]
+}

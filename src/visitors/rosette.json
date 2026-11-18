@@ -1,0 +1,23 @@
+{
+  "name": "Rosette",
+  "init": "fx = 0.11 + rand(0.1)\nfy = 0.13 + rand(0.1)\nph = rand(6)\nway = if(above(rand(1), 0.5), 1, -1)",
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "radial",
+      "count": 48,
+      "x": "aspect*0.6*sin(time*fx + ph)",
+      "y": "0.55*cos(time*fy + ph)",
+      "radius": "0.09 + 0.03*min(bass_att, 2)",
+      "height": 0.4,
+      "gap": 0.35,
+      "angle": "way*time*0.4",
+      "symmetric": true,
+      "peaks": false,
+      "fade": 0.3,
+      "color": "palette(t + time*0.05)",
+      "alpha": 0.85,
+      "additive": true
+    }
+  ]
+}

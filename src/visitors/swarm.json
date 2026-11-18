@@ -1,0 +1,27 @@
+{
+  "name": "Swarm",
+  "init": "fx = 0.21 + rand(0.15)\nfy = 0.27 + rand(0.15)\nph = rand(6)",
+  "frame": "hx = aspect*0.65*sin(time*fx + ph)\nhy = 0.6*sin(time*fy*1.3 + ph*2)",
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "point",
+      "count": 260,
+      "rate": 80,
+      "x": "hx",
+      "y": "hy",
+      "area": 0.15,
+      "speed": 0.3,
+      "drag": 1.2,
+      "pull": "4 - 9*beat",
+      "swirl": "0.5 + 0.6*min(mid_att, 2)",
+      "field": 1.4,
+      "fieldScale": 4,
+      "fieldSpeed": 1,
+      "life": 4,
+      "size": 2.2,
+      "color": "palette(0.4 + 0.3*i + time*0.04)",
+      "alpha": 0.9
+    }
+  ]
+}

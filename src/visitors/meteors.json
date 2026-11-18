@@ -1,0 +1,24 @@
+{
+  "name": "Meteors",
+  "init": "way = if(above(rand(1), 0.5), 1, -1)",
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "point",
+      "count": 200,
+      "rate": "1 + 90*max(0, beat - 0.6)",
+      "x": "-way*aspect*0.4",
+      "y": 1.1,
+      "area": 1.2,
+      "speed": 1.6,
+      "angle": "if(way > 0, -0.75, -2.39)",
+      "spread": 0.06,
+      "drag": 0,
+      "life": 1.4,
+      "size": 2.4,
+      "streak": 0.12,
+      "color": "palette(0.8 + 0.2*i)",
+      "alpha": 0.95
+    }
+  ]
+}
