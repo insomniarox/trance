@@ -8,7 +8,7 @@ TEMPLATE = app
 
 # The one place the version is written. A release is tagged v and this, and
 # the Windows installer and the program's file details take it from here.
-VERSION = 0.2.0
+VERSION = 0.2.1
 DEFINES += TRANCE_VERSION=\\\"$$VERSION\\\"
 
 HEADERS += \
