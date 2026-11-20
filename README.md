@@ -1,19 +1,14 @@
-# Trance
+<p align="center">
+  <a href="https://trance.eoschaos.com"><img src="docs/banner.svg" alt="Trance" width="800"></a>
+</p>
 
-![Trance showing the Neon Tunnel preset with the editor open](docs/screenshot.png)
+<p align="center"><a href="https://trance.eoschaos.com"><b>trance.eoschaos.com</b></a></p>
 
 A music visualizer for Linux and Windows 11. It listens to whatever your
 speakers play and draws it: feedback tunnels, flow fields, wireframe
 landscapes and particle storms, or plain analyzers when that's all you want.
-Every preset can be changed while it runs.
-
-![Twelve of the built-in presets](docs/gallery.jpg)
-
-![Twelve presets where flow, waves, particles and backgrounds work on each other](docs/gallery-interacting.jpg)
-
-![Presets with a part for each range of the sound](docs/gallery-layered.jpg)
-
-![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
+Every preset can be changed while it runs. See them move on
+[the website](https://trance.eoschaos.com).
 
 - **99 presets** built in, changing on the beat. A change is not a cut: for
   a few seconds both presets run on the one picture, and the wave of one
@@ -343,7 +338,7 @@ A release is made by raising `VERSION` in `trance.pro` (and `pkgver` in
 `pkgbuild/PKGBUILD` with it), then pushing a tag of the same number:
 
 ```sh
-git tag v0.2.0 && git push origin v0.2.0
+git tag v0.2.1 && git push origin v0.2.1
 ```
 
 The Windows run for the tag builds and tests as for any push, and then
