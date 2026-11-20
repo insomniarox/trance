@@ -10,6 +10,16 @@ landscapes and particle storms, or plain analyzers when that's all you want.
 Every preset can be changed while it runs. See them move on
 [the website](https://trance.eoschaos.com).
 
+![Trance showing the Neon Tunnel preset with the editor open](docs/screenshot.png)
+
+![Twelve of the built-in presets](docs/gallery.jpg)
+
+![Twelve presets where flow, waves, particles and backgrounds work on each other](docs/gallery-interacting.jpg)
+
+![Presets with a part for each range of the sound](docs/gallery-layered.jpg)
+
+![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
+
 - **99 presets** built in, changing on the beat. A change is not a cut: for
   a few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next. Search them, filter them by
