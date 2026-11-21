@@ -1102,15 +1102,56 @@ private slots:
 
         // Before blur kept to the second and to the screen, the rim grew
         // half as wide again at 144 frames a second and nearly twice as wide
-        // at 270 lines. Half-float buffers that round down as they are written
-        // take a little from every frame, which leaves the rim up to a fifth
-        // narrower at 144, so the rate is held to a quarter.
+        // at 270 lines.
         const double base = rim(540, 60);
         QVERIFY2(base > 0.02, qPrintable("the rim is only " + QString::number(base) + " wide"));
         const double fast = rim(540, 144), small = rim(270, 60);
-        QVERIFY2(std::abs(fast / base - 1) < 0.25,
+        QVERIFY2(std::abs(fast / base - 1) < 0.1,
                  qPrintable(QString::number(fast / base) + " times as wide at 144 frames a second"));
         QVERIFY2(std::abs(small / base - 1) < 0.1, qPrintable(QString::number(small / base) + " times as wide at 270 lines"));
+    }
+
+    // A picture left to fade loses as much in three seconds at 144 or 240
+    // frames a second as at 60, whatever the card does with the digits its
+    // buffers can't keep. With no decay only the small subtraction that
+    // takes trails to black works on it, 0.0012 every sixtieth of a second.
+    void fadeIsTheSameAtAnyRate()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        // White everywhere on the first frame only, then left to fade.
+        const CompiledPreset white = presets::compile(fixture(
+            "{ 'name': 'White', 'feedback': { 'decay': 1 }, 'layers': [ { 'type': 'shape', 'sides': 4, 'radius': 3, "
+            "'color': '#ffffff', 'color2': '#ffffff', 'alpha': 'below(frame, 1.5)', 'alpha2': 'below(frame, 1.5)' } ], "
+            "'post': { 'bloom': 0, 'vignette': 0 } }"));
+        for (const int rate : {60, 144, 240}) {
+            QOpenGLFramebufferObject target(64, 64);
+            Engine engine;
+            engine.setPreset(white, 0);
+            for (int frame = 0; frame < 3 * rate; ++frame)
+                engine.render(AudioFrame(), 1.0 / rate, target.handle(), 64, 64);
+            // The first frame is drawn after its own subtraction.
+            const double expected = 1 - 0.0012 * 60 * (3 - 1.0 / rate);
+            double mean = 0;
+            const QImage image = target.toImage();
+            for (int row = 0; row < 64; ++row)
+                for (int col = 0; col < 64; ++col)
+                    mean += image.pixelColor(col, row).redF() / (64 * 64);
+            QVERIFY2(std::abs(mean - expected) < 0.01, qPrintable(QString::number(mean) + " left at " +
+                                                                  QString::number(rate) + " frames a second, not " +
+                                                                  QString::number(expected)));
+        }
     }
 
     // --------------------------------------------------------------- theme

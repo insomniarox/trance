@@ -485,6 +485,7 @@ uniform float u_k;
 uniform float u_warpTime;
 uniform float u_seed;
 uniform vec2 u_texel;
+uniform float u_wide;
 in vec2 v_uv;
 out vec4 o_color;
 %PRELUDE%
@@ -552,7 +553,20 @@ void main() {
   // During a change of preset, u_other is the same frame bent the old way.
   float w = f_blendAt(v_uv);
   if (w < 1.0) c = mix(texture(u_other, v_uv).rgb, c, w);
-  o_color = vec4(min(c, vec3(1.3)), 1.0);
+  c = min(c, vec3(1.3));
+  // The buffer keeps fewer digits than this. Some cards drop the rest,
+  // which takes a little from every frame: the more frames a second, the
+  // faster trails fade and the less blur spreads. Others round to the
+  // nearest, which keeps a change smaller than half a step from ever
+  // happening, so a slow fade stalls and leaves a stain. So the value is
+  // rounded here, up or down at random in proportion to how near it is,
+  // which on average keeps all of it. Half floats then hold it exactly;
+  // 8 bits get it a quarter of a step up, which every card stores as the
+  // step itself.
+  vec3 quantum = u_wide > 0.5 ? exp2(floor(log2(max(c, vec3(6.103515625e-05)))) - 10.0) : vec3(1.0 / 255.0);
+  c = floor(c / quantum + f_hash(gl_FragCoord.xy + u_seed * vec2(113.0, 59.0))) * quantum;
+  if (u_wide < 0.5) c += 0.25 / 255.0;
+  o_color = vec4(c, 1.0);
 }
 )";
 

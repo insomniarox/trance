@@ -928,6 +928,7 @@ void Engine::warpScene(Scene &scene, const Target &from, const Target &to, float
     glUniform1f(glGetUniformLocation(scene.warp, "u_warpTime"), float(scene.warpTime));
     glUniform1f(glGetUniformLocation(scene.warp, "u_seed"), random());
     glUniform2f(glGetUniformLocation(scene.warp, "u_texel"), 1.f / m_width, 1.f / m_height);
+    glUniform1f(glGetUniformLocation(scene.warp, "u_wide"), m_wide ? 1.f : 0.f);
     glUniform1f(glGetUniformLocation(scene.warp, "u_blend"), blend);
     glUniform1f(glGetUniformLocation(scene.warp, "u_pattern"), float(m_pattern));
     glUniform1f(glGetUniformLocation(scene.warp, "u_patternSeed"), m_patternSeed);
