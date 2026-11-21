@@ -12,6 +12,10 @@ SidePanel {
     scope: backend.filtering ? qsTr("%1 of %2").arg(backend.matchCount).arg(Ui.count(backend.presets.length, qsTr("1 preset"), qsTr("%1 presets")))
                              : Ui.count(backend.presets.length, qsTr("1 preset"), qsTr("%1 presets"))
     pictureOnLeft: false
+    readonly property bool searching: search.editing
+    // A preset clicked in the list, after which the keys go back to the
+    // shortcuts.
+    signal picked()
 
     readonly property var shown: {
         const needle = search.text.trim().toLowerCase()
@@ -239,7 +243,12 @@ SidePanel {
                     }
                 }
                 HoverHandler { id: hover }
-                TapHandler { onTapped: browser.pick(entry.modelData.name) }
+                TapHandler {
+                    onTapped: {
+                        browser.picked()
+                        browser.pick(entry.modelData.name)
+                    }
+                }
             }
         }
 

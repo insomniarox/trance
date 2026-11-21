@@ -17,7 +17,8 @@ Rectangle {
             [["R"], qsTr("Random preset")],
             [["X"], qsTr("Mash up a new preset from parts of others")],
             [["L"], qsTr("Hold this preset, or let it change again")],
-            [["P"], qsTr("Browse and search presets")]
+            [["P"], qsTr("Browse presets")],
+            [["/"], qsTr("Search presets by name")]
         ] },
         { title: qsTr("Editing"), keys: [
             [["E"], qsTr("Edit this preset")],

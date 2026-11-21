@@ -41,7 +41,7 @@ Rectangle {
         id: row
         anchors.centerIn: parent
         spacing: 2
-        IconButton { glyph: "list"; tip: bar.hint(qsTr("Browse and search presets"), "P"); onClicked: bar.browse() }
+        IconButton { glyph: "list"; tip: bar.hint(qsTr("Browse presets"), "P"); onClicked: bar.browse() }
         Divider {}
         IconButton { glyph: "previous"; tip: bar.hint(qsTr("Previous preset"), "Backspace"); onClicked: bar.previous() }
         IconButton { glyph: "shuffle"; tip: bar.hint(qsTr("Random preset"), "R"); onClicked: bar.random() }

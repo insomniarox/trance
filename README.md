@@ -179,7 +179,8 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
 | `R` | Random preset |
 | `X` | Mash up a new preset from parts of others |
 | `L` | Hold this preset, or let it change again |
-| `P` or `/` | Browse and search presets |
+| `P` | Browse presets |
+| `/` | Search presets by name |
 | `E` | Edit this preset: its motion, layers and look |
 | `S` | Settings: what applies to every preset |
 | `D` | Debug overlay: preset, frame rate and load, sound and levels |
@@ -213,7 +214,9 @@ There are two panels, and they don't overlap:
   changes is saved with that preset: its motion, its layers, its look, or
   the whole thing as JSON. `Ctrl+Tab` moves between those.
 
-The preset list (`P`) is on the left. Type to find a preset by name.
+The preset list (`P`) is on the left. `/` opens it with the cursor in its
+search box: type to find a preset by name, then `Enter` to show it, or
+`Esc` to give the keys back to the shortcuts.
 Under the search, the round swatches filter by the colors of a preset's
 palette: reds and pinks, oranges and yellows, greens, blues and teals,
 violets, many colors, grays, or the desktop theme's. The chips filter by

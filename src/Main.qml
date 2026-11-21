@@ -43,10 +43,12 @@ ApplicationWindow {
     Binding { target: backend; property: "metering"; value: win.sidePanel.length > 0 || backend.debug }
 
     function toggleSide(name) { sidePanel = sidePanel === name ? "" : name }
-    function toggleBrowser() {
-        browserVisible = !browserVisible
-        if (browserVisible)
-            browser.focusSearch()
+    // The list opens and closes without taking the keyboard, so the
+    // shortcuts still work while it is up; / opens it to type in.
+    function toggleBrowser() { browserVisible = !browserVisible }
+    function searchPresets() {
+        browserVisible = true
+        browser.focusSearch()
     }
     // The shortcuts and the About screen take the same place, one at a time.
     function toggleHelp() {
@@ -117,8 +119,12 @@ ApplicationWindow {
         }
     }
     Shortcut {
-        sequences: ["P", "/"]; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "P"; context: Qt.ApplicationShortcut; enabled: !win.typing
         onActivated: win.toggleBrowser()
+    }
+    Shortcut {
+        sequence: "/"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        onActivated: win.searchPresets()
     }
     Shortcut {
         sequence: "X"; context: Qt.ApplicationShortcut; enabled: !win.typing
@@ -233,6 +239,10 @@ ApplicationWindow {
             width: Math.min(300, parent.width * 0.4)
             anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
             onCloseRequested: win.browserVisible = false
+            // Hidden, the search box would keep the keyboard, and every
+            // letter key with it, until a click on the picture.
+            onVisibleChanged: if (!visible && searching) content.forceActiveFocus()
+            onPicked: if (searching) content.forceActiveFocus()
         }
 
         // This preset's own settings. The panel is only made while it is
