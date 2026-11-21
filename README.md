@@ -86,9 +86,7 @@ corners that follow the window rounding on Hyprland.
 ## Windows
 
 Trance runs on Windows 11 24H2 or later, on x64, as fully as on Linux. Each change is
-built and tested on GitHub, where a virtual sound cable plays a tone for it
-to hear and two stand-in media players give it titles. It has also run on a
-real Windows 11 PC, though not yet across many sound cards and players.
+built and tested on GitHub.
 
 ### Installing it
 
