@@ -2,8 +2,6 @@
   <a href="https://trance.eoschaos.com"><img src="docs/banner.svg" alt="Trance" width="800"></a>
 </p>
 
-<p align="center"><a href="https://trance.eoschaos.com"><b>trance.eoschaos.com</b></a></p>
-
 A music visualizer for Linux and Windows 11. It listens to whatever your
 speakers play and draws it: feedback tunnels, flow fields, wireframe
 landscapes and particle storms, or plain analyzers when that's all you want.
