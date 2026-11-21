@@ -1105,10 +1105,10 @@ private slots:
         // at 270 lines.
         const double base = rim(540, 60);
         QVERIFY2(base > 0.02, qPrintable("the rim is only " + QString::number(base) + " wide"));
-        const double fast = rim(540, 144), small = rim(270, 60);
+        const double fast = rim(540, 144), halved = rim(270, 60);
         QVERIFY2(std::abs(fast / base - 1) < 0.1,
                  qPrintable(QString::number(fast / base) + " times as wide at 144 frames a second"));
-        QVERIFY2(std::abs(small / base - 1) < 0.1, qPrintable(QString::number(small / base) + " times as wide at 270 lines"));
+        QVERIFY2(std::abs(halved / base - 1) < 0.1, qPrintable(QString::number(halved / base) + " times as wide at 270 lines"));
     }
 
     // A picture left to fade loses as much in three seconds at 144 or 240
