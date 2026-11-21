@@ -907,10 +907,14 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     // of its own, so the light is spread, never added to. The finest level
     // there is also stands in for those left out, which would each have
     // kept their share of it: what reaches far weighs the same at any size.
+    // The share is given in all four channels and blended by colour: Direct3D
+    // has no constant alpha factor, and Mesa drawing through it on Windows
+    // took the colour channels, so nothing came back up.
     glEnable(GL_BLEND);
-    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+    glBlendFunc(GL_CONSTANT_COLOR, GL_ONE_MINUS_CONSTANT_COLOR);
     for (int level = BloomLevels - 2; level >= m_bloomTop; --level) {
-        glBlendColor(0, 0, 0, level == m_bloomTop ? std::pow(BloomScatter, float(1 + m_bloomTop)) : BloomScatter);
+        const float share = level == m_bloomTop ? std::pow(BloomScatter, float(1 + m_bloomTop)) : BloomScatter;
+        glBlendColor(share, share, share, share);
         const Target &from = m_bloom[level + 1];
         glViewport(0, 0, m_bloom[level].width, m_bloom[level].height);
         glBindFramebuffer(GL_FRAMEBUFFER, m_bloom[level].fbo);
