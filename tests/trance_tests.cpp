@@ -1154,6 +1154,69 @@ private slots:
         }
     }
 
+    // Bloom reaches as far across the screen in a small picture as in a
+    // large one, and far: past a bright edge it still shows a tenth of the
+    // screen's height out, where the quarter-size blur it replaced was gone.
+    void bloomReachesTheSameShareOfTheScreenAtAnySize()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        // A wide white disc on black, glowing everything it has.
+        const CompiledPreset disc = presets::compile(fixture(
+            "{ 'name': 'Disc', 'feedback': { 'decay': 0 }, 'layers': [ { 'type': 'shape', 'sides': 64, 'radius': 0.2, "
+            "'color': '#ffffff', 'color2': '#ffffff', 'alpha': 1, 'alpha2': 1 } ], "
+            "'post': { 'bloom': 1, 'bloomThreshold': 0, 'vignette': 0 } }"));
+        // Where the glow along the middle row, going out from the disc's
+        // middle, first falls below each level, as a share of the screen's
+        // half height.
+        auto reach = [&](int size, double level) {
+            QOpenGLFramebufferObject target(size, size);
+            Engine engine;
+            engine.setPreset(disc, 0);
+            for (int frame = 0; frame < 3; ++frame)
+                engine.render(AudioFrame(), 1.0 / 60, target.handle(), size, size);
+            const QImage image = target.toImage();
+            // Read between pixels, so that pictures of any size are read at
+            // the same places.
+            auto at = [&](double x) {
+                const double col = (x * 0.5 + 0.5) * size - 0.5, row = size * 0.5 - 0.5;
+                const int c = int(col), r = int(row);
+                const double fc = col - c, fr = row - r;
+                auto pixel = [&](int cc, int rr) { return image.pixelColor(cc, rr).redF(); };
+                return (pixel(c, r) * (1 - fc) + pixel(c + 1, r) * fc) * (1 - fr) +
+                       (pixel(c, r + 1) * (1 - fc) + pixel(c + 1, r + 1) * fc) * fr;
+            };
+            for (double x = 0.1; x < 1; x += 0.001)
+                if (at(x) < level)
+                    return x;
+            return 1.0;
+        };
+        // From where the glow is a tenth as bright as the disc to where it is
+        // a fiftieth: where the disc's edge falls, which a small picture
+        // draws a fraction of a pixel off, doesn't change it.
+        auto spread = [&](int size) { return reach(size, 0.02) - reach(size, 0.1); };
+
+        const double base = spread(540);
+        QVERIFY2(reach(540, 2.5 / 255) > 0.2 + 0.2,
+                 qPrintable("the glow is gone " + QString::number(reach(540, 2.5 / 255) - 0.2) + " past the edge"));
+        for (const int size : {270, 1080}) {
+            const double other = spread(size);
+            QVERIFY2(std::abs(other / base - 1) < 0.1,
+                     qPrintable(QString::number(other / base) + " times as far at " + QString::number(size) + " lines"));
+        }
+    }
+
     // --------------------------------------------------------------- theme
 
     // A change of preset runs both for its length: halfway through, the

@@ -264,9 +264,27 @@ private:
     ThemeColors m_theme;
     QString m_paletteOverride;
 
-    GLuint m_prim = 0, m_bright = 0, m_blur = 0;
+    GLuint m_prim = 0, m_bright = 0;
     GLuint m_emptyVao = 0, m_primVao = 0, m_vbo = 0;
-    Target m_buffers[2], m_bloom[2], m_snapshot, m_other;
+    // Bloom's tuning, the same for every preset; a preset's bloom and
+    // bloomThreshold work on top of it.
+    // - Levels: how many sizes the glow is worked out at, halving from 360
+    //   lines, half a 720-line picture. The last, 11 lines, sets how far it
+    //   can reach.
+    //   The levels are those lines at any size of picture, so the glow
+    //   reaches the same share of the screen in each; a smaller one leaves
+    //   out the levels finer than half its own height.
+    // - Scatter: how much of the wider level each level takes on the way
+    //   back up, from 0 to 1. Higher reaches further and is fainter close
+    //   in; 0.7 reaches about a sixth of the screen past a bright edge.
+    // - Glow: how bright all of it is. Above 1 gives back the light that
+    //   scatter moves out of the near glow, without retuning any preset;
+    //   about 1.5 brings the near glow of a 720-line picture back to what
+    //   the single quarter-size blur that bloom used to be gave.
+    static constexpr int BloomLevels = 6;
+    static constexpr float BloomScatter = 0.7f, BloomGlow = 1.f;
+    Target m_buffers[2], m_bloom[BloomLevels], m_snapshot, m_other;
+    int m_bloomTop = 0; // the finest level this size of picture has
     int m_current = 0;
     int m_width = 0, m_height = 0;
     float m_aspect = 1;

@@ -64,27 +64,17 @@ const char *const BrightFragment = R"(
 uniform sampler2D u_tex;
 uniform vec2 u_texel;
 uniform float u_threshold;
+uniform float u_gain;
 in vec2 v_uv;
 out vec4 o_color;
 void main() {
   vec3 c = texture(u_tex, v_uv + u_texel * vec2(-1.0, -1.0)).rgb + texture(u_tex, v_uv + u_texel * vec2(1.0, -1.0)).rgb +
            texture(u_tex, v_uv + u_texel * vec2(-1.0, 1.0)).rgb + texture(u_tex, v_uv + u_texel * vec2(1.0, 1.0)).rgb;
   c *= 0.25;
+  // With no threshold this is just the average, which is how bloom goes
+  // down and back up its levels.
   float level = max(c.r, max(c.g, c.b));
-  o_color = vec4(c * max(level - u_threshold, 0.0) / max(level, 1e-4), 1.0);
-}
-)";
-
-const char *const BlurFragment = R"(
-uniform sampler2D u_tex;
-uniform vec2 u_step;
-in vec2 v_uv;
-out vec4 o_color;
-void main() {
-  vec3 c = texture(u_tex, v_uv).rgb * 0.227027;
-  c += (texture(u_tex, v_uv + u_step * 1.3846).rgb + texture(u_tex, v_uv - u_step * 1.3846).rgb) * 0.316216;
-  c += (texture(u_tex, v_uv + u_step * 3.2308).rgb + texture(u_tex, v_uv - u_step * 3.2308).rgb) * 0.070270;
-  o_color = vec4(c, 1.0);
+  o_color = vec4((u_threshold > 0.0 ? c * max(level - u_threshold, 0.0) / max(level, 1e-4) : c) * u_gain, 1.0);
 }
 )";
 
@@ -131,11 +121,13 @@ Engine::~Engine() {
     destroyScene(m_old);
     for (auto &visitor : m_visitors)
         destroyScene(visitor);
-    for (GLuint program : {m_prim, m_bright, m_blur})
+    for (GLuint program : {m_prim, m_bright})
         if (program)
             glDeleteProgram(program);
-    for (Target *target : {&m_buffers[0], &m_buffers[1], &m_bloom[0], &m_bloom[1], &m_snapshot, &m_other})
+    for (Target *target : {&m_buffers[0], &m_buffers[1], &m_snapshot, &m_other})
         releaseTarget(*target);
+    for (Target &level : m_bloom)
+        releaseTarget(level);
     glDeleteVertexArrays(1, &m_emptyVao);
     glDeleteVertexArrays(1, &m_primVao);
     glDeleteBuffers(1, &m_vbo);
@@ -227,7 +219,6 @@ void Engine::initialize() {
     QString error;
     m_prim = build(PrimVertex, PrimFragment, &error);
     m_bright = build(ScreenVertex, BrightFragment, &error);
-    m_blur = build(ScreenVertex, BlurFragment, &error);
     if (!error.isEmpty())
         m_error = error;
 
@@ -773,8 +764,20 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
         glBlitFramebuffer(0, 0, old.width, old.height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
         releaseTarget(old);
     }
-    for (Target &bloom : m_bloom)
-        ensureTarget(bloom, std::max(8, m_width / 4), std::max(8, m_height / 4), m_wide, GL_LINEAR);
+    // Bloom's levels are a 720-line picture's, halving from 360 lines, at
+    // any size, so the glow reaches the same share of the screen. Those
+    // finer than half the picture's height are left out.
+    m_bloomTop = 0;
+    for (int level = 0; level < BloomLevels; ++level) {
+        const int lines = std::max(2, int(std::lround(360.0 / (1 << level))));
+        if (lines * 2 > m_height && level < BloomLevels - 1) {
+            m_bloomTop = level + 1;
+            releaseTarget(m_bloom[level]);
+            continue;
+        }
+        ensureTarget(m_bloom[level], std::max(2, int(std::lround(lines * double(m_width) / m_height))), lines, m_wide,
+                     GL_LINEAR);
+    }
     // The two buffers a change of preset needs are kept ready all along,
     // about 44 MB of graphics memory at 1440 lines. Making them when a
     // change begins is a pause exactly there.
@@ -866,31 +869,56 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     glDisable(GL_BLEND);
     glBindVertexArray(m_emptyVao);
 
-    // 3. Bloom: keep what is brighter than the threshold, at quarter size,
-    // and blur it twice, the second time wider.
+    // 3. Bloom: keep what is brighter than the threshold at the finest
+    // level, take it down through the others, then add each level back into
+    // the one above it, by scatter. Close in the glow is tight; the wide levels
+    // spread a faint haze far out. Its tuning is in engine.h.
     float threshold = float(m_scene->p.post.num("bloomThreshold", m_scene->p.vars.values));
     if (m_old)
         threshold += (float(m_old->p.post.num("bloomThreshold", m_old->p.vars.values)) - threshold) * (1 - mix);
-    glViewport(0, 0, m_bloom[0].width, m_bloom[0].height);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_bloom[0].fbo);
     glUseProgram(m_bright);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, current.texture);
     glUniform1i(glGetUniformLocation(m_bright, "u_tex"), 0);
-    glUniform2f(glGetUniformLocation(m_bright, "u_texel"), 1.f / m_width, 1.f / m_height);
-    glUniform1f(glGetUniformLocation(m_bright, "u_threshold"), threshold);
+    const GLint texel = glGetUniformLocation(m_bright, "u_texel"), cut = glGetUniformLocation(m_bright, "u_threshold");
+    const GLint gain = glGetUniformLocation(m_bright, "u_gain");
+    // Four taps a quarter of a pixel of the finest level out from its
+    // middle: at half the picture's size they are the four pixels under it,
+    // and at less they still take in most of them.
+    const Target &top = m_bloom[m_bloomTop];
+    glViewport(0, 0, top.width, top.height);
+    glBindFramebuffer(GL_FRAMEBUFFER, top.fbo);
+    glBindTexture(GL_TEXTURE_2D, current.texture);
+    glUniform2f(texel, 0.25f / top.width, 0.25f / top.height);
+    glUniform1f(cut, threshold);
+    glUniform1f(gain, BloomGlow);
     glDrawArrays(GL_TRIANGLES, 0, 3);
-    glUseProgram(m_blur);
-    glUniform1i(glGetUniformLocation(m_blur, "u_tex"), 0);
-    for (int pass = 0; pass < 4; ++pass) {
-        const Target &from = m_bloom[pass % 2], &to = m_bloom[1 - pass % 2];
-        const float reach = pass < 2 ? 1.f : 2.2f;
-        glBindFramebuffer(GL_FRAMEBUFFER, to.fbo);
+    glUniform1f(cut, 0.f);
+    glUniform1f(gain, 1.f);
+    // Going down, taps a whole texel out blend four each, sixteen in all.
+    for (int level = m_bloomTop + 1; level < BloomLevels; ++level) {
+        const Target &from = m_bloom[level - 1];
+        glViewport(0, 0, m_bloom[level].width, m_bloom[level].height);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_bloom[level].fbo);
         glBindTexture(GL_TEXTURE_2D, from.texture);
-        glUniform2f(glGetUniformLocation(m_blur, "u_step"), pass % 2 == 0 ? reach / from.width : 0.f,
-                    pass % 2 == 0 ? 0.f : reach / from.height);
+        glUniform2f(texel, 1.f / from.width, 1.f / from.height);
         glDrawArrays(GL_TRIANGLES, 0, 3);
     }
+    // Going up, each level takes scatter of the one below and keeps the rest
+    // of its own, so the light is spread, never added to. The finest level
+    // there is also stands in for those left out, which would each have
+    // kept their share of it: what reaches far weighs the same at any size.
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+    for (int level = BloomLevels - 2; level >= m_bloomTop; --level) {
+        glBlendColor(0, 0, 0, level == m_bloomTop ? std::pow(BloomScatter, float(1 + m_bloomTop)) : BloomScatter);
+        const Target &from = m_bloom[level + 1];
+        glViewport(0, 0, m_bloom[level].width, m_bloom[level].height);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_bloom[level].fbo);
+        glBindTexture(GL_TEXTURE_2D, from.texture);
+        glUniform2f(texel, 0.5f / from.width, 0.5f / from.height);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    }
+    glDisable(GL_BLEND);
 
     // 4. To the screen. During a change the old preset's look is rendered
     // aside first, and the new one's pass shows it wherever it still holds.
@@ -945,7 +973,7 @@ void Engine::compositeScene(Scene &scene, GLuint fbo, int width, int height, flo
     glUseProgram(scene.composite);
     // The old preset's frame is only bound while it is needed; a sampler
     // must not be left pointing at the buffer being drawn to.
-    const GLuint textures[4] = {m_buffers[m_current].texture, m_bloom[0].texture, scene.paletteTexture,
+    const GLuint textures[4] = {m_buffers[m_current].texture, m_bloom[m_bloomTop].texture, scene.paletteTexture,
                                 snapshot ? snapshot : scene.paletteTexture};
     const char *const names[4] = {"u_tex", "u_bloom", "u_palette", "u_snapshot"};
     for (int i = 0; i < 4; ++i) {
