@@ -279,10 +279,10 @@ private:
     //   in; 0.7 reaches about a sixth of the screen past a bright edge.
     // - Glow: how bright all of it is. Above 1 gives back the light that
     //   scatter moves out of the near glow, without retuning any preset;
-    //   about 1.5 brings the near glow of a 720-line picture back to what
-    //   the single quarter-size blur that bloom used to be gave.
+    //   1.5 brings the near glow of a 720-line picture back to what the
+    //   single quarter-size blur that bloom used to be gave.
     static constexpr int BloomLevels = 6;
-    static constexpr float BloomScatter = 0.7f, BloomGlow = 1.f;
+    static constexpr float BloomScatter = 0.7f, BloomGlow = 1.5f;
     Target m_buffers[2], m_bloom[BloomLevels], m_snapshot, m_other;
     int m_bloomTop = 0; // the finest level this size of picture has
     int m_current = 0;
