@@ -525,12 +525,22 @@ void main() {
   }
   vec2 uv = vec2(q.x / u_aspect, q.y) * 0.5 + 0.5;
   vec3 c = texture(u_prev, uv).rgb;
+  // Blur spreads the picture the way heat spreads, and what it spreads in a
+  // second stays the same at any refresh rate and at any size of picture.
+  // Mixing in a share b of neighbours r texels away spreads it by b*r*r,
+  // and spreads add up from frame to frame. The measure is what blur
+  // always did in a 1080-line picture at 60 frames a second: a share of
+  // neighbours 1.5 pixels away. A spread too wide for one mix at 1.5
+  // texels reaches further instead.
   float blur = clamp(%blur%, 0.0, 1.0);
   if (blur > 0.0) {
-    vec2 d = u_texel * 1.5;
+    float pixels = 1.5 / (1080.0 * u_texel.y);
+    float spread = blur * u_k * pixels * pixels;
+    float reach = max(1.5, sqrt(spread));
+    vec2 d = u_texel * reach;
     vec3 around = texture(u_prev, uv + vec2(d.x, 0.0)).rgb + texture(u_prev, uv - vec2(d.x, 0.0)).rgb +
                   texture(u_prev, uv + vec2(0.0, d.y)).rgb + texture(u_prev, uv - vec2(0.0, d.y)).rgb;
-    c = mix(c, around * 0.25, blur);
+    c = mix(c, around * 0.25, spread / (reach * reach));
   }
 %EDGE%
   float hs = %hueshift%;

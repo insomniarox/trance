@@ -1044,6 +1044,75 @@ private slots:
         QVERIFY2(worst < 3.0 / 255, qPrintable(QString::number(worst * 255) + " levels apart"));
     }
 
+    // Blur softens an edge as much in three seconds at 144 frames a second
+    // as at 60, and by as much of the screen in a small picture as in a large
+    // one.
+    void blurSpreadsTheSameAtAnyRateAndSize()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        // A wide disc drawn on the first frame only, then left to the blur.
+        const CompiledPreset disc = presets::compile(fixture(
+            "{ 'name': 'Disc', 'feedback': { 'decay': 1, 'blur': 1 }, 'layers': [ { 'type': 'shape', 'sides': 64, "
+            "'radius': 0.3, 'color': '#ffffff', 'color2': '#ffffff', 'alpha': 'below(frame, 1.5)', "
+            "'alpha2': 'below(frame, 1.5)' } ], 'post': { 'bloom': 0, 'vignette': 0 } }"));
+        // How wide the disc's rim has grown: the distance along the middle
+        // row from where it is three quarters as bright as inside to where it
+        // is a quarter. Where the rim sits, which a small picture draws a
+        // fraction of a pixel off, and what the fade has taken from the whole
+        // picture don't change it.
+        auto rim = [&](int size, int rate) {
+            QOpenGLFramebufferObject target(size, size);
+            Engine engine;
+            engine.setPreset(disc, 0);
+            for (int frame = 0; frame < 3 * rate; ++frame)
+                engine.render(AudioFrame(), 1.0 / rate, target.handle(), size, size);
+            const QImage image = target.toImage();
+            // Read between pixels, so that pictures of any size are read at
+            // the same places.
+            auto at = [&](double x) {
+                const double col = (x * 0.5 + 0.5) * size - 0.5, row = size * 0.5 - 0.5;
+                const int c = int(col), r = int(row);
+                const double fc = col - c, fr = row - r;
+                auto pixel = [&](int cc, int rr) { return image.pixelColor(cc, rr).redF(); };
+                return (pixel(c, r) * (1 - fc) + pixel(c + 1, r) * fc) * (1 - fr) +
+                       (pixel(c, r + 1) * (1 - fc) + pixel(c + 1, r + 1) * fc) * fr;
+            };
+            const double inside = at(0.1);
+            double high = 0, low = 0;
+            for (double x = 0.15; x < 0.5 && !low; x += 0.0005) {
+                if (!high && at(x) < 0.75 * inside)
+                    high = x;
+                if (at(x) < 0.25 * inside)
+                    low = x;
+            }
+            return low - high;
+        };
+
+        // Before blur kept to the second and to the screen, the rim grew
+        // half as wide again at 144 frames a second and nearly twice as wide
+        // at 270 lines. Half-float buffers that round down as they are written
+        // take a little from every frame, which leaves the rim up to a fifth
+        // narrower at 144, so the rate is held to a quarter.
+        const double base = rim(540, 60);
+        QVERIFY2(base > 0.02, qPrintable("the rim is only " + QString::number(base) + " wide"));
+        const double fast = rim(540, 144), small = rim(270, 60);
+        QVERIFY2(std::abs(fast / base - 1) < 0.25,
+                 qPrintable(QString::number(fast / base) + " times as wide at 144 frames a second"));
+        QVERIFY2(std::abs(small / base - 1) < 0.1, qPrintable(QString::number(small / base) + " times as wide at 270 lines"));
+    }
+
     // --------------------------------------------------------------- theme
 
     // A change of preset runs both for its length: halfway through, the
