@@ -1113,6 +1113,46 @@ private slots:
         QCOMPARE(live.value("pixelCode").toBool(), false);
     }
 
+    // The picture fades by the second and the layers are drawn every frame,
+    // so a layer lays down the same light a second at any frame rate: at
+    // 120 Hz each frame adds and covers less, and the picture settles where
+    // it does at 60.
+    void layersLayDownTheSameLightAtAnyFrameRate()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+        const auto middle = [](const char *blend, const char *color, double alpha, int fps) {
+            const CompiledPreset preset = presets::compile(fixture(QString(
+                "{ 'name': 'Rate', 'feedback': { 'decay': 0.9 }, 'post': { 'bloom': 0, 'vignette': 0 }, 'layers': ["
+                "{ 'type': 'shape', 'sides': 4, 'radius': 3, 'color': '%1', 'alpha': %2, 'blend': '%3' } ] }")
+                .arg(color).arg(alpha).arg(blend).toUtf8().constData()));
+            QOpenGLFramebufferObject target(64, 64);
+            Engine engine;
+            engine.setPreset(preset, 0);
+            for (int frame = 0; frame < 3 * fps; ++frame)
+                engine.render(AudioFrame(), 1.0 / fps, target.handle(), 64, 64);
+            return qGray(target.toImage().pixel(32, 32));
+        };
+        // Added light settles at color/(1 - decay): 0.063/0.1, about 160.
+        const int add60 = middle("add", "#101010", 1, 60), add120 = middle("add", "#101010", 1, 120);
+        QVERIFY2(std::abs(add60 - 160) <= 8 && std::abs(add120 - add60) <= 6,
+                 qPrintable(QString("%1 at 60, %2 at 120").arg(add60).arg(add120)));
+        // White covering a fifth a frame settles at 0.2/(1 - 0.9*0.8), about 0.71.
+        const int over60 = middle("over", "#ffffff", 0.2, 60), over120 = middle("over", "#ffffff", 0.2, 120);
+        QVERIFY2(std::abs(over60 - 182) <= 8 && std::abs(over120 - over60) <= 8,
+                 qPrintable(QString("%1 at 60, %2 at 120").arg(over60).arg(over120)));
+    }
+
     // Before blend, a layer said additive, true or false. Such a preset
     // still opens, and edits as if it said blend.
     void additiveBecomesBlend()

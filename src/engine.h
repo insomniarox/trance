@@ -268,6 +268,9 @@ private:
     float m_blend = 1, m_blendRate = 0, m_patternSeed = 0;
     int m_pattern = 0, m_transitionStyle = 0, m_lastPattern = 0;
     float m_layerAlpha = 1, m_mix = 1;
+    // How a frame's layers make up for its length; see render().
+    float m_coverPower = 1, m_addGain = 1;
+    GLint m_primCover = -1, m_primGain = -1;
     std::vector<WaveShape> m_stash;
     size_t m_stashUsed = 0;
     WaveShape m_wave, m_morph;

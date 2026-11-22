@@ -41,6 +41,10 @@ void main() {
 // a pixel fat so the fade sits just outside their true edge.
 const char *const PrimFragment = R"(
 uniform sampler2D u_tex;
+// What makes a layer lay down the same light a second at any frame rate:
+// the share of what it covers, as a power, and how much of its light adds.
+uniform float u_cover;
+uniform float u_gain;
 in vec4 v_color;
 in vec2 v_edge;
 in vec2 v_tex;
@@ -53,6 +57,8 @@ void main() {
   // picture is kept in half floats, and to take away what was under it
   // when covering, but not in 8 bits.
   c.a = clamp(c.a, 0.0, 1.0) * clamp((1.0 - e) / w - 0.5, 0.0, 1.0);
+  if (u_cover != 1.0) c.a = 1.0 - pow(1.0 - c.a, u_cover);
+  c.a *= u_gain;
   if (v_tex.x > -0.5) {
     // A texture brings its own transparency (the picture has none; text does).
     vec4 t = texture(u_tex, v_tex);
@@ -243,6 +249,8 @@ void Engine::initialize() {
 
     QString error;
     m_prim = build(PrimVertex, PrimFragment, &error);
+    m_primCover = glGetUniformLocation(m_prim, "u_cover");
+    m_primGain = glGetUniformLocation(m_prim, "u_gain");
     m_bright = build(ScreenVertex, BrightFragment, &error);
     if (!error.isEmpty())
         m_error = error;
@@ -880,6 +888,21 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     glBindVertexArray(m_primVao);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glEnable(GL_BLEND);
+    // The picture fades by the second, but the layers are drawn every
+    // frame, so at 120 frames a second they would lay down twice the light
+    // of 60 and settle twice as bright. Covering twice over a frame half as
+    // long is covering 1 - (1 - a)^k, where k is the frame's length in 60ths
+    // of a second; and light added every frame onto a picture that keeps
+    // decay^k of itself settles where it does at 60 when each frame adds
+    // (1 - decay^k)/(1 - decay) of it. The brighter of two settles at the
+    // layer's own color at any rate. At 60 frames a second both are 1.
+    {
+        const double k = m_dt * 60.0;
+        const int slot = m_scene->p.vars.find("decay");
+        const double decay = slot >= 0 ? clampTo(m_scene->p.vars.values[size_t(slot)], 0.0, 1.0) : 0.96;
+        m_coverPower = float(k);
+        m_addGain = float(decay < 0.9999 ? (1 - std::pow(decay, k)) / (1 - decay) : k);
+    }
     m_stash.clear();
     m_stashUsed = 0;
     m_mix = mix;
@@ -1284,6 +1307,8 @@ void Engine::flush(Blend blend) {
     // The colors come premultiplied by alpha. The picture's own alpha is
     // left as it is.
     glBlendEquationSeparate(blend == Blend::Max ? GL_MAX : GL_FUNC_ADD, GL_FUNC_ADD);
+    glUniform1f(m_primCover, blend == Blend::Over ? m_coverPower : 1.f);
+    glUniform1f(m_primGain, blend == Blend::Add ? m_addGain : 1.f);
     glBlendFuncSeparate(GL_ONE, blend == Blend::Over ? GL_ONE_MINUS_SRC_ALPHA : GL_ONE, GL_ZERO, GL_ONE);
     m_frameVertices += int(m_used / 10);
     glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(m_used * sizeof(float)), m_vertices.data(), GL_STREAM_DRAW);
