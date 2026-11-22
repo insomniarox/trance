@@ -230,8 +230,11 @@ void AudioCapture::Platform::play() {
         return;
     if (demo.isEmpty())
         demo = AudioCapture::demoTrack();
+    // At the recorder's latency: one that asks for less when it joins makes
+    // PipeWire change the pace of the whole graph, which mangles a tenth of
+    // a second of what is playing.
     player.start(program, {"--playback", "--raw", "--format", "s16", "--rate", QString::number(DemoRate),
-                           "--channels", "2", "-P",
+                           "--channels", "2", "--latency", "20ms", "-P",
                            QString("{ node.name = %1, media.name = \"Demo track\", application.name = Trance, "
                                    "media.role = Music }")
                                .arg(DemoNode),
