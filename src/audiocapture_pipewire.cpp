@@ -55,7 +55,7 @@ struct AudioCapture::Platform {
 
     void capture(const QStringList &target);
     void read();
-    // Starts the demo track playing, unless it is.
+    // Starts the demo track, which open() has read, playing, unless it is.
     void play();
     void startDump();
     void dumped();
@@ -162,6 +162,13 @@ void AudioCapture::open() {
         return;
     }
     if (m_source == "demo") {
+        if (p.demo.isEmpty())
+            p.demo = demoTrack();
+        // Not tried again: what is built in doesn't mend.
+        if (p.demo.isEmpty()) {
+            setError(tr("The demo track could not be read."));
+            return;
+        }
         p.play();
         p.capture({"demo", DemoNode});
         return;
@@ -230,8 +237,6 @@ void AudioCapture::Platform::capture(const QStringList &target) {
 void AudioCapture::Platform::play() {
     if (player.state() != QProcess::NotRunning)
         return;
-    if (demo.isEmpty())
-        demo = AudioCapture::demoTrack();
     // At the recorder's latency: one that asks for less when it joins makes
     // PipeWire change the pace of the whole graph, which mangles a tenth of
     // a second of what is playing.

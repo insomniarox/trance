@@ -541,9 +541,15 @@ void AudioCapture::open() {
         return;
     // The player goes on through a listening that is started again.
     if (m_source == "demo" && !p->playing) {
+        // Not tried again: what is built in doesn't mend.
+        QByteArray track = demoTrack();
+        if (track.isEmpty()) {
+            setError(tr("The demo track could not be read."));
+            return;
+        }
         p->playing = std::make_unique<Platform::Listening>();
         Platform::Listening *player = p->playing.get();
-        player->thread = std::thread([player, track = demoTrack()] {
+        player->thread = std::thread([player, track = std::move(track)] {
             playDemo(track, player->stop.handle);
             player->finished = true;
         });
