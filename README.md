@@ -34,7 +34,8 @@ Every preset can be changed while it runs. See them move on
   palette colors all of it.
 - **Light that doesn't burn out.** A layer's light covers what is under it,
   adds to it, or keeps the brighter of the two, which glows however long
-  the picture takes to fade but never grows past the layer's own color.
+  the picture takes to fade but never grows past the layer's own color, and
+  light that piles up keeps its hue instead of turning white.
   With it, presets such as Spillway and Ink Well fill the whole screen with
   color the way G-Force does. The picture is as bright at 120 or 144 Hz as
   at 60.
@@ -50,8 +51,9 @@ Every preset can be changed while it runs. See them move on
   picture.
 - **Mash-ups and visitors.** `X` builds a new preset from parts of others,
   the motion from one, the layers from another, the look and the
-  background from two more; how bright it gets goes with the layers, so a
-  mash-up is as balanced as the presets it came from. Small extras drop in
+  background from two more; how bright it gets, and whether it is colored
+  by brightness, goes with the layers, so a mash-up is as balanced as the
+  presets it came from. Small extras drop in
   over any preset for a while: a comet, fireflies, a ripple on every kick.
 - **Track titles** from whatever player is running, in the corner or written
   into the picture for the flow to carry off.

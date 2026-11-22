@@ -582,11 +582,12 @@ bool Backend::mashup(double blend) {
         take(drawn, {"layers", "init", "frame"});
         take(look, {"post", "shade", "palette"});
         take(back, {"background"});
-        // How much light builds up, and how bright it comes out, go with
-        // what is drawn: each preset sets these against its own layers.
-        // Dense layers made for a quick fade, under a slow one, add up to
-        // white, and a strong glow made for faint layers burns out dense
-        // ones.
+        // How much light builds up, how bright it comes out and whether it
+        // is colored by brightness go with what is drawn: each preset sets
+        // these against its own layers. Dense layers made for a quick fade,
+        // under a slow one, burn out, a strong glow made for faint layers
+        // burns out dense ones, and layers drawn in white for colorize stay
+        // white without it.
         for (const auto &[section, key] : presets::lightSettings()) {
             QJsonObject part = json.value(section).toObject();
             const QJsonValue value = drawn.value(section).toObject().value(key);

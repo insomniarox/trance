@@ -119,7 +119,7 @@ Motion values are per frame at 60 fps (Trance adjusts for other rates).
 | `blur` | 0 | 0 to 1, softens the trail |
 | `hueshift` | 0 | Turns the trail's colors a little every frame |
 | `edge` | `wrap` | What lies beyond the screen: `wrap`, `mirror`, `clamp` or `black` |
-| `darkenCenter` | off | A soft dark spot in the middle every frame, so a zoom doesn't burn the centre white |
+| `darkenCenter` | off | A soft dark spot in the middle every frame, so a zoom doesn't burn out the centre |
 
 For a flow that is different everywhere, write it in `pixel`. Two shapes
 cover most of them: currents, `dx = 0.005*sin(y*4 + time)`, and whirlpools,
@@ -143,8 +143,10 @@ place.
 Every layer has `type`, and may have `enabled` and `blend`: `over` covers
 what is under it, `add` adds light to it, `max` keeps the brighter of the two
 and so never grows past the layer's own color (the cure for a dense layer
-that burns to white). Waves, terrain, wireframes, vectors and particles
-default to `add`, bars and shapes to `over`. Colors are described below.
+that burns out). Waves, terrain, wireframes, vectors and particles
+default to `add`, bars and shapes to `over`. Light that piles up keeps its
+hue: a hot spot is its own color at full strength, white only where the
+color is. Colors are described below.
 
 Where a layer's `color` is said to take `t`, `i` or `v`, only the color and
 the `point` code see them. Every other setting, `alpha` included, is worked

@@ -341,8 +341,8 @@ brings in the opposite side, `mirror` a reflection (no seams), `clamp`
 stretches the border's color outward, `black` brings in nothing.
 
 *Darken center* exists because a zoom above 1 keeps enlarging the middle of
-the picture into itself, and added light there piles up to white. The
-dark spot is too soft to see but enough to stop it.
+the picture into itself, and added light there piles up into one flat
+blaze. The dark spot is too soft to see but enough to stop it.
 
 ## 8. Layers
 
@@ -362,14 +362,17 @@ can have up to 24.
 
 *Blend* is the difference between light and paint. `add` layers glow and
 blend, and two of them crossing make a brighter spot. They are also the
-usual reason a picture burns out to white: light that adds up every frame on
-top of a long decay has nowhere to go. `over` covers what is under it, which
+usual reason a picture burns out: light that adds up every frame on top of
+a long decay has nowhere to go, and spreads into flat patches at the full
+strength of its color. Light keeps its hue however much of it piles up, so
+a patch is white only where the color is, or where colors cross and add up
+to it. `over` covers what is under it, which
 is how to draw something solid, or something black that hides the middle.
 `max` keeps whichever is brighter, the layer or what is under it, so it
 glows where it is drawn but never grows past its own color, however long
 the decay and however often it crosses itself: G-Force's way, where a line
-overwrites the picture instead of adding to it. Dense layers that burn out
-as `add` keep their color as `max`; a dark color drawn with it shows only
+overwrites the picture instead of adding to it. Dense layers that flatten
+out as `add` keep their detail as `max`; a dark color drawn with it shows only
 on darker ground. Waves, terrain, wireframes, vectors and particles are
 `add` unless you say otherwise, bars and shapes `over`. Older presets that
 say `"additive": true` or `false` mean `add` and `over`.
@@ -947,7 +950,7 @@ one layer for each of the six ranges.
 
 | What you see | Why | What to do |
 |---|---|---|
-| It burns out to white | `add` light piling up on a long decay | Give the dense layers `"blend": "max"`, or lower `decay`, the layers' `alpha` or `bloom`; turn on `darkenCenter` if it is the middle. `trance render --json` reports `clipped`, the share at the top |
+| It burns out into flat patches | `add` light piling up on a long decay | Give the dense layers `"blend": "max"`, or lower `decay`, the layers' `alpha` or `bloom`; turn on `darkenCenter` if it is the middle. `trance render --json` reports `clipped`, the share at the top |
 | It stutters | Too much drawn a frame: a shape with hundreds of copies, many sides and a border, or copies far larger than the screen drawn over each other | `trance render --json` reports `ms` and `vertices` a frame; the built-ins stay under about 40000 vertices. Fewer copies or sides, or no border, cut vertices; smaller shapes cut the time |
 | It is nearly black | Decay too low for thin lines, or opacity tied to a range that is silent | Raise `decay` or `thickness`; give the opacity a resting value (`0.3 + 0.5*x`) |
 | It jitters | Motion driven by a plain loudness | Use the `_att` one |

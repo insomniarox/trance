@@ -596,7 +596,10 @@ void main() {
   // During a change of preset, u_other is the same frame bent the old way.
   float w = f_blendAt(v_uv);
   if (w < 1.0) c = mix(texture(u_other, v_uv).rgb, c, w);
-  c = min(c, vec3(1.3));
+  // Light that piles up is held by its brightest channel, so it keeps its
+  // hue: held channel by channel, a pink that kept adding up reached the
+  // ceiling in red, then blue, then green, and turned white.
+  c *= min(1.0, 1.3 / max(max(c.r, max(c.g, c.b)), 1e-6));
   // The buffer keeps fewer digits than this. Some cards drop the rest,
   // which takes a little from every frame: the more frames a second, the
   // faster trails fade and the less blur spreads. Others round to the
@@ -690,8 +693,10 @@ void main() {
   float l_lum = dot(c, vec3(0.299, 0.587, 0.114));
 %CODE%
   c = max(vec3(l_r, l_g, l_b), vec3(0.0));
-  // A soft shoulder instead of a hard clip, so bright cores keep some color.
-  c = mix(c, 0.75 + 0.25 * tanh((c - 0.75) * 4.0), step(vec3(0.75), c));
+  // A soft shoulder instead of a hard clip, on the brightest channel with
+  // the others in step, so a bright core keeps its color.
+  float top = max(c.r, max(c.g, c.b));
+  if (top > 0.75) c *= (0.75 + 0.25 * tanh((top - 0.75) * 4.0)) / top;
   // The background fills what the picture leaves dark. Glass has the
   // desktop for a background instead.
   float behind = %bg_intensity% * (1.0 - u_glass);
@@ -953,7 +958,8 @@ QJsonObject upgrade(QJsonObject json) {
 const QList<std::pair<QString, QString>> &lightSettings() {
     static const QList<std::pair<QString, QString>> settings = {
         {"feedback", "decay"}, {"post", "bloom"}, {"post", "bloomThreshold"},
-        {"post", "brightness"}, {"post", "gamma"},
+        {"post", "brightness"}, {"post", "gamma"}, {"post", "colorize"}, {"post", "colorCurve"},
+        {"post", "colorShift"},
     };
     return settings;
 }

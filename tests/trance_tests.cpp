@@ -1153,6 +1153,39 @@ private slots:
                  qPrintable(QString("%1 at 60, %2 at 120").arg(over60).arg(over120)));
     }
 
+    // Light that piles up keeps its hue: held by its brightest channel, an
+    // orange added over and over on a picture that never fades stays
+    // orange at full strength. Held channel by channel it turned white.
+    void lightThatPilesUpKeepsItsHue()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+        const CompiledPreset preset = presets::compile(fixture(
+            "{ 'name': 'Hue', 'feedback': { 'decay': 1 }, 'post': { 'bloom': 0, 'vignette': 0 }, 'layers': ["
+            "{ 'type': 'shape', 'sides': 4, 'radius': 3, 'color': '#c06030', 'blend': 'add' } ] }"));
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setPreset(preset, 0);
+        for (int frame = 0; frame < 60; ++frame)
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        const QColor seen = target.toImage().pixelColor(32, 32);
+        // Red at the top, green and blue in the same proportion as drawn
+        // (0x60/0xc0 and 0x30/0xc0 of it), through the soft shoulder.
+        QVERIFY2(seen.red() >= 240 && std::abs(seen.green() - seen.red() / 2) <= 12 &&
+                     std::abs(seen.blue() - seen.red() / 4) <= 12,
+                 qPrintable(seen.name()));
+    }
+
     // Before blend, a layer said additive, true or false. Such a preset
     // still opens, and edits as if it said blend.
     void additiveBecomesBlend()
@@ -1773,6 +1806,9 @@ private slots:
     {
         QVERIFY(presets::lightSettings().contains(std::pair<QString, QString>("feedback", "decay")));
         QVERIFY(presets::lightSettings().contains(std::pair<QString, QString>("post", "bloom")));
+        // Spillway draws in white for its colorize to color; under a look
+        // without colorize its lines filled the screen white.
+        QVERIFY(presets::lightSettings().contains(std::pair<QString, QString>("post", "colorize")));
         QTemporaryDir dir;
         Backend backend(dir.path(), false);
         int checked = 0;

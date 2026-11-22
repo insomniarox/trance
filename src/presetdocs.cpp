@@ -45,7 +45,7 @@ const QHash<QString, Entry> &entries() {
         {"feedback.edge", {"Edge", "What the flow finds when it reaches past the screen: wrap (the opposite side), "
                                    "mirror (a reflection), clamp (the edge's own color, stretched) or black (nothing)."}},
         {"feedback.darkenCenter", {"Darken center", "Paints a soft dark spot in the middle every frame. A zoom keeps "
-                                                    "feeding the middle into itself, and this stops it burning white."}},
+                                                    "feeding the middle into itself, and this stops it burning out."}},
 
         // ----------------------------------------------------------- post
         {"post.colorize", {"Colorize", "Replaces the picture's colors with the palette, by brightness: dark parts take "
@@ -90,8 +90,8 @@ const QHash<QString, Entry> &entries() {
         // ----------------------------------------------- every kind of layer
         {"layer.enabled", {"Shown", "Turns the layer off without removing it."}},
         {"layer.blend", {"Blend", "How its light meets what is under it. over covers it; add adds to it, right for "
-                                  "glow but too much burns to white; max keeps the brighter of the two, so it glows "
-                                  "but never grows past its own color."}},
+                                  "glow but too much burns out into flat color; max keeps the brighter of the "
+                                  "two, so it glows but never grows past its own color."}},
         {"layer.alpha", {"Opacity", "How solid it is drawn. 0 is invisible."}},
         {"layer.color", {"Color", "#rrggbb, a theme color such as accent, or palette(formula) for a point on the "
                                   "palette. hsv(h, s, v) and rgb(r, g, b) take formulas too."}},

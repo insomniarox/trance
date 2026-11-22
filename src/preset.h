@@ -118,9 +118,10 @@ bool draws(const QJsonObject &json);
 // additive true or false is its blend, add or over.
 QJsonObject upgrade(QJsonObject json);
 QJsonObject upgradeLayer(QJsonObject layer);
-// The settings that decide how much light builds up and how bright it
-// comes out, as section and key. Each preset sets them against its own
-// layers, so a mash-up takes them along with the layers.
+// The settings that decide how much light builds up, how bright it comes
+// out and whether it is colored by brightness, as section and key. Each
+// preset sets them against its own layers (some draw in white for
+// colorize to color), so a mash-up takes them along with the layers.
 const QList<std::pair<QString, QString>> &lightSettings();
 QJsonObject blank(const QString &name);
 

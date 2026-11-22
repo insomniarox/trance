@@ -55,7 +55,8 @@ trance render "Night Drive" -o look.png --sheet 6 --seconds 8
   size with the matching `_att`. `trance show Terraces` and `trance show
   Moons` do it six times over.
 - `add` layers (the default for waves, particles, terrain, wireframes and
-  vectors) with a `decay` near 1 and a `zoom` above 1 pile up to white.
+  vectors) with a `decay` near 1 and a `zoom` above 1 pile up into flat
+  patches at the full strength of their color.
   `render --json` reports `clipped`, the share of the picture at the top;
   over about 0.15 it reads as blown out. Lower `alpha` or `decay`, or give
   dense layers `"blend": "max"`, which never grows past the layer's color.
