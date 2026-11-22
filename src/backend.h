@@ -270,7 +270,8 @@ private:
     void adopt(const QJsonObject &json, const QString &name, bool saved, double blend, bool remember = true);
     void advance(bool automatic);
     bool mashup(double blend);
-    int randomIndex() const;
+    // A preset at random, from those the round has not shown yet.
+    int randomIndex();
     bool matches(const PresetInfo &preset) const;
     // Where the changes come from: the presets that match when the filters
     // are kept to and any do, otherwise all of them. In library order.
@@ -306,6 +307,10 @@ private:
     double m_sensitivity = 1.0;
     int m_cycleSeconds = 30;
     bool m_shuffle = true;
+    // The presets shown in this round, in the order they were, and the
+    // round before. A random change shows every preset once before any
+    // comes round again.
+    QStringList m_round, m_lastRound;
     bool m_locked = false;
     QString m_paletteOverride;
     double m_quality = 1.0;

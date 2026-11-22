@@ -1889,6 +1889,34 @@ private slots:
 #endif
     }
 
+    // Shuffled, every preset is shown once before any comes round again,
+    // and one shown at the end of a round is not back at the start of the
+    // next: two showings are at least a quarter of the list apart.
+    void shuffleShowsEveryPresetOnceARound()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const int count = int(backend.presets().size());
+        QVERIFY(count > 8);
+        QStringList shown{backend.currentName()};
+        for (int i = 1; i < 4 * count; ++i) {
+            backend.random();
+            shown << backend.currentName();
+        }
+        for (int round = 0; round < 4; ++round) {
+            const QStringList one = shown.mid(round * count, count);
+            QCOMPARE(QSet<QString>(one.begin(), one.end()).size(), count);
+        }
+        int closest = int(shown.size());
+        for (int i = 0; i < shown.size(); ++i)
+            for (int j = i + 1; j < shown.size(); ++j)
+                if (shown[j] == shown[i]) {
+                    closest = qMin(closest, j - i);
+                    break;
+                }
+        QVERIFY2(closest >= count / 4, qPrintable(QString("%1 of %2").arg(closest).arg(count)));
+    }
+
     // What shows over the picture is the user's to ask for: nothing does
     // until they have, and what they choose is remembered.
     void backendKeepsThePictureClearUnlessAsked()

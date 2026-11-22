@@ -172,6 +172,7 @@ SidePanel {
                 }
                 Setting {
                     label: qsTr("Shuffle")
+                    note: qsTr("Every preset is shown once before any comes round again.")
                     Toggle { checked: backend.shuffle; onToggled: backend.shuffle = checked }
                 }
                 Setting {

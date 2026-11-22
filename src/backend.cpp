@@ -427,6 +427,8 @@ void Backend::adopt(const QJsonObject &json, const QString &name, bool saved, do
     m_json = json;
     m_saved = saved ? json : QJsonObject();
     m_currentName = name;
+    if (!m_round.contains(name))
+        m_round << name;
     m_undo.clear();
     m_redo.clear();
     m_lastEditKey.clear();
@@ -467,10 +469,35 @@ void Backend::next() { load(step(1), quickBlend()); }
 
 void Backend::previous() { load(step(-1), quickBlend()); }
 
-int Backend::randomIndex() const {
-    QList<int> from = pool();
-    if (from.size() > 1)
-        from.removeAll(m_library.indexOf(m_currentName));
+int Backend::randomIndex() {
+    const QList<int> all = pool();
+    const auto without = [&](const QStringList &names) {
+        QList<int> left;
+        for (const int index : all)
+            if (!names.contains(m_library.presets()[index].name) && m_library.presets()[index].name != m_currentName)
+                left << index;
+        return left;
+    };
+    QList<int> from = without(m_round);
+    // Every one has been shown: the next round begins.
+    if (from.isEmpty()) {
+        m_lastRound = m_round;
+        m_round.clear();
+        from = without(m_round);
+    }
+    // The first quarter of a round leaves out the last quarter of the one
+    // before, so that a preset shown near the end of one doesn't come back
+    // near the start of the next. Only the first quarter, or the two halves
+    // would keep to their halves round after round.
+    const int gap = int(all.size() / 4);
+    if (m_round.size() <= gap) {
+        const QList<int> rested = without(m_round + m_lastRound.mid(qMax(0, int(m_lastRound.size()) - gap)));
+        if (!rested.isEmpty())
+            from = rested;
+    }
+    // The only preset there is.
+    if (from.isEmpty())
+        from = all;
     return from.isEmpty() ? -1 : from.at(QRandomGenerator::global()->bounded(int(from.size())));
 }
 
