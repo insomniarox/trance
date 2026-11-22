@@ -117,6 +117,7 @@ SidePanel {
                     label: qsTr("Listen to")
                     alert: backend.audioError.length > 0
                     note: backend.audioError.length > 0 ? backend.audioError
+                        : backend.source === "demo" ? qsTr("A short trance loop played through your speakers, to try the presets with. Next time Trance starts on everything that's playing.")
                         : qsTr("Pick one application to follow only its sound. It keeps playing through your speakers as before.")
                     Picker {
                         // Everything, each application making sound, then

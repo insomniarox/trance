@@ -11,7 +11,9 @@ class Analyzer;
 // What it listens to is the user's choice: everything the speakers play, one
 // application's own sound, one output or input device, or the microphone.
 // Listening to an application takes no rerouting: the sound goes on to the
-// speakers as before.
+// speakers as before. Or the demo track, which Trance plays itself and then
+// listens to the way it would to any application, so the picture keeps time
+// with the speakers in the same way.
 //
 // How the listening is done differs by system, and so does the file it is
 // in: audiocapture_pipewire.cpp on Linux, audiocapture_wasapi.cpp on Windows.
@@ -26,9 +28,10 @@ public:
     ~AudioCapture() override;
 
     // "system" (what is playing), "microphone" (the default input),
-    // "app:Spotify" (that application only), or "output:<name>" /
-    // "input:<name>" for one device by the name its system knows it by:
-    // PipeWire's node name on Linux, the endpoint's id on Windows.
+    // "app:Spotify" (that application only), "output:<name>" /
+    // "input:<name>" for one device by the name its system knows it by
+    // (PipeWire's node name on Linux, the endpoint's id on Windows), or
+    // "demo" for the demo track, played on the default output.
     void start(const QString &source);
     void stop();
     static bool isSource(const QString &source);
@@ -69,6 +72,12 @@ public:
     static bool listNodes(QList<Node> *nodes, QString *error);
     // The audio nodes in pw-dump's output, without Trance's own. PipeWire only.
     static QList<Node> parseNodes(const QByteArray &dump);
+
+    // The demo track: the beat the website plays, rendered from it once
+    // (trance-site's scripts/demo.mjs). 16-bit stereo at DemoRate, a loop
+    // that runs straight on from its end into its start.
+    static constexpr int DemoRate = 48000;
+    static QByteArray demoTrack();
 
 signals:
     void errorChanged();

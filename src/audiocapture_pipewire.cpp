@@ -1,6 +1,7 @@
 // Listening on Linux: through PipeWire's pw-cat, with pw-dump to say what
 // there is to listen to. PipeWire lets a recorder tap a playing stream, which
-// is how one application is heard without rerouting it.
+// is how one application is heard without rerouting it. The demo track is
+// played by another pw-cat and tapped the same way.
 #include "audiocapture.h"
 
 #include <QHash>
@@ -22,6 +23,8 @@ namespace {
 // How Trance's own recorder is named in PipeWire, so it can be told apart
 // from the things worth listening to.
 const char *const OwnNode = "trance";
+// And the stream the demo track plays in, which is not on the list either.
+const char *const DemoNode = "trance-demo";
 
 // The stream to tap for an application: of those it has, one that is
 // playing, and of several the newest. With onlyRunning, none unless one
@@ -52,6 +55,8 @@ struct AudioCapture::Platform {
 
     void capture(const QStringList &target);
     void read();
+    // Starts the demo track playing, unless it is.
+    void play();
     void startDump();
     void dumped();
     // While an application is quiet, whether another of its streams plays.
@@ -60,6 +65,9 @@ struct AudioCapture::Platform {
     AudioCapture *q;
     QString program, dumpProgram;
     QProcess process, dump;
+    // The demo track's player, and the track, kept while it plays.
+    QProcess player;
+    QByteArray demo;
     // A pw-dump that hangs, as on a PipeWire that has stopped answering, is
     // stopped after this long, rather than leaving the listening waiting.
     QTimer dumpWatch;
@@ -96,6 +104,18 @@ void AudioCapture::setUp() {
             lost(tr("the device is not connected."));
         else
             lost(said.section('\n', -1));
+    });
+    // The player is kept a loop or so ahead of what it has played: pw-cat
+    // takes it no faster than it plays, and the rest waits in the pipe.
+    connect(&p->player, &QProcess::bytesWritten, this, [p] {
+        if (p->player.bytesToWrite() < p->demo.size())
+            p->player.write(p->demo);
+    });
+    // Without its player the demo's stream is gone, and so is what was being
+    // listened to: the recorder is stopped too, and both are tried again.
+    connect(&p->player, &QProcess::finished, this, [p] {
+        if (p->process.state() != QProcess::NotRunning)
+            p->process.kill();
     });
     connect(&p->dump, &QProcess::finished, this, [p] { p->dumped(); });
     p->dumpWatch.setSingleShot(true);
@@ -139,6 +159,11 @@ void AudioCapture::open() {
         p.startDump();
         return;
     }
+    if (m_source == "demo") {
+        p.play();
+        p.capture({"demo", DemoNode});
+        return;
+    }
     if (m_source.startsWith("output:"))
         p.capture({"sink", m_source.mid(7)});
     else if (m_source.startsWith("input:"))
@@ -157,12 +182,17 @@ void AudioCapture::close() {
         p.process.kill();
         p.process.waitForFinished(1000);
     }
+    if (p.player.state() != QProcess::NotRunning) {
+        p.player.kill();
+        p.player.waitForFinished(1000);
+    }
+    p.demo.clear();
     p.pending.clear();
 }
 
 // Starts pw-cat. The target is what kind of thing to record ("sink" for an
-// output's monitor, "source", or "stream" for an application) and, unless
-// the default device is meant, which one.
+// output's monitor, "source", "stream" for an application, or "demo" for the
+// demo track's stream) and, unless the default device is meant, which one.
 void AudioCapture::Platform::capture(const QStringList &target) {
     // Raw 32-bit float stereo on stdout. Recording a sink (rather than a
     // source) is what makes this "what the speakers play"; leaving the
@@ -193,6 +223,20 @@ void AudioCapture::Platform::capture(const QStringList &target) {
     arguments << "-P" << "{ " + properties + " }" << "-";
     pending.clear();
     process.start(program, arguments);
+}
+
+void AudioCapture::Platform::play() {
+    if (player.state() != QProcess::NotRunning)
+        return;
+    if (demo.isEmpty())
+        demo = AudioCapture::demoTrack();
+    player.start(program, {"--playback", "--raw", "--format", "s16", "--rate", QString::number(DemoRate),
+                           "--channels", "2", "-P",
+                           QString("{ node.name = %1, media.name = \"Demo track\", application.name = Trance, "
+                                   "media.role = Music }")
+                               .arg(DemoNode),
+                           "-"});
+    player.write(demo);
 }
 
 void AudioCapture::refreshSources() {
@@ -320,7 +364,7 @@ QList<AudioCapture::Node> AudioCapture::parseNodes(const QByteArray &dump) {
         else
             continue;
         node.name = props.value("node.name").toString();
-        if (node.name == OwnNode)
+        if (node.name == OwnNode || node.name == DemoNode)
             continue;
         node.application = props.value("application.name").toString();
         if (node.application.isEmpty())

@@ -5,7 +5,8 @@
 // application is heard without rerouting it, the second how "everything"
 // covers every output at once. A device is recorded the plain way: an input as
 // it is, an output by its loopback, which is what it is playing. In each case
-// Windows converts to the format the analyzer takes.
+// Windows converts to the format the analyzer takes. The demo track is played
+// on the default output and heard as Trance's own process.
 //
 // A listening runs on a thread of its own, woken by Windows when there is
 // sound, and hands what it gets to the thread the analyzer lives on.
@@ -83,13 +84,21 @@ struct Handle {
     }
 };
 
-// Told by Windows, on a thread of its choosing, that the listening to a
-// process that was asked for is ready to be picked up. What was asked for is
-// kept here, not on the stack of the one asking: Windows holds on to this
-// until it answers, and a listening told to stop doesn't wait for that.
+// What Windows calls whichever output is the default: a stream opened on it
+// moves when another output becomes the default. DEVINTERFACE_AUDIO_RENDER,
+// written out for the same reason as FriendlyName.
+const wchar_t *const DefaultOutput = L"{E6327CAD-DCEC-4949-AE8A-991E976A79D2}";
+
+// Told by Windows, on a thread of its choosing, that a device or the
+// listening to a process that was asked for is ready to be picked up. What
+// was asked for is kept here, not on the stack of the one asking: Windows
+// holds on to this until it answers, and a listening told to stop doesn't
+// wait for that.
 class Activated : public RuntimeClass<RuntimeClassFlags<ClassicCom>, FtmBase, IActivateAudioInterfaceCompletionHandler> {
 public:
-    Activated(DWORD process, bool only) : done(CreateEventW(nullptr, TRUE, FALSE, nullptr)) {
+    Activated() : done(CreateEventW(nullptr, TRUE, FALSE, nullptr)) {}
+    Activated(DWORD process, bool only) : Activated() {
+        asked = true;
         wanted.ActivationType = AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK;
         wanted.ProcessLoopbackParams.TargetProcessId = process;
         wanted.ProcessLoopbackParams.ProcessLoopbackMode =
@@ -103,7 +112,9 @@ public:
         SetEvent(done);
         return S_OK;
     }
+    PROPVARIANT *params() { return asked ? &wrapped : nullptr; }
     const HANDLE done;
+    bool asked = false;
     AUDIOCLIENT_ACTIVATION_PARAMS wanted = {};
     PROPVARIANT wrapped = {};
 };
@@ -329,16 +340,15 @@ bool ask(QList<AudioCapture::Node> *nodes) {
     return true;
 }
 
-// Asks Windows for the sound of one process and all it started, or of
-// everything but those. The answer comes later and elsewhere, and is waited
-// for here, unless told to stop first.
-HRESULT processLoopback(DWORD process, bool only, HANDLE stop, ComPtr<IAudioClient> *client) {
-    const ComPtr<Activated> activated = Make<Activated>(process, only);
+// Asks Windows for a device by the name it is reached by. The answer comes
+// later and elsewhere, and is waited for here, unless told to stop first.
+HRESULT activate(const wchar_t *device, const ComPtr<Activated> &activated, HANDLE stop,
+                 ComPtr<IAudioClient> *client) {
     if (!activated)
         return E_OUTOFMEMORY;
     ComPtr<IActivateAudioInterfaceAsyncOperation> operation;
-    HRESULT hr = ActivateAudioInterfaceAsync(VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK, __uuidof(IAudioClient),
-                                             &activated.Get()->wrapped, activated.Get(), &operation);
+    HRESULT hr = ActivateAudioInterfaceAsync(device, __uuidof(IAudioClient), activated.Get()->params(),
+                                             activated.Get(), &operation);
     if (FAILED(hr))
         return hr;
     const HANDLE either[2] = {stop, activated.Get()->done};
@@ -353,6 +363,74 @@ HRESULT processLoopback(DWORD process, bool only, HANDLE stop, ComPtr<IAudioClie
     if (SUCCEEDED(hr))
         hr = made.As(client);
     return hr;
+}
+
+// The sound of one process and all it started, or of everything but those.
+HRESULT processLoopback(DWORD process, bool only, HANDLE stop, ComPtr<IAudioClient> *client) {
+    return activate(VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK, Make<Activated>(process, only), stop, client);
+}
+
+// Plays the demo track on the default output, round and round, until told
+// to stop. Windows going wrong, or there being no output, is tried again in
+// a while: what the listening hears meanwhile is silence, which says so.
+void playDemo(const QByteArray &track, HANDLE stop) {
+    const Com com;
+    const UINT32 frames = UINT32(track.size() / 4);
+    UINT32 at = 0;
+    if (!frames)
+        return;
+    WAVEFORMATEX format = {};
+    format.wFormatTag = WAVE_FORMAT_PCM;
+    format.nChannels = 2;
+    format.nSamplesPerSec = AudioCapture::DemoRate;
+    format.wBitsPerSample = 16;
+    format.nBlockAlign = 4;
+    format.nAvgBytesPerSec = format.nSamplesPerSec * format.nBlockAlign;
+    do {
+        ComPtr<IAudioClient> client;
+        ComPtr<IAudioRenderClient> out;
+        const Handle ready(CreateEventW(nullptr, FALSE, FALSE, nullptr));
+        UINT32 size = 0;
+        HRESULT hr = activate(DefaultOutput, Make<Activated>(), stop, &client);
+        if (SUCCEEDED(hr))
+            hr = client->Initialize(AUDCLNT_SHAREMODE_SHARED,
+                                    AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
+                                        AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+                                    Buffer, 0, &format, nullptr);
+        if (SUCCEEDED(hr))
+            hr = client->SetEventHandle(ready.handle);
+        if (SUCCEEDED(hr))
+            hr = client->GetBufferSize(&size);
+        if (SUCCEEDED(hr))
+            hr = client->GetService(IID_PPV_ARGS(&out));
+        // Filled up, then started, then topped up each time Windows has
+        // played some of it.
+        bool started = false;
+        const HANDLE waiting[2] = {stop, ready.handle};
+        while (SUCCEEDED(hr)) {
+            UINT32 queued = 0;
+            BYTE *data = nullptr;
+            hr = client->GetCurrentPadding(&queued);
+            const UINT32 room = size - queued;
+            if (SUCCEEDED(hr) && room > 0 && SUCCEEDED(hr = out->GetBuffer(room, &data))) {
+                for (UINT32 done = 0; done < room;) {
+                    const UINT32 run = qMin(room - done, frames - at);
+                    std::memcpy(data + 4 * size_t(done), track.constData() + 4 * size_t(at), 4 * size_t(run));
+                    done += run;
+                    at = (at + run) % frames;
+                }
+                hr = out->ReleaseBuffer(room, 0);
+            }
+            if (SUCCEEDED(hr) && !started) {
+                hr = client->Start();
+                started = SUCCEEDED(hr);
+            }
+            if (SUCCEEDED(hr) && WaitForMultipleObjects(2, waiting, FALSE, 1000) == WAIT_OBJECT_0)
+                break;
+        }
+        if (started)
+            client->Stop();
+    } while (WaitForSingleObject(stop, 2000) != WAIT_OBJECT_0);
 }
 
 // Why the listening could not go on, to follow "Audio capture stopped:".
@@ -400,6 +478,9 @@ struct AudioCapture::Platform {
 
     AudioCapture *q;
     std::unique_ptr<Listening> listening;
+    // The demo track's player, while it is what is listened to. Its thread
+    // is the same kind as a listening's, and is stopped the same way.
+    std::unique_ptr<Listening> playing;
     // Listenings told to stop, left to finish on their own threads. Windows
     // can take seconds to start a device, as a Bluetooth headset changing to
     // hands-free, and the window would freeze for as long if it were waited
@@ -446,6 +527,14 @@ void AudioCapture::open() {
     p->reap(false);
     if (p->listening)
         return;
+    if (m_source == "demo") {
+        p->playing = std::make_unique<Platform::Listening>();
+        Platform::Listening *player = p->playing.get();
+        player->thread = std::thread([player, track = demoTrack()] {
+            playDemo(track, player->stop.handle);
+            player->finished = true;
+        });
+    }
     p->listening = std::make_unique<Platform::Listening>();
     Platform::Listening *own = p->listening.get();
     own->thread = std::thread([this, p, own, source = m_source, rate = m_analyzer->sampleRate(), mine = p->current] {
@@ -468,10 +557,11 @@ void AudioCapture::open() {
 void AudioCapture::close() {
     Platform *p = m_platform;
     ++p->current;
-    if (!p->listening)
-        return;
-    SetEvent(p->listening->stop.handle);
-    p->stopping.push_back(std::move(p->listening));
+    for (std::unique_ptr<Platform::Listening> *thread : {&p->listening, &p->playing})
+        if (*thread) {
+            SetEvent((*thread)->stop.handle);
+            p->stopping.push_back(std::move(*thread));
+        }
 }
 
 // One listening from start to end, on its own thread.
@@ -500,13 +590,15 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
     ComPtr<IAudioClient> client;
     Handle application;
     const bool only = source.startsWith("app:");
+    const bool demo = source == "demo";
     const QString applicationName = only ? source.mid(4) : QString();
     DWORD process = 0;
     // An application that can't be waited on, looked for instead.
     DWORD lookedFor = 0;
     DWORD flags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM;
-    if (source == "system" || only) {
-        // Everything is all the sound but Trance's own, which it has none of.
+    if (source == "system" || only || demo) {
+        // Everything is all the sound but Trance's own, which is only ever
+        // the demo track, heard as Trance's own and nothing else.
         process = GetCurrentProcessId();
         if (only) {
             process = processOf(applicationName, enumerator.Get());
@@ -522,7 +614,7 @@ AudioCapture::Platform::Ended AudioCapture::Platform::listen(const QString &sour
             if (!application.handle)
                 lookedFor = process;
         }
-        hr = processLoopback(process, only, stop, &client);
+        hr = processLoopback(process, only || demo, stop, &client);
         flags |= AUDCLNT_STREAMFLAGS_LOOPBACK;
     } else {
         ComPtr<IMMDevice> device;

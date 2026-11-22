@@ -1563,13 +1563,13 @@ private slots:
             ids << entry.toMap().value("id").toString();
         // One output and one input are what "system" and "microphone" already
         // mean, so neither is listed a second time.
-        QCOMPARE(ids, (QStringList{"system", "app:Spotify", "app:Firefox", "microphone"}));
+        QCOMPARE(ids, (QStringList{"system", "demo", "app:Spotify", "app:Firefox", "microphone"}));
         QVERIFY(AudioCapture::isSource("app:Spotify"));
         QVERIFY(AudioCapture::isSource("output:alsa_output.speaker"));
         QVERIFY(!AudioCapture::isSource("app:"));
         QVERIFY(!AudioCapture::isSource("speakers"));
-        // An empty answer from PipeWire still leaves the two that always work.
-        QCOMPARE(AudioCapture::describe(AudioCapture::parseNodes("not json"), "system").size(), 2);
+        // An empty answer from PipeWire still leaves the three that always work.
+        QCOMPARE(AudioCapture::describe(AudioCapture::parseNodes("not json"), "system").size(), 3);
 #else
         QSKIP("What PipeWire says is only read where PipeWire is");
 #endif
@@ -1619,13 +1619,14 @@ private slots:
         QVERIFY(nodes[2].available);
         QCOMPARE(nodes[2].label, QString("Speaker"));
         QCOMPARE(listed(AudioCapture::describe(nodes, "system")),
-                 (QStringList{"system=Everything that's playing", "microphone=Microphone"}));
+                 (QStringList{"system=Everything that's playing", "demo=Demo track", "microphone=Microphone"}));
 
         // A device that was chosen stays on the list, by its short name, and
         // says so when it has been unplugged.
         QCOMPARE(listed(AudioCapture::describe(nodes, "output:speaker")),
-                 (QStringList{"system=Everything that's playing", "output:speaker=Speaker", "microphone=Microphone"}));
-        QCOMPARE(listed(AudioCapture::describe(nodes, "output:hdmi1")).at(1),
+                 (QStringList{"system=Everything that's playing", "demo=Demo track", "output:speaker=Speaker",
+                              "microphone=Microphone"}));
+        QCOMPARE(listed(AudioCapture::describe(nodes, "output:hdmi1")).at(2),
                  QString("output:hdmi1=HDMI / DisplayPort 1 Output (not connected)"));
         QCOMPARE(listed(AudioCapture::describe(nodes, "input:gone")).last(), QString("input:gone=gone (not connected)"));
 
@@ -1641,11 +1642,11 @@ private slots:
         nodes = parse(docked);
         const QVariantList choice = AudioCapture::describe(nodes, "system");
         QCOMPARE(listed(choice),
-                 (QStringList{"system=Everything that's playing", "output:hdmi1=HDMI / DisplayPort 1 Output",
+                 (QStringList{"system=Everything that's playing", "demo=Demo track", "output:hdmi1=HDMI / DisplayPort 1 Output",
                               "output:speaker=Speaker", "microphone=Default microphone",
                               "input:mic1=Digital Microphone", "input:yeti=Yeti Nano"}));
-        QCOMPARE(choice.at(1).toMap().value("section").toString(), QString("Outputs"));
-        QCOMPARE(choice.at(3).toMap().value("section").toString(), QString("Inputs"));
+        QCOMPARE(choice.at(2).toMap().value("section").toString(), QString("Outputs"));
+        QCOMPARE(choice.at(4).toMap().value("section").toString(), QString("Inputs"));
         QVERIFY(choice.at(0).toMap().value("section").toString().isEmpty());
 #else
         QSKIP("What PipeWire says is only read where PipeWire is");
@@ -1672,9 +1673,9 @@ private slots:
             QTRY_COMPARE_WITH_TIMEOUT(capture.error(), QString("Audio capture stopped: the device is not connected."),
                                       8000);
         }
-        // Whether these two can be heard depends on the computer, so what
-        // happened is only noted.
-        for (const QString &source : {QString("system"), QString("microphone")}) {
+        // Whether these can be heard depends on the computer, so what
+        // happened is only noted. The demo track also plays.
+        for (const QString &source : {QString("system"), QString("microphone"), QString("demo")}) {
             AudioCapture capture(&analyzer);
             capture.start(source);
             QTest::qWait(1500);
@@ -1753,6 +1754,41 @@ private slots:
 #else
         QSKIP("How Windows is listened to is only tried on Windows");
 #endif
+    }
+
+    // The demo track is what scripts/demo.mjs of the website wrote: one whole
+    // cycle of the beat, sixteen seconds of it. Played, it has to be heard,
+    // beats and all, through the listening every other source has.
+    // TRANCE_TEST_HEARS asks for that, as it plays out loud.
+    void demoTrackIsHeard()
+    {
+        QCOMPARE(AudioCapture::demoTrack().size(), qsizetype(16 * AudioCapture::DemoRate * 2 * 2));
+        QVERIFY(AudioCapture::isSource("demo"));
+        if (!qEnvironmentVariableIsSet("TRANCE_TEST_HEARS"))
+            QSKIP("Plays the demo track out loud: set TRANCE_TEST_HEARS");
+        Analyzer analyzer;
+        AudioCapture capture(&analyzer);
+        capture.start("demo");
+        QElapsedTimer since;
+        since.start();
+        // Looked at as often as a picture is drawn: a beat is a rise in the
+        // bass, which a slower look can step over.
+        const auto heard = [&] {
+            QTest::qWait(16);
+            return analyzer.analyze(since.restart() / 1000.0);
+        };
+        for (QElapsedTimer waited; heard().silent;) {
+            if (!waited.isValid())
+                waited.start();
+            QVERIFY2(waited.elapsed() < 10000, qPrintable("The demo track was not heard. " + capture.error()));
+        }
+        const int before = analyzer.frame().beats;
+        for (QElapsedTimer waited; heard().beats < before + 4;) {
+            if (!waited.isValid())
+                waited.start();
+            QVERIFY2(waited.elapsed() < 10000, "The demo track's kicks were not heard");
+        }
+        QVERIFY2(capture.error().isEmpty(), qPrintable(capture.error()));
     }
 
     // Titles on Windows come from its media controls. The test is the media
@@ -1870,6 +1906,8 @@ private slots:
             const QMetaProperty label = backend.metaObject()->property(backend.metaObject()->indexOfProperty("sourceLabel"));
             QCOMPARE(label.notifySignal().name(), QByteArray("sourcesChanged"));
             QCOMPARE(label.read(&backend).toString(), QString("Everything that's playing"));
+            backend.setSource("demo");
+            QCOMPARE(backend.sourceLabel(), QString("Demo track"));
 
             // The levels are announced only while something is showing them.
             QSignalSpy levels(&backend, &Backend::levelsChanged);
@@ -1881,6 +1919,8 @@ private slots:
         Backend again(dir.path(), false);
         QVERIFY(again.showNames());
         QVERIFY(again.debug());
+        // The demo track was a try: the next start is on what's playing.
+        QCOMPARE(again.source(), QString("system"));
 
         // How dark the glass is: clear unless asked, kept, and held in range.
         QCOMPARE(again.glassOpacity(), 0.0);

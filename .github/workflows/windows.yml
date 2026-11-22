@@ -85,7 +85,7 @@ jobs:
           }
           $tone = Start-Process powershell -PassThru -WindowStyle Hidden -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tests\tone.ps1'
           $env:TRANCE_TEST_HEARS = 'powershell'
-          build\tests\trance_tests.exe captureHearsWhatPlays captureStartsAndStopsOnWindows
+          build\tests\trance_tests.exe captureHearsWhatPlays captureStartsAndStopsOnWindows demoTrackIsHeard
           $failed = $LASTEXITCODE
           build\trance.exe sources
           Stop-Process -Id $tone.Id

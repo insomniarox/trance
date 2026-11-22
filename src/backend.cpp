@@ -56,7 +56,8 @@ Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
     if (!QStringList{"corner", "picture", "off"}.contains(m_titleStyle))
         m_titleStyle = "corner";
     m_source = m_settings->value("source", "system").toString();
-    if (!AudioCapture::isSource(m_source))
+    // The demo track is for a try: Trance doesn't start out playing music.
+    if (!AudioCapture::isSource(m_source) || m_source == "demo")
         m_source = "system";
     m_blendSeconds = qBound(0.0, m_settings->value("blendSeconds", 4.0).toDouble(), 20.0);
     m_transition = m_settings->value("transition", "mixed").toString();

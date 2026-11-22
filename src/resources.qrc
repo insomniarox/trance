@@ -143,5 +143,7 @@
         <file alias="format.md">format.md</file>
         <file alias="manual.md">../docs/manual.md</file>
         <file alias="skill.md">skill.md</file>
+        <!-- Samples hardly compress, so they are kept as they are. -->
+        <file alias="demo.wav" compression-algorithm="none">demo.wav</file>
     </qresource>
 </RCC>

@@ -1,5 +1,7 @@
 #include "audiocapture.h"
 
+#include <QFile>
+#include <QtEndian>
 #include <algorithm>
 
 #include "audio.h"
@@ -17,7 +19,8 @@ AudioCapture::~AudioCapture() {
 }
 
 bool AudioCapture::isSource(const QString &source) {
-    return source == "system" || source == "microphone" || (source.startsWith("app:") && source.size() > 4) ||
+    return source == "system" || source == "microphone" || source == "demo" ||
+           (source.startsWith("app:") && source.size() > 4) ||
            (source.startsWith("output:") && source.size() > 7) || (source.startsWith("input:") && source.size() > 6);
 }
 
@@ -60,8 +63,9 @@ void AudioCapture::lost(const QString &detail) {
         return;
     // An application may end one stream and open the next at once, as a
     // browser can between tracks: looked for again straight away the first
-    // time, and only then said to be waited for.
-    if (m_source.startsWith("app:") && !m_retriedSoon) {
+    // time, and only then said to be waited for. The demo track's stream may
+    // not be up yet when its listening starts, which is tried again as soon.
+    if ((m_source.startsWith("app:") || m_source == "demo") && !m_retriedSoon) {
         m_retriedSoon = true;
         m_retry.start(300);
         return;
@@ -87,7 +91,8 @@ QVariantList AudioCapture::describe(const QList<Node> &nodes, const QString &cur
     const auto entry = [](const QString &id, const QString &label, const QString &kind, const QString &section) {
         return QVariantMap{{"id", id}, {"label", label}, {"kind", kind}, {"section", section}};
     };
-    QVariantList list{entry("system", tr("Everything that's playing"), "all", {})};
+    QVariantList list{entry("system", tr("Everything that's playing"), "all", {}),
+                      entry("demo", tr("Demo track"), "demo", {})};
 
     const QString applications = tr("Applications");
     QStringList seen;
@@ -140,4 +145,21 @@ void AudioCapture::setError(const QString &error) {
         return;
     m_error = error;
     emit errorChanged();
+}
+
+QByteArray AudioCapture::demoTrack() {
+    QFile file(":/demo.wav");
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    const QByteArray wav = file.readAll();
+    // The header scripts/demo.mjs writes, the plainest a WAV has: 16-bit PCM,
+    // two channels, the rate, then the samples.
+    const char *const header = wav.constData();
+    if (wav.size() < 44 || !wav.startsWith("RIFF") || wav.mid(8, 8) != "WAVEfmt " ||
+        qFromLittleEndian<quint16>(header + 20) != 1 || qFromLittleEndian<quint16>(header + 22) != 2 ||
+        qFromLittleEndian<quint32>(header + 24) != quint32(DemoRate) ||
+        qFromLittleEndian<quint16>(header + 34) != 16 || wav.mid(36, 4) != "data")
+        return {};
+    const qsizetype size = qMin<qsizetype>(qFromLittleEndian<quint32>(header + 40), wav.size() - 44);
+    return wav.mid(44, size - size % 4);
 }

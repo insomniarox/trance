@@ -433,7 +433,7 @@ int steer(const QStringList &arguments) {
     if (word == "preset")
         command.parser.addPositionalArgument("name", "The preset to show.");
     if (word == "source")
-        command.parser.addPositionalArgument("source", "system, microphone, app:Spotify, or just Spotify.");
+        command.parser.addPositionalArgument("source", "system, microphone, demo, app:Spotify, or just Spotify.");
     command.process(arguments);
     static const QHash<QString, QString> methods = {{"next", "Next"}, {"previous", "Previous"},
                                                     {"random", "Random"}, {"preset", "Select"},

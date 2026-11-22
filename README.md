@@ -252,13 +252,19 @@ you can pick instead:
   playing, Trance waits for it.
 - **one output or input device**, or the microphone. Only what is plugged in
   is offered, and only when there is a choice: with one set of speakers and
-  one microphone, the list is just "everything" and "microphone".
+  one microphone, the list is just "everything", the demo track and
+  "microphone".
+- **the demo track**, for trying the presets with nothing else playing: the
+  beat from [the website](https://trance.eoschaos.com), a sixteen-second
+  trance loop that Trance plays through your speakers itself. It is only
+  ever a try: the next start is on everything that's playing again.
 
 The same from the command line, for a key binding or a script:
 
 ```sh
 trance sources            # what there is to listen to right now
 trance source Spotify     # follow Spotify only
+trance source demo        # play the demo track
 trance source system      # back to everything
 ```
 
