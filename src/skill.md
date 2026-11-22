@@ -71,7 +71,7 @@ trance mashup          # a new preset from parts of others
 trance lock            # hold the current preset, or release it
 trance current
 trance sources         # what there is to listen to
-trance source Spotify  # follow one application's sound only (or: system, microphone)
+trance source Spotify  # follow one application's sound only (or: system, microphone, demo)
 ```
 
 These reach the open window. While it has unsaved changes to the preset it shows,

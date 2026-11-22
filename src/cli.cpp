@@ -554,7 +554,7 @@ QString cliSummary() {
            "  mashup                        Put a new preset together from parts of others\n"
            "  lock                          Hold the current preset, or let go of it\n"
            "  current                       Print the current preset's name\n"
-           "  source <what>                 Listen to system, microphone, or one app (source Spotify)\n\n"
+           "  source <what>                 Listen to system, microphone, demo, or one app (source Spotify)\n\n"
            "Commands that need no display (trance help <command> for options):\n"
            "  list                          List presets\n"
            "  sources                       List what there is to listen to\n"
