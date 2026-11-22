@@ -307,9 +307,9 @@ private:
     double m_sensitivity = 1.0;
     int m_cycleSeconds = 30;
     bool m_shuffle = true;
-    // The presets shown in this round, in the order they were, and the
-    // round before. A random change shows every preset once before any
-    // comes round again.
+    // The library's presets shown in this round, in the order they were,
+    // and the pool's round before. A random change shows every preset in
+    // the pool once before any comes round again.
     QStringList m_round, m_lastRound;
     bool m_locked = false;
     QString m_paletteOverride;

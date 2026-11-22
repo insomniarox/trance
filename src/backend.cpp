@@ -427,8 +427,10 @@ void Backend::adopt(const QJsonObject &json, const QString &name, bool saved, do
     m_json = json;
     m_saved = saved ? json : QJsonObject();
     m_currentName = name;
-    if (!m_round.contains(name))
-        m_round << name;
+    // Only the library's own presets are shown in a round: a mash-up, or a
+    // file opened from elsewhere, is none of them.
+    if (const int index = m_library.indexOf(name); index >= 0 && !m_round.contains(m_library.presets()[index].name))
+        m_round << m_library.presets()[index].name;
     m_undo.clear();
     m_redo.clear();
     m_lastEditKey.clear();
@@ -471,18 +473,32 @@ void Backend::previous() { load(step(-1), quickBlend()); }
 
 int Backend::randomIndex() {
     const QList<int> all = pool();
+    const auto &presets = m_library.presets();
     const auto without = [&](const QStringList &names) {
         QList<int> left;
         for (const int index : all)
-            if (!names.contains(m_library.presets()[index].name) && m_library.presets()[index].name != m_currentName)
+            if (!names.contains(presets[index].name) && presets[index].name != m_currentName)
                 left << index;
         return left;
     };
+    // Of those the round has shown, the ones in the pool, in the order they
+    // were. Kept to a filter, the round is of the presets that match.
+    QStringList shown;
+    for (const QString &name : m_round)
+        if (all.contains(m_library.indexOf(name)))
+            shown << name;
     QList<int> from = without(m_round);
-    // Every one has been shown: the next round begins.
+    // Every one has been shown: the next round begins. What the rest of the
+    // library has shown, left out by a filter, is kept for when it is let go
+    // of; any deleted since are forgotten.
     if (from.isEmpty()) {
-        m_lastRound = m_round;
-        m_round.clear();
+        QStringList rest;
+        for (const QString &name : m_round)
+            if (!shown.contains(name) && m_library.indexOf(name) >= 0)
+                rest << name;
+        m_round = rest;
+        m_lastRound = shown;
+        shown.clear();
         from = without(m_round);
     }
     // The first quarter of a round leaves out the last quarter of the one
@@ -490,7 +506,7 @@ int Backend::randomIndex() {
     // near the start of the next. Only the first quarter, or the two halves
     // would keep to their halves round after round.
     const int gap = int(all.size() / 4);
-    if (m_round.size() <= gap) {
+    if (shown.size() <= gap) {
         const QList<int> rested = without(m_round + m_lastRound.mid(qMax(0, int(m_lastRound.size()) - gap)));
         if (!rested.isEmpty())
             from = rested;

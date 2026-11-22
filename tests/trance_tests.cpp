@@ -1917,6 +1917,72 @@ private slots:
         QVERIFY2(closest >= count / 4, qPrintable(QString("%1 of %2").arg(closest).arg(count)));
     }
 
+    // A mash-up is none of the library's presets, so the rounds go on round
+    // it as if it hadn't been shown: once each, a quarter of the list apart.
+    void shuffleRoundsLeaveMashupsOut()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const int count = int(backend.presets().size());
+        QStringList shown{backend.currentName()};
+        for (int i = 1; i < 3 * count; ++i) {
+            if (i % 2)
+                backend.mashup();
+            backend.random();
+            shown << backend.currentName();
+        }
+        for (int round = 0; round < 3; ++round) {
+            const QStringList one = shown.mid(round * count, count);
+            QCOMPARE(QSet<QString>(one.begin(), one.end()).size(), count);
+        }
+        for (int i = 0; i < shown.size(); ++i)
+            for (int j = i + 1; j < shown.size(); ++j)
+                if (shown[j] == shown[i]) {
+                    QVERIFY2(j - i >= count / 4, qPrintable(QString("%1 at %2 and %3").arg(shown[i]).arg(i).arg(j)));
+                    break;
+                }
+    }
+
+    // Kept to a filter, the rounds are of the presets that match, and going
+    // through them doesn't start the whole library's round over: once the
+    // filter is let go of, what was shown before it is still left out.
+    void shuffleRoundOutlastsAFilter()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const QVariantList all = backend.presets();
+        const int count = int(all.size());
+        QHash<QString, QStringList> families;
+        for (const QVariant &preset : all)
+            families[preset.toMap().value("family").toString()] << preset.toMap().value("name").toString();
+        QString family;
+        for (auto it = families.constBegin(); it != families.constEnd(); ++it)
+            if (!it.key().isEmpty() && it->size() >= 3 && it->size() <= count / 6 &&
+                (family.isEmpty() || it->size() > families[family].size()))
+                family = it.key();
+        QVERIFY(!family.isEmpty());
+        const QStringList matching = families[family];
+
+        QStringList before{backend.currentName()};
+        for (int i = 0; i < count / 2; ++i) {
+            backend.random();
+            before << backend.currentName();
+        }
+        backend.setFilterColor(family);
+        backend.setKeepToFilter(true);
+        for (int i = 0; i < 2 * matching.size(); ++i) {
+            backend.random();
+            QVERIFY(matching.contains(backend.currentName()));
+        }
+        backend.setKeepToFilter(false);
+        for (const QString &name : matching)
+            before.removeAll(name);
+        for (int i = 0; i < 12; ++i) {
+            backend.random();
+            QVERIFY2(!before.contains(backend.currentName()), qPrintable(backend.currentName()));
+        }
+    }
+
     // What shows over the picture is the user's to ask for: nothing does
     // until they have, and what they choose is remembered.
     void backendKeepsThePictureClearUnlessAsked()
