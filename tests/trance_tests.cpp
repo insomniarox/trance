@@ -411,6 +411,29 @@ private slots:
         QCOMPARE(frame.beats, 0);
     }
 
+    // Music that starts after a long silence, as when a player is started
+    // with Trance already open, is measured against itself straight away,
+    // as at Trance's own start. The kick and the bass are there from the
+    // first beat, so their ranges are off the ceiling within a quarter of a
+    // second (the hats, which come in later, rightly jump when they do), and
+    // the first kicks are found.
+    void analyzerSettlesAfterSilence()
+    {
+        Analyzer analyzer;
+        play(analyzer, 30.0, [](float *out, int frames, qint64) { std::fill(out, out + frames * 2, 0.f); });
+        std::vector<float> chunk(800 * 2);
+        float highest = 0;
+        for (int i = 0; i < 66; ++i) {
+            synthesize(chunk.data(), 800, qint64(i) * 800, 48000);
+            analyzer.push(chunk.data(), 800);
+            const AudioFrame &frame = analyzer.analyze(1.0 / 60);
+            if (i >= 15)
+                highest = std::max({highest, frame.bandAtt[0], frame.bandAtt[1], frame.bandAtt[2]});
+        }
+        QVERIFY2(highest < 4, qPrintable(QString::number(highest)));
+        QVERIFY2(analyzer.frame().beats >= 2, qPrintable(QString::number(analyzer.frame().beats)));
+    }
+
     // ------------------------------------------------------------- presets
 
     void everyBuiltinPresetIsClean()

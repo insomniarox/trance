@@ -77,7 +77,8 @@ private:
     double m_level = 0.05;      // envelope the automatic gain follows
     double m_quietFor = 10;     // seconds without signal
     double m_average[3 + AudioFrame::Bands] = {}, m_longAverage[3 + AudioFrame::Bands] = {};
-    double m_sinceBeat = 1, m_time = 0;
+    double m_sinceBeat = 1;
+    double m_heardFor = 0; // seconds of sound since the last silence
     double m_lastBass = 0;
 };
 

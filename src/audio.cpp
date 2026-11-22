@@ -96,7 +96,6 @@ void Analyzer::transform(int stride, std::vector<float> &magnitude) {
 
 const AudioFrame &Analyzer::analyze(double dt) {
     dt = std::min(std::max(dt, 1e-4), 0.25);
-    m_time += dt;
 
     // Waveform: the newest 1024 samples halved to 512 points, started on a
     // rising zero crossing so a steady tone stands still instead of crawling.
@@ -129,6 +128,7 @@ const AudioFrame &Analyzer::analyze(double dt) {
 
     m_quietFor = peak > 2e-4 ? 0 : m_quietFor + dt;
     m_frame.silent = m_quietFor > 0.75;
+    m_heardFor = m_frame.silent ? 0 : m_heardFor + dt;
 
     for (int i = 0; i < AudioFrame::WaveSize; ++i) {
         const qint64 at = newest + offset + i * 2;
@@ -194,7 +194,10 @@ const AudioFrame &Analyzer::analyze(double dt) {
         const double rate = rateFor(sum > m_average[range] ? 0.2 : 0.5, dt);
         m_average[range] = m_average[range] * rate + sum * (1 - rate);
         // The long average settles fast at the start of a song, then drifts.
-        const double longRate = rateFor(m_time < 1.5 ? 0.9 : 0.992, dt);
+        // A start is wherever sound comes after silence, not only Trance's
+        // own: through a silence the average dies away, and a slow climb back
+        // from there would hold every range at its ceiling for seconds.
+        const double longRate = rateFor(m_heardFor < 1.5 ? 0.9 : 0.992, dt);
         m_longAverage[range] = m_longAverage[range] * longRate + sum * (1 - longRate);
         const bool audible = m_longAverage[range] > 1e-5 && !m_frame.silent;
         levels[range] = std::min(audible ? m_sensitivity * sum / m_longAverage[range] : 0, 8.0);
