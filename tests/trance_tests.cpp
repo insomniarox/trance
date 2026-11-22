@@ -2024,6 +2024,18 @@ private slots:
         QCOMPARE(ask("ToggleLock"), QString("ok"));
         QCOMPARE(backend.locked(), !locked);
         QCOMPARE(ask("Next"), QString("ok"));
+        // Unsaved changes are not thrown away from a key binding: the preset
+        // stays, edits and all, and the command is told why.
+        const QString editing = backend.currentName();
+        backend.setParam("feedback.zoom", "1.05");
+        QVERIFY(backend.dirty());
+        for (const QString &change : QStringList{"Next", "Previous", "Random", "Select Whitecaps", "Mashup"})
+            QCOMPARE(ask(change), QString("unsaved"));
+        QCOMPARE(backend.currentName(), editing);
+        QVERIFY(backend.dirty());
+        QCOMPARE(ask("Current"), "ok " + editing);
+        backend.revert();
+        QCOMPARE(ask("Next"), QString("ok"));
         // An application goes by its name alone; anything else by its id.
         QCOMPARE(ask("Source Spotify"), QString("ok"));
         QCOMPARE(backend.source(), QString("app:Spotify"));

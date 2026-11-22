@@ -449,6 +449,8 @@ int steer(const QStringList &arguments) {
     QString reply;
     if (!remote::send(request, &reply))
         return fail("Trance isn't running.");
+    if (reply == "unsaved")
+        return fail("Trance has unsaved changes to the preset it shows; save or discard them in the window first.");
     const bool done = reply == "ok" || reply.startsWith("ok ");
     if (word == "preset" && !done)
         return fail("No preset called '" + command.argument(0) + "'.");

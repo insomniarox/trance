@@ -281,6 +281,9 @@ o.bind("SUPER + ALT + slash", "Trance: hold preset", hl.dsp.exec_cmd("trance loc
 o.bind("SUPER + ALT + M", "Trance: mash-up", hl.dsp.exec_cmd("trance mashup"))
 ```
 
+While the window has unsaved changes to a preset, the commands that change
+preset refuse, and say so, rather than throw the changes away.
+
 ## Presets
 
 [The manual](docs/manual.md) explains how to make one: how a frame is built,

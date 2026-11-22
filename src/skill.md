@@ -74,4 +74,5 @@ trance sources         # what there is to listen to
 trance source Spotify  # follow one application's sound only (or: system, microphone)
 ```
 
-These reach the open window.
+These reach the open window. While it has unsaved changes to the preset it shows,
+the ones that change preset refuse, and say so, rather than throw them away.

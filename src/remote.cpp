@@ -47,6 +47,12 @@ Server::Server(Backend *backend, const QString &name) : QObject(backend), m_back
 
 QString Server::answer(const QString &word, const QString &argument) {
     const auto yes = [](bool done) { return QString(done ? "ok" : "no"); };
+    // Changing preset from a key binding would throw away what is being
+    // edited without asking, as the window itself never does: refused, and
+    // said why, so the command can pass it on.
+    static const QStringList changes{"Next", "Previous", "Random", "Select", "Mashup"};
+    if (changes.contains(word) && m_backend->dirty())
+        return "unsaved";
     if (word == "Next")
         m_backend->next();
     else if (word == "Previous")

@@ -9,7 +9,8 @@ class Backend;
 // can steer it: over a local socket, which is a Unix socket on Linux and a
 // named pipe on Windows. One line goes each way. The command sends a word
 // and, where it takes one, a space and what it is about ("Select Neon
-// Tunnel"); the window answers "ok", "ok" and a value, or "no".
+// Tunnel"); the window answers "ok", "ok" and a value, or "no". A change of
+// preset while there are unsaved changes is answered "unsaved" and not made.
 namespace remote {
 
 // Where a window listens: one place for each user.
