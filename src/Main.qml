@@ -302,22 +302,32 @@ ApplicationWindow {
                 anchors.centerIn: parent
                 width: Math.min(parent.width * 0.5, 760)
                 height: width * 2 / 3 // the logo's 840 by 560
-                property bool shown: false
                 property bool waited: false
                 // Once it starts to go it goes, whatever the sound does next.
                 property bool leaving: false
                 readonly property bool controlsGone: !pointer.shown && !controls.hovered
                 readonly property bool due: waited && !backend.silent
+                readonly property int fadeOut: 3000
                 onControlsGoneChanged: if (controlsGone) waited = true
                 onDueChanged: if (due) leaving = true
-                Component.onCompleted: shown = true
                 sourceComponent: Logo {
+                    id: shownLogo
                     kick: backend.levels[3] || 0
                     bands: backend.bands
-                    opacity: startLogo.shown && !startLogo.leaving ? 0.8 : 0
-                    Behavior on opacity { NumberAnimation { duration: startLogo.leaving ? 1200 : 400 } }
+                    opacity: 0
+                    NumberAnimation on opacity { to: 0.8; duration: 400 }
+                    // Slowly, and easing out of sight rather than stopping
+                    // short, as the music takes the picture over.
+                    NumberAnimation {
+                        target: shownLogo
+                        property: "opacity"
+                        to: 0
+                        duration: startLogo.fadeOut
+                        easing.type: Easing.InOutSine
+                        running: startLogo.leaving
+                    }
                 }
-                Timer { running: startLogo.leaving; interval: 1300; onTriggered: startLogo.active = false }
+                Timer { running: startLogo.leaving; interval: startLogo.fadeOut + 100; onTriggered: startLogo.active = false }
             }
 
             DebugOverlay {
