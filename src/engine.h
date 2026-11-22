@@ -179,6 +179,9 @@ private:
     std::unique_ptr<Scene> makeScene(const CompiledPreset &preset, bool shaders, QString *error, GLuint warp = 0,
                                      GLuint composite = 0);
     void destroyScene(std::unique_ptr<Scene> &scene);
+    // Takes a scene off the picture and deletes it a few frames later, when
+    // the card is done with the frames that used it.
+    void retireScene(std::unique_ptr<Scene> &scene);
     void startPending();
     void collectBuilt();
     void adopt(std::unique_ptr<Scene> scene, double blendSeconds, const QString &error);
@@ -237,8 +240,10 @@ private:
     bool m_wide = false; // half-float buffers are available
 
     // The preset showing, the one it is taking over from (only during a
-    // change), and whichever of them, or a visitor, is being worked on.
-    std::unique_ptr<Scene> m_scene, m_old;
+    // change), the one a change left until the card is done with it, and
+    // whichever of them, or a visitor, is being worked on.
+    std::unique_ptr<Scene> m_scene, m_old, m_retired;
+    int m_retiredFrames = 0; // frames until m_retired is deleted
     Scene *m_c = nullptr;
     const Scene *m_colors = nullptr; // whose palette palette(...) reads
     CompiledPreset m_pending;

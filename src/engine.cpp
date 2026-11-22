@@ -124,6 +124,7 @@ Engine::~Engine() {
         return;
     destroyScene(m_scene);
     destroyScene(m_old);
+    destroyScene(m_retired);
     for (auto &visitor : m_visitors)
         destroyScene(visitor);
     for (GLuint program : {m_prim, m_bright})
@@ -413,6 +414,19 @@ void Engine::destroyScene(std::unique_ptr<Scene> &scene) {
     scene.reset();
 }
 
+void Engine::retireScene(std::unique_ptr<Scene> &scene) {
+    if (!scene)
+        return;
+    destroyScene(m_retired);
+    if (m_c == scene.get())
+        m_c = nullptr;
+    if (m_colors == scene.get())
+        m_colors = nullptr;
+    m_retired = std::move(scene);
+    // Drivers keep two or three frames in flight.
+    m_retiredFrames = 4;
+}
+
 // Takes up the preset given to setPreset(). Its shaders are built here and
 // now, or handed to the builder, in which case the preset comes on when
 // collectBuilt() finds them ready.
@@ -488,7 +502,7 @@ void Engine::adopt(std::unique_ptr<Scene> scene, double blendSeconds, const QStr
     if (m_scene && blendSeconds > 0) {
         // A change that is cut short loses its older half: the preset that
         // was arriving becomes the one that is leaving.
-        destroyScene(m_old);
+        retireScene(m_old);
         m_old = std::move(m_scene);
         m_blend = 0;
         m_blendRate = float(1.0 / blendSeconds);
@@ -801,6 +815,9 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
         return;
     }
 
+    if (m_retired && --m_retiredFrames <= 0)
+        destroyScene(m_retired);
+
     // How far a change of preset has come. It moves steadily at first and
     // glides into place at the end, which is G-Force's transition curve.
     float mix = 1;
@@ -808,7 +825,7 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
         m_blend += m_blendRate * float(dt);
         if (m_blend >= 1) {
             m_blend = 1;
-            destroyScene(m_old);
+            retireScene(m_old);
         } else {
             // It sets off gently, moves steadily through the middle and
             // glides into place, so neither end of a slow change is a jolt.
