@@ -63,14 +63,19 @@ void main() {
 const char *const BrightFragment = R"(
 uniform sampler2D u_tex;
 uniform vec2 u_texel;
+uniform int u_taps;
 uniform float u_threshold;
 uniform float u_gain;
 in vec2 v_uv;
 out vec4 o_color;
 void main() {
-  vec3 c = texture(u_tex, v_uv + u_texel * vec2(-1.0, -1.0)).rgb + texture(u_tex, v_uv + u_texel * vec2(1.0, -1.0)).rgb +
-           texture(u_tex, v_uv + u_texel * vec2(-1.0, 1.0)).rgb + texture(u_tex, v_uv + u_texel * vec2(1.0, 1.0)).rgb;
-  c *= 0.25;
+  // u_taps by u_taps taps, 2 u_texel apart, around the middle.
+  vec3 c = vec3(0.0);
+  float middle = float(u_taps - 1);
+  for (int j = 0; j < u_taps; ++j)
+    for (int i = 0; i < u_taps; ++i)
+      c += texture(u_tex, v_uv + u_texel * (2.0 * vec2(i, j) - middle)).rgb;
+  c /= float(u_taps * u_taps);
   // With no threshold this is just the average, which is how bloom goes
   // down and back up its levels.
   float level = max(c.r, max(c.g, c.b));
@@ -739,10 +744,11 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     // The picture is computed at the window's size, but never taller than
-    // 1440 lines: past that the cost climbs much faster than anything the
-    // eye can see in a feedback image. The quality setting scales what is
-    // left, so that it lightens the load on a large screen too.
-    const double scale = std::min(1.0, 1440.0 / height) * clampTo(m_quality, 0.25, 1.0);
+    // the line limit, 1440 unless a 4K screen asks for 2160: past 1440 the
+    // cost climbs much faster than anything the eye can see in a feedback
+    // image. The quality setting scales what is left, so that it lightens
+    // the load on a large screen too.
+    const double scale = std::min(1.0, double(m_maxLines) / height) * clampTo(m_quality, 0.25, 1.0);
     const int innerWidth = std::max(16, int(std::lround(width * scale)));
     const int innerHeight = std::max(16, int(std::lround(height * scale)));
     const bool resized = innerWidth != m_width || innerHeight != m_height;
@@ -880,18 +886,26 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     glActiveTexture(GL_TEXTURE0);
     glUniform1i(glGetUniformLocation(m_bright, "u_tex"), 0);
     const GLint texel = glGetUniformLocation(m_bright, "u_texel"), cut = glGetUniformLocation(m_bright, "u_threshold");
-    const GLint gain = glGetUniformLocation(m_bright, "u_gain");
-    // Four taps a quarter of a pixel of the finest level out from its
-    // middle: at half the picture's size they are the four pixels under it,
-    // and at less they still take in most of them.
+    const GLint gain = glGetUniformLocation(m_bright, "u_gain"), taps = glGetUniformLocation(m_bright, "u_taps");
+    // A grid of taps at the middles of equal parts of a pixel of the finest
+    // level, each blending the 2 by 2 pixels of the picture under it: two
+    // by two as long as that level is at least a quarter of the picture's
+    // size, which takes in every pixel at a quarter, as at 1440 lines. A
+    // larger picture needs three by three, or a small spark would only glow
+    // where it fell on a tap. The slack keeps a level a rounded pixel short
+    // of a quarter at two by two.
     const Target &top = m_bloom[m_bloomTop];
+    const int grid = std::max(2, int(std::ceil(std::max(double(current.width) / top.width,
+                                                        double(current.height) / top.height) / 2 - 0.05)));
     glViewport(0, 0, top.width, top.height);
     glBindFramebuffer(GL_FRAMEBUFFER, top.fbo);
     glBindTexture(GL_TEXTURE_2D, current.texture);
-    glUniform2f(texel, 0.25f / top.width, 0.25f / top.height);
+    glUniform2f(texel, 0.5f / grid / top.width, 0.5f / grid / top.height);
+    glUniform1i(taps, grid);
     glUniform1f(cut, threshold);
     glUniform1f(gain, BloomGlow);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+    glUniform1i(taps, 2);
     glUniform1f(cut, 0.f);
     glUniform1f(gain, 1.f);
     // Going down, taps a whole texel out blend four each, sixteen in all.

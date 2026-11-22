@@ -48,6 +48,7 @@ Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
     if (!presets::paletteNames().contains(m_paletteOverride))
         m_paletteOverride.clear();
     m_quality = qBound(0.25, m_settings->value("quality", 1.0).toDouble(), 1.0);
+    m_maxLines = m_settings->value("maxLines", 1440).toInt() >= 2160 ? 2160 : 1440;
     m_glass = m_settings->value("glass", false).toBool();
     m_glassOpacity = qBound(0.0, m_settings->value("glassOpacity", 0.0).toDouble(), 1.0);
     // Older settings only said whether titles were shown at all.
@@ -1066,6 +1067,15 @@ void Backend::setQuality(double quality) {
         return;
     m_quality = quality;
     store("quality", quality);
+    emit settingsChanged();
+}
+
+void Backend::setMaxLines(int lines) {
+    lines = lines >= 2160 ? 2160 : 1440;
+    if (lines == m_maxLines)
+        return;
+    m_maxLines = lines;
+    store("maxLines", lines);
     emit settingsChanged();
 }
 

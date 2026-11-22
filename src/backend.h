@@ -41,6 +41,7 @@ class Backend : public QObject {
     Q_PROPERTY(bool locked READ locked WRITE setLocked NOTIFY settingsChanged)
     Q_PROPERTY(QString paletteOverride READ paletteOverride WRITE setPaletteOverride NOTIFY settingsChanged)
     Q_PROPERTY(double quality READ quality WRITE setQuality NOTIFY settingsChanged)
+    Q_PROPERTY(int maxLines READ maxLines WRITE setMaxLines NOTIFY settingsChanged)
     Q_PROPERTY(bool glass READ glass WRITE setGlass NOTIFY settingsChanged)
     Q_PROPERTY(double glassOpacity READ glassOpacity WRITE setGlassOpacity NOTIFY settingsChanged)
     Q_PROPERTY(QString titleStyle READ titleStyle WRITE setTitleStyle NOTIFY settingsChanged)
@@ -120,6 +121,8 @@ public:
     bool locked() const { return m_locked; }
     QString paletteOverride() const { return m_paletteOverride; }
     double quality() const { return m_quality; }
+    // The tallest picture worked out: 1440 lines, or 2160 for a 4K screen.
+    int maxLines() const { return m_maxLines; }
     bool glass() const { return m_glass; }
     // How dark the glass is: 0 is clear wherever the picture is black, 1 is
     // solid, which looks the same as no glass at all.
@@ -150,6 +153,7 @@ public:
     void setLocked(bool locked);
     void setPaletteOverride(const QString &name);
     void setQuality(double quality);
+    void setMaxLines(int lines);
     void setGlass(bool glass);
     void setGlassOpacity(double opacity);
     void setTitleStyle(const QString &style);
@@ -314,6 +318,7 @@ private:
     bool m_locked = false;
     QString m_paletteOverride;
     double m_quality = 1.0;
+    int m_maxLines = 1440;
     bool m_glass = false;
     double m_glassOpacity = 0;
     QString m_titleStyle = "corner";

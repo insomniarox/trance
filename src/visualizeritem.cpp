@@ -56,6 +56,7 @@ public:
         m_engine.setGlass(backend->glass());
         m_engine.setGlassOpacity(backend->glassOpacity());
         m_engine.setQuality(backend->quality());
+        m_engine.setMaxLines(backend->maxLines());
         m_engine.setProgress(backend->progress());
         // A shader the driver rejects is reported like any other problem.
         // This runs on the render thread, so both are handed over rather

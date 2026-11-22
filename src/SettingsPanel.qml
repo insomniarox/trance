@@ -256,6 +256,16 @@ SidePanel {
                         onActivated: backend.quality = steps[currentIndex]
                     }
                 }
+                Setting {
+                    label: qsTr("Picture size")
+                    note: qsTr("4K is sharper on a 4K screen but two and a half times the work; built-in graphics may stutter as presets blend.")
+                    Picker {
+                        readonly property var steps: [1440, 2160]
+                        model: [qsTr("Up to 1440p"), qsTr("Up to 4K")]
+                        currentIndex: backend.maxLines >= 2160 ? 1 : 0
+                        onActivated: backend.maxLines = steps[currentIndex]
+                    }
+                }
             }
 
             Group {

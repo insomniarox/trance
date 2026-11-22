@@ -204,8 +204,8 @@ There are two panels, and they don't overlap:
 
 - **Settings** (`S`) belong to the app and hold whatever preset is showing:
   what to listen to and how sensitively, how often presets change and how
-  they blend, one palette for everything, glass, detail, and what is shown
-  over the picture.
+  they blend, one palette for everything, glass, detail, picture size (up to
+  1440p, or up to 4K for a 4K screen), and what is shown over the picture.
 - **The preset editor** (`E`) changes the one preset on screen, and what it
   changes is saved with that preset: its motion, its layers, its look, or
   the whole thing as JSON. `Ctrl+Tab` moves between those.

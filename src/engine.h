@@ -77,6 +77,9 @@ public:
     // through wherever the picture is black, 1 lets none of it through.
     void setGlassOpacity(double opacity) { m_glassOpacity = opacity; }
     void setQuality(double quality) { m_quality = quality; }
+    // The tallest picture worked out, in lines: 1440, or up to 2160 for a
+    // 4K screen. A smaller window is worked out at its own size either way.
+    void setMaxLines(int lines) { m_maxLines = std::clamp(lines, 1440, 2160); }
     void setProgress(double progress) { m_progress = progress; }
 
     void render(const AudioFrame &audio, double dt, unsigned targetFbo, int width, int height);
@@ -97,7 +100,7 @@ public:
     int vertexCount() const { return m_lastVertices; }
     bool building() const { return m_awaitedId != 0; }
     // The size the picture is worked out at, which the quality setting and
-    // the 1440-line limit make smaller than the window.
+    // the line limit make smaller than the window.
     int pictureWidth() const { return m_width; }
     int pictureHeight() const { return m_height; }
 
@@ -308,5 +311,6 @@ private:
     bool m_glass = false;
     double m_glassOpacity = 0;
     double m_quality = 1;
+    int m_maxLines = 1440;
     uint32_t m_random = 0x2545F491u;
 };

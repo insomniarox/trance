@@ -1098,6 +1098,7 @@ private slots:
         auto rim = [&](int size, int rate) {
             QOpenGLFramebufferObject target(size, size);
             Engine engine;
+            engine.setMaxLines(2160);
             engine.setPreset(disc, 0);
             for (int frame = 0; frame < 3 * rate; ++frame)
                 engine.render(AudioFrame(), 1.0 / rate, target.handle(), size, size);
@@ -1132,6 +1133,8 @@ private slots:
         QVERIFY2(std::abs(fast / base - 1) < 0.1,
                  qPrintable(QString::number(fast / base) + " times as wide at 144 frames a second"));
         QVERIFY2(std::abs(halved / base - 1) < 0.1, qPrintable(QString::number(halved / base) + " times as wide at 270 lines"));
+        const double large = rim(2160, 60);
+        QVERIFY2(std::abs(large / base - 1) < 0.1, qPrintable(QString::number(large / base) + " times as wide at 2160 lines"));
     }
 
     // A picture left to fade loses as much in three seconds at 144 or 240
@@ -1206,6 +1209,7 @@ private slots:
         auto reach = [&](int size, double level) {
             QOpenGLFramebufferObject target(size, size);
             Engine engine;
+            engine.setMaxLines(2160);
             engine.setPreset(disc, 0);
             for (int frame = 0; frame < 3; ++frame)
                 engine.render(AudioFrame(), 1.0 / 60, target.handle(), size, size);
@@ -1233,11 +1237,113 @@ private slots:
         const double base = spread(540);
         QVERIFY2(reach(540, 2.5 / 255) > 0.2 + 0.2,
                  qPrintable("the glow is gone " + QString::number(reach(540, 2.5 / 255) - 0.2) + " past the edge"));
-        for (const int size : {270, 1080}) {
+        for (const int size : {270, 1080, 2160}) {
             const double other = spread(size);
             QVERIFY2(std::abs(other / base - 1) < 0.1,
                      qPrintable(QString::number(other / base) + " times as far at " + QString::number(size) + " lines"));
         }
+    }
+
+    // At 2160 lines the finest bloom level is a sixth of the picture's
+    // size, and a spark two pixels wide glows as much wherever it falls
+    // among the pixels under one of that level's. With the two by two taps
+    // that do for 1440 lines, the glow below went from 42 to 83 of 255 as
+    // the sparks moved.
+    void bloomTakesInEverySparkOfALargePicture()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        const int size = 2160;
+        QOpenGLFramebufferObject target(size, size);
+        QString problem;
+        // One spark's glow is too faint to read, so 484 of them, each lighting
+        // 2 by 2 pixels, one pixel of that level apart, light the middle of
+        // the screen together; they move along by whole pixels. The glow is
+        // read halfway between them, where they hardly reach.
+        auto glow = [&](int shift) {
+            const CompiledPreset sparks = presets::compile(fixture(
+                QString("{ 'name': 'Sparks', 'feedback': { 'decay': 0 }, 'layers': [ { 'type': 'shape', 'sides': 4, "
+                        "'instances': 484, 'radius': 0.003, 'x': '%1 + (mod(n, 22) - 11) * %2', "
+                        "'y': '(floor(n / 22) - 11) * %2', 'color': '#ffffff', 'color2': '#ffffff', 'alpha': 1, "
+                        "'alpha2': 1 } ], 'post': { 'bloom': 1, 'bloomThreshold': 0, 'vignette': 0 } }")
+                    .arg(2.0 * shift / size)
+                    .arg(12.0 / size)
+                    .toUtf8()
+                    .constData()));
+            Engine engine;
+            engine.setMaxLines(size);
+            engine.setPreset(sparks, 0);
+            for (int frame = 0; frame < 3; ++frame)
+                engine.render(AudioFrame(), 1.0 / 60, target.handle(), size, size);
+            problem += engine.error();
+            const QImage image = target.toImage();
+            double sum = 0;
+            int count = 0;
+            for (int row = -5; row < 5; ++row) {
+                for (int col = -5; col < 5; ++col) {
+                    sum += image.pixelColor(size / 2 + shift + col * 6 + 3, size / 2 + row * 6 + 3).redF();
+                    ++count;
+                }
+            }
+            return sum / count;
+        };
+        double low = 1e9, high = 0;
+        for (int shift = 0; shift < 6; ++shift) {
+            const double g = glow(shift);
+            low = std::min(low, g);
+            high = std::max(high, g);
+        }
+        QVERIFY2(problem.isEmpty(), qPrintable(problem));
+        QVERIFY2(high > 0, "the sparks don't glow");
+        QVERIFY2(low / high > 0.8, qPrintable("the glow goes from " + QString::number(low) + " to " +
+                                              QString::number(high) + " as the sparks move"));
+    }
+
+    // A picture is worked out at the window's size up to the line limit:
+    // 1440 lines unless 2160 is asked for, and a smaller window at its own
+    // size either way.
+    void pictureKeepsToTheLineLimit()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        const CompiledPreset plain = presets::compile(fixture("{ 'name': 'Plain' }"));
+        auto picture = [&](int width, int height, int lines) {
+            QOpenGLFramebufferObject target(width, height);
+            Engine engine;
+            if (lines)
+                engine.setMaxLines(lines);
+            engine.setPreset(plain, 0);
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), width, height);
+            return QSize(engine.pictureWidth(), engine.pictureHeight());
+        };
+        QCOMPARE(picture(3840, 2160, 0), QSize(2560, 1440));
+        QCOMPARE(picture(3840, 2160, 2160), QSize(3840, 2160));
+        QCOMPARE(picture(1280, 720, 2160), QSize(1280, 720));
+        QCOMPARE(picture(1280, 720, 0), QSize(1280, 720));
+        // Anything else asked for is held to 1440 to 2160.
+        QCOMPARE(picture(3840, 2160, 4320), QSize(3840, 2160));
     }
 
     // --------------------------------------------------------------- theme
