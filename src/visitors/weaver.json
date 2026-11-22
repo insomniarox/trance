@@ -1,0 +1,28 @@
+{
+  "name": "Weaver",
+  "init": "t0 = time\nrow = (rand(2) - 1)*0.6\nway = if(above(rand(1), 0.5), 1, -1)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 160,
+      "thickness": "3 + 2*beat",
+      "color": "palette(0.6 + 0.3*t)",
+      "blend": "max",
+      "point": "x = way*(0.13*(time - t0) - 1.3 + 0.8*t)*aspect\ny = row + 0.12*sin(t*11 + time*3) + 0.04*v\na = a*sin(t*pi)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 400,
+      "rate": "50 + 250*beat",
+      "speed": 0.04,
+      "drag": 1,
+      "life": 1.4,
+      "size": 2,
+      "color": "palette(0.8 + 0.2*i)",
+      "alpha": 0.8,
+      "blend": "max"
+    }
+  ]
+}

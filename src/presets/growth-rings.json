@@ -1,0 +1,29 @@
+{
+  "name": "Growth Rings",
+  "author": "Trance",
+  "description": "Twelve rings, one inside the other, each a stretch of the spectrum from the rumble in the middle to the cymbals at the rim. They swell outward and leave their past selves behind, and because each keeps the brighter of itself and what is under it, a long fade builds up as color, never as white.",
+  "palette": "solstice",
+  "feedback": {
+    "decay": 0.982,
+    "zoom": "1.004 + 0.004*bass_att",
+    "rot": 0.001,
+    "blur": 0.05,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "source": "spectrum",
+      "samples": 512,
+      "thickness": "2 + 1.5*beat",
+      "color": "palette(t + time*0.03)",
+      "blend": "max",
+      "point": "ln = floor(t*12*0.9999)\nu = t*12 - ln\nr = (0.07 + ln*0.075)*(1 + 0.25*v)\nw = u*tau + ln*0.7 + time*0.1*(1 - 2*mod(ln, 2))\nx = r*cos(w)\ny = r*sin(w)\na = a*smoothstep(0, 0.03, u)*(1 - smoothstep(0.97, 1, u))"
+    }
+  ],
+  "post": {
+    "bloom": 0.6,
+    "vignette": 0.35
+  }
+}

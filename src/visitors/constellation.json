@@ -1,0 +1,26 @@
+{
+  "name": "Constellation",
+  "init": "s = rand(50)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "thickness": 1.5,
+      "color": "palette(0.9)",
+      "alpha": 0.5,
+      "blend": "max",
+      "point": "x = (noise(i*2.3 + s, time*0.04)*2 - 1)*aspect*0.85\ny = (noise(i*4.1 + s, time*0.04 + 7)*2 - 1)*0.8"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 8,
+      "dots": true,
+      "thickness": "9 + 6*beat",
+      "color": "palette(0.95)",
+      "blend": "max",
+      "point": "x = (noise(i*2.3 + s, time*0.04)*2 - 1)*aspect*0.85\ny = (noise(i*4.1 + s, time*0.04 + 7)*2 - 1)*0.8"
+    }
+  ]
+}

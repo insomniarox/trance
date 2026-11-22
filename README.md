@@ -18,7 +18,7 @@ Every preset can be changed while it runs. See them move on
 
 ![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
 
-- **99 presets** built in, changing on the beat. A change is not a cut: for
+- **103 presets** built in, changing on the beat. A change is not a cut: for
   a few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next. Search them, filter them by
   color or by what they are made of, and keep the changes to what matches.
@@ -39,7 +39,7 @@ Every preset can be changed while it runs. See them move on
   slider and an explanation, and any number can instead be a formula of the
   music, such as `1.02 + 0.05*bass_att`. Nothing is written until you save.
 - **Your colors.** `T` recolors every preset with your desktop theme's
-  colors on [Omarchy](https://omarchy.org), or with one of 53 palettes.
+  colors on [Omarchy](https://omarchy.org), or with one of 57 palettes.
 - **Glass.** `G` makes black see-through, so your desktop shows behind the
   picture.
 - **Mash-ups and visitors.** `X` builds a new preset from parts of others,
@@ -161,7 +161,7 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
   Media Player report there. Players that don't, such as VLC, show no
   title.
 - **Colors.** There is no desktop theme to follow, so "theme" is the
-  built-in set; the 53 palettes are the same everywhere.
+  built-in set; the 57 palettes are the same everywhere.
 - **Key bindings.** `trance.exe next` and the others work from any tool
   that runs a command on a key, such as PowerToys' Keyboard Manager or
   AutoHotkey.

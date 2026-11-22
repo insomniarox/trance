@@ -1,0 +1,52 @@
+{
+  "name": "Pollen Drift",
+  "author": "Trance",
+  "description": "Thousands of motes on warm currents. Each keeps the brighter of itself and what it passes over, so their trails thicken into clouds of color without burning out. The bass stirs the currents, beats release new clouds from the waveform.",
+  "palette": "lichen",
+  "feedback": {
+    "decay": 0.985,
+    "zoom": 1.002,
+    "warp": "0.6 + 0.6*bass_att",
+    "warpScale": 1.5,
+    "warpSpeed": 0.4,
+    "blur": 0.08
+  },
+  "background": {
+    "style": "nebula",
+    "intensity": 0.15,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "scale": "0.2 + 0.2*mid_att",
+      "smooth": 0.6,
+      "thickness": 2,
+      "color": "palette(0.85)",
+      "alpha": 0.5,
+      "blend": "max"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 3000,
+      "rate": "120 + 1200*beat",
+      "speed": 0.08,
+      "drag": 0.6,
+      "field": 1.2,
+      "fieldScale": 2,
+      "fieldSpeed": 0.3,
+      "flow": 1,
+      "life": 6,
+      "size": 4,
+      "color": "palette(0.45 + 0.55*i)",
+      "alpha": 0.9,
+      "blend": "max"
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "vignette": 0.35
+  }
+}

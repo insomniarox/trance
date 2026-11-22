@@ -247,6 +247,20 @@ const QHash<QString, QStringList> &palettes() {
         // brighter toward the middle.
         {"turbo", {"#30123b", "#4145ab", "#4675ed", "#39a2fc", "#1bcfd4", "#24eca6", "#61fc6c", "#a4fc3b",
                    "#d1e834", "#f3c63a", "#fe9b2d", "#f36315", "#d93806", "#b11901", "#7a0402"}},
+        // Two banded ones, dark and light in turn and bright at the end,
+        // for colorize: a fading trail passes through every band, so the
+        // whole screen is drawn in contours, as G-Force's ColorMaps do. A
+        // contour map's night blues to gold and cream; ink and paper with
+        // teal between.
+        {"contour", {"#03040b", "#16306b", "#8fc9ff", "#0a1633", "#2f7fd0", "#f4fbff", "#1a2a55", "#ffd27a",
+                     "#fffaf0"}},
+        {"inkwell", {"#010205", "#0b2238", "#5fb3b3", "#071521", "#d9efe8", "#0e2a2f", "#f7f1df"}},
+        // Midsummer light all the way round: coral, marigold, leaf, sky,
+        // violet and rose, each about as bright as the next.
+        {"solstice", {"#ff7a45", "#ffd166", "#7bd389", "#3aa7d8", "#7b5cd6", "#e0559a"}},
+        // Lichen on stone, from the dark of the rock through moss to the
+        // pale green of new growth.
+        {"lichen", {"#050805", "#122515", "#25502a", "#4f8a3c", "#94c265", "#d7ecb0", "#fbfde9"}},
         {"mono", {"#000000", "#ffffff"}},
     };
     return all;
@@ -823,7 +837,7 @@ QStringList paletteNames() {
             "abyss",   "tropic", "twilight", "thermal", "nova", "jade",    "retro",  "carnival", "phase",
             "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "cividis", "noir", "storm",
             "spectral", "reef", "hologram", "blacklight", "cyanotype", "sakura", "autumn", "riso", "turbo",
-            "mono"};
+            "contour", "inkwell", "solstice", "lichen", "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }

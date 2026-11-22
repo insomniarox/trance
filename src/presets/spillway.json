@@ -1,0 +1,46 @@
+{
+  "name": "Spillway",
+  "author": "Trance",
+  "description": "Light pours out of the middle and over every edge. White lines that keep the brighter of themselves and what is under them ride a strong outward current, and their brightness is colored in bands, so the whole screen runs in contours. The bass pushes the flood, the leads twist it.",
+  "palette": "contour",
+  "frame": "tw = tw + dt*(0.2 + 0.8*highmid_att)",
+  "feedback": {
+    "decay": 0.975,
+    "zoom": "1.03 + 0.03*bass_att",
+    "rot": "0.006*sin(tw)",
+    "blur": 0.15,
+    "edge": "black"
+  },
+  "pixel": "rot = rot + 0.012*sin(rad*5 - time*0.7)\nzoom = zoom + 0.01*cos(ang*3 + tw)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "samples": 384,
+      "scale": "0.25 + 0.25*bass_att",
+      "smooth": 0.4,
+      "angle": "time*0.05",
+      "thickness": 3,
+      "mirror": "quad",
+      "color": "white",
+      "blend": "max"
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.12 + 0.05*low_att",
+      "scale": 0.15,
+      "thickness": 2.5,
+      "color": "white",
+      "alpha": "clamp(0.4 + 0.6*beat, 0, 1)",
+      "blend": "max"
+    }
+  ],
+  "post": {
+    "colorize": 1,
+    "colorCurve": 0.6,
+    "colorShift": "0.05*sin(time*0.07)",
+    "bloom": 0.4,
+    "vignette": 0.25
+  }
+}

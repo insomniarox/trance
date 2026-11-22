@@ -55,6 +55,7 @@
         <file alias="presets/fumarole.json">presets/fumarole.json</file>
         <file alias="presets/galaxy.json">presets/galaxy.json</file>
         <file alias="presets/glowstring.json">presets/glowstring.json</file>
+        <file alias="presets/growth-rings.json">presets/growth-rings.json</file>
         <file alias="presets/gyroscope.json">presets/gyroscope.json</file>
         <file alias="presets/hall-of-mirrors.json">presets/hall-of-mirrors.json</file>
         <file alias="presets/halo.json">presets/halo.json</file>
@@ -62,6 +63,7 @@
         <file alias="presets/heartbeat.json">presets/heartbeat.json</file>
         <file alias="presets/horizon.json">presets/horizon.json</file>
         <file alias="presets/hyperdrive.json">presets/hyperdrive.json</file>
+        <file alias="presets/ink-well.json">presets/ink-well.json</file>
         <file alias="presets/jellyfish.json">presets/jellyfish.json</file>
         <file alias="presets/kaleidoscope.json">presets/kaleidoscope.json</file>
         <file alias="presets/kelp.json">presets/kelp.json</file>
@@ -85,6 +87,7 @@
         <file alias="presets/oscilloscope.json">presets/oscilloscope.json</file>
         <file alias="presets/pendulum.json">presets/pendulum.json</file>
         <file alias="presets/plasma-globe.json">presets/plasma-globe.json</file>
+        <file alias="presets/pollen-drift.json">presets/pollen-drift.json</file>
         <file alias="presets/prism.json">presets/prism.json</file>
         <file alias="presets/projection.json">presets/projection.json</file>
         <file alias="presets/pulse-grid.json">presets/pulse-grid.json</file>
@@ -104,6 +107,7 @@
         <file alias="presets/skyline.json">presets/skyline.json</file>
         <file alias="presets/sonar.json">presets/sonar.json</file>
         <file alias="presets/spectrogram.json">presets/spectrogram.json</file>
+        <file alias="presets/spillway.json">presets/spillway.json</file>
         <file alias="presets/spirograph.json">presets/spirograph.json</file>
         <file alias="presets/starwake.json">presets/starwake.json</file>
         <file alias="presets/strata.json">presets/strata.json</file>
@@ -125,6 +129,7 @@
         <file alias="presets/windmap.json">presets/windmap.json</file>
         <file alias="visitors/bubbles.json">visitors/bubbles.json</file>
         <file alias="visitors/comet.json">visitors/comet.json</file>
+        <file alias="visitors/constellation.json">visitors/constellation.json</file>
         <file alias="visitors/drop.json">visitors/drop.json</file>
         <file alias="visitors/fireflies.json">visitors/fireflies.json</file>
         <file alias="visitors/flurry.json">visitors/flurry.json</file>
@@ -132,6 +137,7 @@
         <file alias="visitors/lighthouse.json">visitors/lighthouse.json</file>
         <file alias="visitors/meteors.json">visitors/meteors.json</file>
         <file alias="visitors/orbiters.json">visitors/orbiters.json</file>
+        <file alias="visitors/petals.json">visitors/petals.json</file>
         <file alias="visitors/rosette.json">visitors/rosette.json</file>
         <file alias="visitors/satellite.json">visitors/satellite.json</file>
         <file alias="visitors/scope.json">visitors/scope.json</file>
@@ -141,6 +147,7 @@
         <file alias="visitors/spinner.json">visitors/spinner.json</file>
         <file alias="visitors/swarm.json">visitors/swarm.json</file>
         <file alias="visitors/sweep.json">visitors/sweep.json</file>
+        <file alias="visitors/weaver.json">visitors/weaver.json</file>
         <file alias="format.md">format.md</file>
         <file alias="manual.md">../docs/manual.md</file>
         <file alias="skill.md">skill.md</file>
