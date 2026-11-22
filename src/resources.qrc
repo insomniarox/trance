@@ -22,6 +22,7 @@
         <file alias="SettingsPanel.qml">SettingsPanel.qml</file>
         <file alias="DebugOverlay.qml">DebugOverlay.qml</file>
         <file alias="ControlBar.qml">ControlBar.qml</file>
+        <file alias="Logo.qml">Logo.qml</file>
         <file alias="HelpTip.qml">HelpTip.qml</file>
         <file alias="presets/aurora.json">presets/aurora.json</file>
         <file alias="presets/blueprint.json">presets/blueprint.json</file>

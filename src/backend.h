@@ -61,6 +61,7 @@ class Backend : public QObject {
     Q_PROPERTY(QString audioError READ audioError NOTIFY audioChanged)
     Q_PROPERTY(bool silent READ silent NOTIFY audioChanged)
     Q_PROPERTY(QVariantList levels READ levels NOTIFY levelsChanged)
+    Q_PROPERTY(QVariantList bands READ bands NOTIFY levelsChanged)
     // The browser's filters: a family of colors (empty for any) and features
     // a preset must all have. Kept to, the changes move among those that
     // match, so the filters can set a mood for a while.
@@ -168,6 +169,9 @@ public:
     QString audioError() const { return m_capture ? m_capture->error() : QString(); }
     bool silent() const { return m_silent; }
     QVariantList levels() const;
+    // The six narrow ranges' _att, lowest first, as formulas have them: 1 is
+    // as loud as usual for the track.
+    QVariantList bands() const;
 
     // Changing preset.
     Q_INVOKABLE void next();

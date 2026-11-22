@@ -158,6 +158,14 @@ QVariantList Backend::levels() const {
             qBound(0.0, frame.trebAtt / 2.0, 1.0), double(frame.beat)};
 }
 
+QVariantList Backend::bands() const {
+    const AudioFrame &frame = m_analyzer.frame();
+    QVariantList bands;
+    for (const float value : frame.bandAtt)
+        bands << double(value);
+    return bands;
+}
+
 double Backend::progress() const {
     return m_cycleSeconds > 0 ? qBound(0.0, m_sinceChange.elapsed() / 1000.0 / m_cycleSeconds, 1.0) : 0.0;
 }

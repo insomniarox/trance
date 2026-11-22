@@ -40,7 +40,7 @@ ApplicationWindow {
 
     onEditorVisibleChanged: backend.editing = editorVisible
     // The levels are only worth announcing while something shows them.
-    Binding { target: backend; property: "metering"; value: win.sidePanel.length > 0 || backend.debug }
+    Binding { target: backend; property: "metering"; value: win.sidePanel.length > 0 || backend.debug || startLogo.active }
 
     function toggleSide(name) { sidePanel = sidePanel === name ? "" : name }
     // The list opens and closes without taking the keyboard, so the
@@ -293,6 +293,31 @@ ApplicationWindow {
                 onDoubleClicked: win.toggleFullScreen()
                 onClicked: content.forceActiveFocus()
                 Timer { id: hideTimer; interval: 2500; running: true; onTriggered: pointer.shown = false }
+            }
+
+            // The wordmark, faintly, at the start. It goes when the controls
+            // first do, or, if nothing is playing by then, once something is.
+            Loader {
+                id: startLogo
+                anchors.centerIn: parent
+                width: Math.min(parent.width * 0.5, 760)
+                height: width * 2 / 3 // the logo's 840 by 560
+                property bool shown: false
+                property bool waited: false
+                // Once it starts to go it goes, whatever the sound does next.
+                property bool leaving: false
+                readonly property bool controlsGone: !pointer.shown && !controls.hovered
+                readonly property bool due: waited && !backend.silent
+                onControlsGoneChanged: if (controlsGone) waited = true
+                onDueChanged: if (due) leaving = true
+                Component.onCompleted: shown = true
+                sourceComponent: Logo {
+                    kick: backend.levels[3] || 0
+                    bands: backend.bands
+                    opacity: startLogo.shown && !startLogo.leaving ? 0.5 : 0
+                    Behavior on opacity { NumberAnimation { duration: startLogo.leaving ? 1200 : 400 } }
+                }
+                Timer { running: startLogo.leaving; interval: 1300; onTriggered: startLogo.active = false }
             }
 
             DebugOverlay {
