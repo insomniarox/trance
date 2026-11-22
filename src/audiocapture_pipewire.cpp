@@ -99,9 +99,11 @@ void AudioCapture::setUp() {
             return;
         const QString said = QString::fromUtf8(p->process.readAllStandardError()).trimmed();
         // A target that isn't there is said in the line before the last,
-        // which is "stream node 4294967295 unconnected".
+        // which is "stream node 4294967295 unconnected". For the demo track
+        // that is its player's stream, not a device.
         if (said.contains("target not found"))
-            lost(tr("the device is not connected."));
+            lost(m_source == "demo" ? tr("the demo track did not start playing.")
+                                    : tr("the device is not connected."));
         else
             lost(said.section('\n', -1));
     });
