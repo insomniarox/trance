@@ -470,6 +470,9 @@ struct AudioCapture::Platform {
     // Joins the stopped listenings that have finished, or with all, every
     // one, waiting for those that haven't.
     void reap(bool all);
+    // Tells a listening or the player to stop, and leaves it to finish on
+    // its own thread.
+    void retire(std::unique_ptr<Listening> &thread);
     // Whether a listening that ended with Again is started again at once:
     // only a few times in a row. A device that keeps dropping its sound is
     // then said to have stopped, and tried again in a while, as one gone.
@@ -479,7 +482,9 @@ struct AudioCapture::Platform {
     AudioCapture *q;
     std::unique_ptr<Listening> listening;
     // The demo track's player, while it is what is listened to. Its thread
-    // is the same kind as a listening's, and is stopped the same way.
+    // is the same kind as a listening's, and is stopped the same way, but
+    // only when the listening is stopped from outside: through a listening
+    // started again, it plays on.
     std::unique_ptr<Listening> playing;
     // Listenings told to stop, left to finish on their own threads. Windows
     // can take seconds to start a device, as a Bluetooth headset changing to
@@ -498,6 +503,13 @@ bool AudioCapture::Platform::again() {
     againInARow = sinceAgain.isValid() && sinceAgain.elapsed() < 10000 ? againInARow + 1 : 1;
     sinceAgain.start();
     return againInARow <= 3;
+}
+
+void AudioCapture::Platform::retire(std::unique_ptr<Listening> &thread) {
+    if (!thread)
+        return;
+    SetEvent(thread->stop.handle);
+    stopping.push_back(std::move(thread));
 }
 
 void AudioCapture::Platform::reap(bool all) {
@@ -527,7 +539,8 @@ void AudioCapture::open() {
     p->reap(false);
     if (p->listening)
         return;
-    if (m_source == "demo") {
+    // The player goes on through a listening that is started again.
+    if (m_source == "demo" && !p->playing) {
         p->playing = std::make_unique<Platform::Listening>();
         Platform::Listening *player = p->playing.get();
         player->thread = std::thread([player, track = demoTrack()] {
@@ -544,7 +557,10 @@ void AudioCapture::open() {
             QMetaObject::invokeMethod(this, [this, p, mine, ended, why] {
                 if (mine != p->current)
                     return;
-                close();
+                // Only the listening: the demo track plays on meanwhile, as
+                // it does on Linux, rather than start over each time.
+                ++p->current;
+                p->retire(p->listening);
                 if (ended == Platform::Again && p->again())
                     launch();
                 else
@@ -557,11 +573,8 @@ void AudioCapture::open() {
 void AudioCapture::close() {
     Platform *p = m_platform;
     ++p->current;
-    for (std::unique_ptr<Platform::Listening> *thread : {&p->listening, &p->playing})
-        if (*thread) {
-            SetEvent((*thread)->stop.handle);
-            p->stopping.push_back(std::move(*thread));
-        }
+    p->retire(p->listening);
+    p->retire(p->playing);
 }
 
 // One listening from start to end, on its own thread.
