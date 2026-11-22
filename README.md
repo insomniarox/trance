@@ -32,6 +32,12 @@ Every preset can be changed while it runs. See them move on
 - **Everything works on everything else.** Flow fields bend the picture,
   waves and bars throw particles, the particles ride the flow, and one
   palette colors all of it.
+- **Light that doesn't burn out.** A layer's light covers what is under it,
+  adds to it, or keeps the brighter of the two, which glows however long
+  the picture takes to fade but never grows past the layer's own color.
+  With it, presets such as Spillway and Ink Well fill the whole screen with
+  color the way G-Force does. The picture is as bright at 120 or 144 Hz as
+  at 60.
 - **Listen to one app.** Everything that's playing, or only Spotify, or only
   your browser. It goes on playing through your speakers, with no virtual
   cables or rerouting.
@@ -43,8 +49,10 @@ Every preset can be changed while it runs. See them move on
 - **Glass.** `G` makes black see-through, so your desktop shows behind the
   picture.
 - **Mash-ups and visitors.** `X` builds a new preset from parts of others,
-  and small extras drop in over any preset for a while: a comet, fireflies,
-  a ripple on every kick.
+  the motion from one, the layers from another, the look and the
+  background from two more; how bright it gets goes with the layers, so a
+  mash-up is as balanced as the presets it came from. Small extras drop in
+  over any preset for a while: a comet, fireflies, a ripple on every kick.
 - **Track titles** from whatever player is running, in the corner or written
   into the picture for the flow to carry off.
 - **Light on the processor.** The picture is drawn on the graphics card, and
@@ -229,13 +237,19 @@ filters are remembered between runs; **Clear** lets everything back in.
 
 Nothing is written over the picture unless you ask for it. Preset names on
 a change are off by default (Settings > On screen), and `D` brings up a
-debug overlay, small and see-through over the picture: the preset, its
-layers, the file it came from and any problems in it; frame rate and frame
-time, how long the engine takes, how many vertices and particles it draws,
-the picture's size and the graphics card; how a change of preset is coming
-along and which visitors are in; what is being listened to, the tempo, the
-track, and the levels and the six ranges by the names formulas use
-(`bass`, `mid`, `treb`, `vol`, `beat`, `sub` … `air`).
+debug overlay, small and see-through over the picture, in four groups:
+
+- the preset: its layers and how each one's light meets what is under it,
+  the decay, zoom, turn and bloom it is running at this frame (formulas
+  worked out), the colors, which visitors are in, where a mash-up's look
+  and background came from, the file and any problems in it;
+- the drawing: frame rate and frame time, how long the engine takes, how
+  many vertices and particles it draws, the picture's size, the graphics
+  card, and whether the picture is kept in half floats or 8 bits;
+- the sound: what is being listened to, the tempo, the levels and the six
+  ranges by the names formulas use (`bass`, `mid`, `treb`, `vol`, `beat`,
+  `sub` … `air`), and the track;
+- the next change of preset, and, last, how one is coming along.
 
 Moving the pointer over the picture brings up a row of buttons for the same
 things the keys do.
@@ -332,13 +346,27 @@ audio file (which takes `ffmpeg`); `--sheet 6` tiles six moments into one
 picture so you can see it move. `--frames dir` writes every frame instead,
 as `dir/00001.png` and on, for `ffmpeg` to make a video of; `--start` leaves
 out the first seconds, while the trails build up, and `--drift` lets the
-colors drift as they do in the window.
+colors drift as they do in the window. With `--json` it also says how the
+picture is lit and what it costs: `clipped`, the share of it at full
+brightness (over about 0.15 it reads as burnt out), its `mean` brightness,
+and per frame the drawing time in `ms` and the `vertices` drawn.
+
+`check` warns about a number the engine holds to a range it is past, such
+as a decay of 1.2 or 9999 samples, and says what it draws as.
 
 ## Development
 
 ```sh
 bin/build    # qmake6 + make into build/trance
 bin/test     # the test suite, offscreen
+```
+
+The tests also hold an audit, skipped unless asked for: it renders every
+built-in preset and as many mash-ups as you say, made the way the window
+makes them, and lists the ones that come out burnt out or dark.
+
+```sh
+cd build/tests && TRANCE_AUDIT=200 QT_QPA_PLATFORM=offscreen ./trance_tests mashupExposureAudit
 ```
 
 On Windows, `bin\build.ps1`, `bin\test.ps1`, `bin\package.ps1` and
