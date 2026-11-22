@@ -296,20 +296,23 @@ ApplicationWindow {
             }
 
             // The wordmark, faintly, at the start. It goes when the controls
-            // first do, or, if nothing is playing by then, once something is.
+            // first do, or, if nothing is playing by then, once something has
+            // played for a moment, so its bars are seen to take the music up.
             Loader {
                 id: startLogo
                 anchors.centerIn: parent
                 width: Math.min(parent.width * 0.5, 760)
                 height: width * 2 / 3 // the logo's 840 by 560
                 property bool waited: false
+                property bool heard: false
                 // Once it starts to go it goes, whatever the sound does next.
                 property bool leaving: false
                 readonly property bool controlsGone: !pointer.shown && !controls.hovered
-                readonly property bool due: waited && !backend.silent
-                readonly property int fadeOut: 3000
+                readonly property bool due: waited && heard
+                readonly property int fadeOut: 6000
                 onControlsGoneChanged: if (controlsGone) waited = true
                 onDueChanged: if (due) leaving = true
+                Timer { running: !backend.silent; interval: 3000; onTriggered: startLogo.heard = true }
                 sourceComponent: Logo {
                     id: shownLogo
                     kick: backend.levels[3] || 0
