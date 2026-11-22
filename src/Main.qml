@@ -314,7 +314,7 @@ ApplicationWindow {
                 sourceComponent: Logo {
                     kick: backend.levels[3] || 0
                     bands: backend.bands
-                    opacity: startLogo.shown && !startLogo.leaving ? 0.5 : 0
+                    opacity: startLogo.shown && !startLogo.leaving ? 0.8 : 0
                     Behavior on opacity { NumberAnimation { duration: startLogo.leaving ? 1200 : 400 } }
                 }
                 Timer { running: startLogo.leaving; interval: 1300; onTriggered: startLogo.active = false }
