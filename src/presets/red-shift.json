@@ -42,7 +42,7 @@
       "thickness": "2 + 4*beat",
       "color": "palette(0.85 + 0.15*t)",
       "alpha": "0.5 + 0.5*beat",
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

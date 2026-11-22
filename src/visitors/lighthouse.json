@@ -30,7 +30,7 @@
       "color": "palette(0.95)",
       "alpha": 0.9,
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     }
   ]
 }

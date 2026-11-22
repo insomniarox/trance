@@ -20,6 +20,14 @@ Field integer(const char *key, double def, double min, double max) {
     return Field{key, Field::Integer, def, min, max, {}, {}};
 }
 Field toggle(const char *key, bool def) { return Field{key, Field::Toggle, def ? 1.0 : 0.0, 0, 1, {}, {}}; }
+Field held(Field field, double low, double high = std::numeric_limits<double>::infinity()) {
+    field.heldLow = low;
+    field.heldHigh = high;
+    return field;
+}
+// How a layer's light meets what is under it. Each kind of layer has its
+// own default; the choices are listed in the same order everywhere.
+Field blend(const char *def) { return Field{"blend", Field::Choice, 0, 0, 0, def, {"over", "add", "max"}}; }
 Field choice(const char *key, const QStringList &options) {
     return Field{key, Field::Choice, 0, 0, 0, options.first(), options};
 }
@@ -32,64 +40,72 @@ const QHash<QString, QList<Field>> &allFields() {
         // Values are per frame at 60 fps; the engine scales them to the real
         // frame time, so a preset looks the same at 60 and 144 Hz.
         {"feedback", {
-            number("decay", 0.96, 0.5, 1), number("zoom", 1, 0.8, 1.2), number("zoomexp", 1, 0.25, 4),
-            number("rot", 0, -0.2, 0.2), number("warp", 0, 0, 5), number("warpScale", 1, 0.1, 5),
+            held(number("decay", 0.96, 0.5, 1), 0, 1), held(number("zoom", 1, 0.8, 1.2), 0.01),
+            held(number("zoomexp", 1, 0.25, 4), 0.01),
+            number("rot", 0, -0.2, 0.2), number("warp", 0, 0, 5), held(number("warpScale", 1, 0.1, 5), 0.01),
             number("warpSpeed", 1, 0, 5), number("cx", 0, -1, 1), number("cy", 0, -1, 1),
-            number("dx", 0, -0.05, 0.05), number("dy", 0, -0.05, 0.05), number("sx", 1, 0.8, 1.2),
-            number("sy", 1, 0.8, 1.2), number("blur", 0, 0, 1), number("hueshift", 0, -0.2, 0.2),
+            number("dx", 0, -0.05, 0.05), number("dy", 0, -0.05, 0.05), held(number("sx", 1, 0.8, 1.2), 0.01),
+            held(number("sy", 1, 0.8, 1.2), 0.01), held(number("blur", 0, 0, 1), 0, 1),
+            number("hueshift", 0, -0.2, 0.2),
             choice("edge", {"wrap", "mirror", "clamp", "black"}), toggle("darkenCenter", false),
         }},
         // What happens between the feedback buffer and the screen.
         {"post", {
-            number("colorize", 0, 0, 1), number("colorShift", 0, -1, 1), number("colorCurve", 1, 0.2, 4),
-            number("bloom", 0.5, 0, 3), number("bloomThreshold", 0.55, 0, 1.2),
+            held(number("colorize", 0, 0, 1), 0, 1), number("colorShift", 0, -1, 1),
+            held(number("colorCurve", 1, 0.2, 4), 0.05),
+            held(number("bloom", 0.5, 0, 3), 0), number("bloomThreshold", 0.55, 0, 1.2),
             number("brightness", 1, 0, 3), number("contrast", 1, 0, 2), number("saturation", 1, 0, 2),
-            number("gamma", 1, 0.3, 3), number("hue", 0, -3.1416, 3.1416), number("invert", 0, 0, 1),
+            held(number("gamma", 1, 0.3, 3), 0.05), number("hue", 0, -3.1416, 3.1416),
+            held(number("invert", 0, 0, 1), 0, 1),
             choice("mirror", {"none", "x", "y", "quad"}), integer("kaleido", 0, 0, 16),
-            number("kaleidoAngle", 0, -3.1416, 3.1416), number("echoAlpha", 0, 0, 1),
-            number("echoZoom", 1, 0.25, 4), choice("echoFlip", {"none", "x", "y", "xy"}),
-            number("chroma", 0, 0, 3), number("vignette", 0.3, 0, 1.5), number("grain", 0, 0, 0.5),
-            number("scanlines", 0, 0, 1),
+            number("kaleidoAngle", 0, -3.1416, 3.1416), held(number("echoAlpha", 0, 0, 1), 0, 1),
+            held(number("echoZoom", 1, 0.25, 4), 0.05), choice("echoFlip", {"none", "x", "y", "xy"}),
+            number("chroma", 0, 0, 3), held(number("vignette", 0.3, 0, 1.5), 0, 2), number("grain", 0, 0, 0.5),
+            held(number("scanlines", 0, 0, 1), 0, 1),
         }},
         // What shows where the picture is dark. It is drawn fresh every
         // frame behind the feedback picture, so it never smears.
         {"background", {
             choice("style", {"none", "gradient", "nebula", "stars", "grid", "rays", "plasma"}),
             number("intensity", 0.4, 0, 2), number("tint", 0, 0, 1), number("spread", 0.3, 0, 1),
-            number("scale", 1, 0.2, 5), number("speed", 1, 0, 5),
+            held(number("scale", 1, 0.2, 5), 0.01), number("speed", 1, 0, 5),
         }},
         {"wave", {
             toggle("enabled", true), choice("source", {"mix", "left", "right", "spectrum"}),
-            choice("shape", {"line", "circle", "xy", "custom"}), integer("samples", 256, 8, 512),
-            number("scale", 0.4, 0, 2), number("smooth", 0.3, 0, 1), number("x", 0, -2, 2), number("y", 0, -1, 1),
+            choice("shape", {"line", "circle", "xy", "custom"}), held(integer("samples", 256, 8, 512), 8, 512),
+            number("scale", 0.4, 0, 2), held(number("smooth", 0.3, 0, 1), 0, 0.98), number("x", 0, -2, 2),
+            number("y", 0, -1, 1),
             number("width", 1, 0, 2), number("radius", 0.5, 0, 1.5), number("angle", 0, -3.1416, 3.1416),
-            number("thickness", 2.5, 0.5, 40), color("color", "accent"), number("alpha", 1, 0, 1),
-            toggle("additive", true), toggle("dots", false), choice("mirror", {"none", "x", "y", "quad"}),
+            number("thickness", 2.5, 0.5, 40), color("color", "accent"), held(number("alpha", 1, 0, 1), 0, 1),
+            blend("add"), toggle("dots", false), choice("mirror", {"none", "x", "y", "quad"}),
             code("point"),
         }},
         {"bars", {
             toggle("enabled", true), choice("layout", {"bottom", "top", "center", "radial"}),
-            integer("count", 48, 4, 128), number("x", 0, -2, 2), number("y", 0, -1, 1), number("width", 0.9, 0.1, 1),
-            number("height", 0.8, 0, 2), number("gap", 0.25, 0, 0.9), number("radius", 0.35, 0, 1),
-            number("angle", 0, -3.1416, 3.1416), color("color", "palette(t)"), number("alpha", 0.9, 0, 1),
-            number("fade", 0.6, 0, 1), toggle("peaks", true), toggle("symmetric", false), toggle("additive", false),
+            held(integer("count", 48, 4, 128), 4, 128), number("x", 0, -2, 2), number("y", 0, -1, 1),
+            number("width", 0.9, 0.1, 1),
+            number("height", 0.8, 0, 2), held(number("gap", 0.25, 0, 0.9), 0, 0.95), number("radius", 0.35, 0, 1),
+            number("angle", 0, -3.1416, 3.1416), color("color", "palette(t)"), held(number("alpha", 0.9, 0, 1), 0, 1),
+            held(number("fade", 0.6, 0, 1), 0, 1), toggle("peaks", true), toggle("symmetric", false), blend("over"),
             code("point"),
         }},
         {"shape", {
-            toggle("enabled", true), integer("sides", 4, 3, 64), integer("instances", 1, 1, 512),
+            toggle("enabled", true), held(integer("sides", 4, 3, 64), 3, 64),
+            held(integer("instances", 1, 1, 512), 1, 512),
             number("x", 0, -2, 2), number("y", 0, -1, 1), number("radius", 0.3, 0, 2),
-            number("angle", 0, -3.1416, 3.1416), color("color", "accent"), number("alpha", 1, 0, 1),
-            color("color2", "black"), number("alpha2", 0, 0, 1), color("border", "foreground"),
-            number("borderAlpha", 0, 0, 1), number("borderWidth", 2, 0.5, 20), toggle("additive", false),
+            number("angle", 0, -3.1416, 3.1416), color("color", "accent"), held(number("alpha", 1, 0, 1), 0, 1),
+            color("color2", "black"), held(number("alpha2", 0, 0, 1), 0, 1), color("border", "foreground"),
+            held(number("borderAlpha", 0, 0, 1), 0, 1), number("borderWidth", 2, 0.5, 20), blend("over"),
             toggle("textured", false), number("texZoom", 1, 0.2, 5), number("texAngle", 0, -3.1416, 3.1416),
             code("code"),
         }},
         {"terrain", {
-            toggle("enabled", true), choice("style", {"mesh", "lines", "dots"}), integer("rows", 36, 8, 64),
-            integer("cols", 64, 16, 128), number("speed", 18, 1, 60), number("height", 0.55, 0, 2),
+            toggle("enabled", true), choice("style", {"mesh", "lines", "dots"}),
+            held(integer("rows", 36, 8, 64), 8, 64),
+            held(integer("cols", 64, 16, 128), 16, 128), number("speed", 18, 1, 60), number("height", 0.55, 0, 2),
             number("width", 1.7, 0.2, 4), number("y", -0.75, -1.5, 1), number("horizon", 0.25, -1, 1),
             number("depth", 3, 0.2, 10), number("thickness", 1.6, 0.5, 10), color("color", "palette(t)"),
-            number("alpha", 0.9, 0, 1), toggle("additive", true),
+            held(number("alpha", 0.9, 0, 1), 0, 1), blend("add"),
         }},
         // SoundSpectrum's WhiteCap: the last few seconds of the spectrum as
         // a sheet of lines hung in space. It reads the spectrum its own way
@@ -97,26 +113,27 @@ const QHash<QString, QList<Field>> &allFields() {
         // sheet goes, and a camera looks at the result.
         {"wireframe", {
             toggle("enabled", true), choice("form", {"sheet", "tube", "ring", "sphere"}),
-            choice("form2", {"sheet", "tube", "ring", "sphere"}), number("morph", 0, 0, 1),
-            integer("bins", 48, 8, 128), integer("rows", 32, 4, 64), number("speed", 20, 1, 60),
+            choice("form2", {"sheet", "tube", "ring", "sphere"}), held(number("morph", 0, 0, 1), 0, 1),
+            held(integer("bins", 48, 8, 128), 8, 128), held(integer("rows", 32, 4, 64), 4, 64),
+            number("speed", 20, 1, 60),
             number("low", 40, 0, 4000), number("high", 5000, 200, 16000), number("tilt", 10, 0, 30),
             number("smooth", 0.35, 0, 0.95), number("fade", 0.35, 0.02, 3), number("height", 0.5, -2, 2),
             number("width", 1.2, 0.1, 4), number("depth", 1.2, 0.1, 4), number("radius", 0.6, 0.05, 3),
             number("yaw", 0, -3.1416, 3.1416), number("pitch", 0.5, -1.5708, 1.5708),
             number("roll", 0, -3.1416, 3.1416), number("distance", 3, 0.5, 20), number("size", 1, 0.1, 4),
             number("x", 0, -2, 2), number("y", 0, -1, 1), choice("style", {"mesh", "lines", "strands", "dots"}),
-            number("thickness", 1.4, 0.5, 10), color("color", "palette(t)"), number("alpha", 0.9, 0, 1),
-            number("fog", 0.6, 0, 1), toggle("additive", true), code("point"),
+            number("thickness", 1.4, 0.5, 10), color("color", "palette(t)"), held(number("alpha", 0.9, 0, 1), 0, 1),
+            held(number("fog", 0.6, 0, 1), 0, 1), blend("add"), code("point"),
         }},
         // MilkDrop's motion vectors: a grid of short strokes showing which
         // way the picture is flowing at each place.
         {"vectors", {
-            toggle("enabled", true), integer("cols", 28, 2, 64), integer("rows", 16, 2, 48),
+            toggle("enabled", true), held(integer("cols", 28, 2, 64), 2, 64), held(integer("rows", 16, 2, 48), 2, 48),
             number("length", 1, 0, 8), number("thickness", 1.5, 0.5, 12), color("color", "palette(t + i)"),
-            number("alpha", 0.5, 0, 1), toggle("dots", false), toggle("additive", true),
+            held(number("alpha", 0.5, 0, 1), 0, 1), toggle("dots", false), blend("add"),
         }},
         {"particles", {
-            toggle("enabled", true), integer("count", 600, 16, 4000), number("rate", 120, 0, 2000),
+            toggle("enabled", true), held(integer("count", 600, 16, 4000), 16, 4000), number("rate", 120, 0, 2000),
             choice("emit", {"point", "wave", "bars", "edges", "screen"}),
             number("x", 0, -2, 2), number("y", 0, -1, 1), number("area", 0, 0, 2), number("speed", 0.6, 0, 4),
             number("angle", 0, -3.1416, 3.1416), number("spread", 6.2832, 0, 6.2832),
@@ -124,7 +141,7 @@ const QHash<QString, QList<Field>> &allFields() {
             number("field", 0, 0, 4), number("fieldScale", 1.5, 0.2, 8), number("fieldSpeed", 0.2, 0, 3),
             number("pull", 0, -6, 6), number("swirl", 0, -6, 6), choice("edge", {"none", "wrap", "bounce"}),
             number("life", 2, 0.1, 10), number("size", 3, 0.5, 30), number("streak", 0, 0, 0.5),
-            color("color", "palette(i)"), number("alpha", 1, 0, 1), toggle("additive", true),
+            color("color", "palette(i)"), held(number("alpha", 1, 0, 1), 0, 1), blend("add"),
         }},
     };
     return sections;
@@ -288,8 +305,20 @@ public:
     expr::Program numberValue(const QJsonValue &value, const Field &field, const QString &path) {
         if (value.isUndefined() || value.isNull())
             return expr::Program::constant(field.def);
-        if (value.isDouble())
-            return expr::Program::constant(value.toDouble());
+        if (value.isDouble()) {
+            // Past what the engine holds it to, a number draws as the end it
+            // passed. Formulas are free to swing past it.
+            const double number = value.toDouble();
+            if (number < field.heldLow || number > field.heldHigh) {
+                const double end = number < field.heldLow ? field.heldLow : field.heldHigh;
+                problem(path, std::isinf(field.heldHigh)
+                                  ? QString("Held to at least %1, so %2 draws as %1").arg(field.heldLow).arg(number)
+                                  : QString("Held to %1 to %2, so %3 draws as %4")
+                                        .arg(field.heldLow).arg(field.heldHigh).arg(number).arg(end),
+                        false);
+            }
+            return expr::Program::constant(number);
+        }
         if (value.isBool())
             return expr::Program::constant(value.toBool() ? 1 : 0);
         if (value.isString()) {
@@ -886,6 +915,45 @@ bool moves(const QJsonObject &json) {
     return false;
 }
 
+QJsonObject upgradeLayer(QJsonObject layer) {
+    // Before blend, a layer was additive or not.
+    const QJsonValue additive = layer.value("additive");
+    if (additive.isBool() || additive.isDouble()) {
+        if (!layer.contains("blend"))
+            layer["blend"] = (additive.isBool() ? additive.toBool() : additive.toDouble() != 0) ? "add" : "over";
+        layer.remove("additive");
+    }
+    return layer;
+}
+
+QJsonObject upgrade(QJsonObject json) {
+    if (!json.value("layers").isArray())
+        return json;
+    QJsonArray layers = json.value("layers").toArray();
+    for (auto it = layers.begin(); it != layers.end(); ++it)
+        *it = upgradeLayer(it->toObject());
+    json["layers"] = layers;
+    return json;
+}
+
+const QList<std::pair<QString, QString>> &lightSettings() {
+    static const QList<std::pair<QString, QString>> settings = {
+        {"feedback", "decay"}, {"post", "bloom"}, {"post", "bloomThreshold"},
+        {"post", "brightness"}, {"post", "gamma"},
+    };
+    return settings;
+}
+
+bool draws(const QJsonObject &json) {
+    for (const QJsonValue &layer : json.value("layers").toArray()) {
+        const QJsonValue enabled = layer.toObject().value("enabled");
+        const bool off = enabled.isBool() ? !enabled.toBool() : enabled.isDouble() && enabled.toDouble() == 0;
+        if (!off)
+            return true;
+    }
+    return false;
+}
+
 QStringList colorFamilies() { return {"red", "orange", "green", "blue", "violet", "many", "gray", "theme"}; }
 
 // Each stop pulls toward its hue as hard as it is colorful (the gap between
@@ -1106,14 +1174,17 @@ CompiledPreset compile(const QJsonObject &json) {
     const QJsonArray layers = json.value("layers").toArray();
     for (int i = 0; i < layers.size(); ++i) {
         const QString path = QString("layers.%1").arg(i);
-        const QJsonObject object = layers[i].toObject();
+        const QJsonObject object = upgradeLayer(layers[i].toObject());
         const QString type = object.value("type").toString();
         if (!layerTypes().contains(type)) {
             compiler.problem(path + ".type", QString("'%1' is not a layer type; use one of: %2")
                                                  .arg(type, layerTypes().join(", ")));
             continue;
         }
-        Block layer = compiler.block(object, type, path, {"type", "name"});
+        if (object.contains("additive"))
+            compiler.problem(path + ".additive", "additive is now blend, which is one of: over, add, max, and takes "
+                                                 "no formula", false);
+        Block layer = compiler.block(object, type, path, {"type", "name", "additive"});
         layer.type = type;
         // Outside a shape's copies, only the color and the point code are
         // worked out point by point; the engine sets these names to 0 for

@@ -54,8 +54,17 @@ trance render "Night Drive" -o look.png --sheet 6 --seconds 8
   600-2000, presence 2000-6000, air 6000-16000) and drive its height or
   size with the matching `_att`. `trance show Terraces` and `trance show
   Moons` do it six times over.
-- Additive layers with a `decay` near 1 and a `zoom` above 1 pile up to
-  white. Lower `alpha` or `decay` when a render looks blown out.
+- `add` layers (the default for waves, particles, terrain, wireframes and
+  vectors) with a `decay` near 1 and a `zoom` above 1 pile up to white.
+  `render --json` reports `clipped`, the share of the picture at the top;
+  over about 0.15 it reads as blown out. Lower `alpha` or `decay`, or give
+  dense layers `"blend": "max"`, which never grows past the layer's color.
+- `render --json` also reports `ms`, the middle frame's drawing time, and
+  `vertices`, how much is drawn a frame. The built-in presets stay under
+  about 40000 vertices and take 2 to 11 ms a frame at 1920x1080 on a laptop's
+  integrated graphics. Vertices add up fastest in shapes with many copies,
+  many sides and a border; shapes far larger than the screen cost time
+  without vertices, so watch `ms` too.
 - The best presets combine the parts: a flow in `pixel`, a `background`, a
   wave or bars, particles born on them (`"emit": "wave"`) that ride the flow
   (`"flow": 1`), and one palette coloring all of it. `trance show Tidewater`

@@ -19,7 +19,7 @@
       "border": "palette(0.42 + 0.2*sin(time*0.2))",
       "borderAlpha": "above(beat, 0.85)",
       "borderWidth": 5,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",

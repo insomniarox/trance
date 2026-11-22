@@ -40,7 +40,7 @@
       "size": 2.2,
       "color": "palette(0.6 + 0.4*i)",
       "alpha": 0.9,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "particles",
@@ -56,7 +56,7 @@
       "size": 2.4,
       "color": "palette(0.95)",
       "alpha": 0.9,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",

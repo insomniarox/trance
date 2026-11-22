@@ -42,7 +42,7 @@
       "size": 7,
       "color": "palette(i)",
       "alpha": 1,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "shape",
@@ -56,7 +56,7 @@
       "alpha": 1,
       "color2": "palette(n*0.21 + 0.1)",
       "alpha2": 1,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "bars",

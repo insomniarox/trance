@@ -25,7 +25,7 @@
       "thickness": 2,
       "color": "white",
       "alpha": "0.45 + 0.4*min(mid_att, 1.5)/1.5",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",
@@ -39,7 +39,7 @@
       "thickness": 2,
       "color": "white",
       "alpha": "0.45 + 0.4*min(bass_att, 1.5)/1.5",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",
@@ -53,7 +53,7 @@
       "thickness": 2,
       "color": "white",
       "alpha": "0.45 + 0.4*min(treb_att, 1.5)/1.5",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "particles",
@@ -68,7 +68,7 @@
       "size": 2,
       "color": "white",
       "alpha": 0.5,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

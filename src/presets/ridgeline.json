@@ -22,7 +22,7 @@
       "thickness": 1.6,
       "color": "bright_foreground",
       "alpha": 0.95,
-      "additive": false
+      "blend": "over"
     }
   ],
   "post": {

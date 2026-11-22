@@ -8,6 +8,8 @@
 #include <QString>
 #include <QStringList>
 #include <QVariant>
+#include <limits>
+#include <utility>
 
 #include "expr.h"
 
@@ -28,9 +30,13 @@ struct Field {
     enum Type { Number, Integer, Toggle, Choice, Color, Code };
     QByteArray key;
     Type type = Number;
-    double def = 0, min = 0, max = 1;
+    double def = 0, min = 0, max = 1; // min and max are the editor's range
     QString text;        // default for Choice and Color
     QStringList options; // Choice
+    // What the engine holds the value to, where it does: a value outside
+    // draws as the nearest end, so check warns about it.
+    double heldLow = -std::numeric_limits<double>::infinity();
+    double heldHigh = std::numeric_limits<double>::infinity();
 };
 
 struct ColorSpec {
@@ -104,6 +110,18 @@ QJsonObject starterLayer(const QString &type);
 // turn, a slide, a stretch, a warp, or pixel code. Without any of these
 // whatever is drawn stays where it was put and only fades.
 bool moves(const QJsonObject &json);
+// Whether the preset has a layer that may draw: one not switched off for
+// good. A layer switched on and off by formula counts.
+bool draws(const QJsonObject &json);
+// Rewrites the settings older presets used in today's terms, so a preset
+// written before them opens and edits as if written now: a layer's
+// additive true or false is its blend, add or over.
+QJsonObject upgrade(QJsonObject json);
+QJsonObject upgradeLayer(QJsonObject layer);
+// The settings that decide how much light builds up and how bright it
+// comes out, as section and key. Each preset sets them against its own
+// layers, so a mash-up takes them along with the layers.
+const QList<std::pair<QString, QString>> &lightSettings();
 QJsonObject blank(const QString &name);
 
 // What the browser sorts presets by. Both come from the preset itself, so

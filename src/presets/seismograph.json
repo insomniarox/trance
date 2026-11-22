@@ -27,7 +27,7 @@
       "fog": 0.85,
       "color": "foreground",
       "alpha": 0.16,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wireframe",

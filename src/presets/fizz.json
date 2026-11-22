@@ -48,7 +48,7 @@
       "border": "palette(t + ph + 0.2)",
       "borderAlpha": 0.9,
       "borderWidth": 2,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -61,7 +61,7 @@
       "alpha": 0.8,
       "color2": "white",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

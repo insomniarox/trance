@@ -89,8 +89,9 @@ const QHash<QString, Entry> &entries() {
 
         // ----------------------------------------------- every kind of layer
         {"layer.enabled", {"Shown", "Turns the layer off without removing it."}},
-        {"layer.additive", {"Additive", "Light adds up where things overlap, instead of the newer covering the older. "
-                                        "Right for glow; too much of it burns to white."}},
+        {"layer.blend", {"Blend", "How its light meets what is under it. over covers it; add adds to it, right for "
+                                  "glow but too much burns to white; max keeps the brighter of the two, so it glows "
+                                  "but never grows past its own color."}},
         {"layer.alpha", {"Opacity", "How solid it is drawn. 0 is invisible."}},
         {"layer.color", {"Color", "#rrggbb, a theme color such as accent, or palette(formula) for a point on the "
                                   "palette. hsv(h, s, v) and rgb(r, g, b) take formulas too."}},

@@ -32,7 +32,7 @@
       "alpha": 0.25,
       "color2": "palette(0.6)",
       "alpha2": 0,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "particles",
@@ -54,7 +54,7 @@
       "size": 5,
       "color": "palette(0.42 + 0.16*i)",
       "alpha": 1,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "shape",
@@ -68,7 +68,7 @@
       "alpha": 1,
       "color2": "palette(0.44 + 0.06*n/count)",
       "alpha2": 0.95,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "particles",
@@ -83,7 +83,7 @@
       "size": 4,
       "color": "palette(0.97)",
       "alpha": 0.8,
-      "additive": false
+      "blend": "over"
     }
   ],
   "post": {

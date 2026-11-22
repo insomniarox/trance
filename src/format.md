@@ -140,8 +140,11 @@ place.
 
 ## layers
 
-Every layer has `type`, and may have `enabled` and `additive` (light adds
-up instead of covering). Colors are described below.
+Every layer has `type`, and may have `enabled` and `blend`: `over` covers
+what is under it, `add` adds light to it, `max` keeps the brighter of the two
+and so never grows past the layer's own color (the cure for a dense layer
+that burns to white). Waves, terrain, wireframes, vectors and particles
+default to `add`, bars and shapes to `over`. Colors are described below.
 
 Where a layer's `color` is said to take `t`, `i` or `v`, only the color and
 the `point` code see them. Every other setting, `alpha` included, is worked
@@ -271,7 +274,8 @@ with the T key.
 
 `trance check` reports every problem with the setting it is in, for example
 `feedback.zoom: Unknown variable 'basss'`, and exits 1 if the preset can't
-run. Unknown settings are warnings. `trance render <preset> --sheet 6`
+run. Unknown settings are warnings, and so is a number the engine holds to a
+range it is past (`"decay": 1.2` draws as 1). `trance render <preset> --sheet 6`
 tiles six moments of the preset into one picture, and `--audio song.mp3`
 renders against real music instead of the built-in test loop. The window's
 editor (E) changes the same file's settings live; its JSON tab shows this

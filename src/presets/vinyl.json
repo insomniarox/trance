@@ -43,7 +43,7 @@
       "alpha": 0.7,
       "color2": "palette(0.45)",
       "alpha2": 0.15,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

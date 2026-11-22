@@ -21,7 +21,7 @@
       "border": "palette(0.45)",
       "borderAlpha": 0.35,
       "borderWidth": 1.2,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -31,7 +31,7 @@
       "alpha": 1,
       "color2": "palette(0.6)",
       "alpha2": 0,
-      "additive": true,
+      "blend": "add",
       "code": "an = noise(n*7.3, 1)*tau\nrd = 0.15 + 0.75*noise(n*3.1, 2)\nx = rd*cos(an)\ny = rd*sin(an)\nradius = 0.012 + 0.03*v\na = clamp(1 - mod(an - sw, tau)/tau*2.2, 0, 1)*(0.3 + 0.9*v)"
     },
     {

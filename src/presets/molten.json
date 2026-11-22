@@ -24,7 +24,7 @@
       "alpha": "0.04 + 0.06*vol_att + 0.1*beat",
       "color2": "white",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

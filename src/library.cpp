@@ -76,7 +76,7 @@ QJsonObject Library::readFile(const QString &path, QString *error) {
         }
         return {};
     }
-    return document.object();
+    return presets::upgrade(document.object());
 }
 
 QJsonObject Library::load(int index, QString *error) const {

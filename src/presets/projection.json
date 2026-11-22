@@ -65,7 +65,7 @@
       "size": 1.6,
       "color": "palette(i + time*0.08)",
       "alpha": 0.5,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

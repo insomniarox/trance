@@ -20,7 +20,7 @@
       "alpha": 0.22,
       "color2": "palette(0.43)",
       "alpha2": 0.22,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "bars",
@@ -35,7 +35,7 @@
       "fade": 0,
       "color": "palette(0)",
       "alpha": 0.85,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "bars",
@@ -52,7 +52,7 @@
       "fade": 0,
       "color": "palette(0.71)",
       "alpha": 0.85,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",
@@ -63,7 +63,7 @@
       "thickness": 3,
       "color": "palette(0.15)",
       "alpha": 0.9,
-      "additive": true
+      "blend": "add"
     }
   ],
   "shade": "hx = fract(x*14) - 0.5\nhy = fract(y*14) - 0.5\nk = smoothstep(0.05, -0.05, length(hx, hy) - 0.72*sqrt(min(lum*1.5, 1)))\nr = r*(0.3 + 0.7*k)\ng = g*(0.3 + 0.7*k)\nb = b*(0.3 + 0.7*k)",

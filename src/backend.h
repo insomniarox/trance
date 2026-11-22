@@ -326,6 +326,9 @@ private:
     double m_blendSeconds = 4.0;
     QString m_transition = "mixed";
     bool m_mashups = false, m_visitors = true, m_colorDrift = false;
+    // Where the mash-up showing took each part from: motion, layers, look
+    // and background. Empty for anything else.
+    QStringList m_mashupParts;
     QString m_filterColor;
     QStringList m_filterFeatures;
     bool m_keepToFilter = false;

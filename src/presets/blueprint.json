@@ -51,7 +51,7 @@
       "fog": 0.45,
       "color": "palette(0.75 + 0.25*min(v*2, 1))",
       "alpha": 0.95,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "bars",

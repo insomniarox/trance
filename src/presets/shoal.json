@@ -44,7 +44,7 @@
       "alpha": 1,
       "color2": "palette(n*0.137 + 0.15)",
       "alpha2": 1,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "particles",
@@ -59,7 +59,7 @@
       "size": 3,
       "color": "palette(0.42)",
       "alpha": 0.7,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

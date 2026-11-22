@@ -11,7 +11,9 @@
 #include <QOpenGLFramebufferObject>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QtEndian>
 #include <QtTest>
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <thread>
@@ -172,6 +174,11 @@ private slots:
         program.run(vars.values);
         QCOMPARE(vars.get("c"), 9.0);
         QVERIFY(vars.undefined().isEmpty());
+        QVERIFY(program.assigns(vars.find("b")));
+        expr::Program reader;
+        QVERIFY(reader.parse("d = a + b", vars, nullptr));
+        QVERIFY(reader.assigns(vars.find("d")));
+        QVERIFY(!reader.assigns(vars.find("a")));
     }
 
     void formulaMistakesAreExplained()
@@ -990,6 +997,153 @@ private slots:
         }
     }
 
+    // max keeps the brighter of the layer and what is under it, so a layer
+    // drawn over and over on a picture that never fades stays its own
+    // color, where add burns it to white. A dark color shows only on
+    // darker ground.
+    void maxBlendNeverGrowsPastTheLayer()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        const auto middle = [](const char *blend, const char *second) {
+            const CompiledPreset preset = presets::compile(fixture(QString(
+                "{ 'feedback': { 'decay': 1 }, 'post': { 'bloom': 0, 'vignette': 0 }, 'layers': ["
+                "{ 'type': 'shape', 'sides': 4, 'radius': 3, 'color': '#808080', 'alpha': 0.5, 'blend': '%1' },"
+                "{ 'type': 'shape', 'sides': 4, 'radius': 3, 'color': '%2', 'alpha': 1, 'blend': '%1' } ] }")
+                .arg(blend, second).toUtf8().constData()));
+            QOpenGLFramebufferObject target(64, 64);
+            Engine engine;
+            engine.setPreset(preset, 0);
+            for (int frame = 0; frame < 60; ++frame)
+                engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+            return qGray(target.toImage().pixel(32, 32));
+        };
+        // Half of mid grey, as alpha weighs it, and the darker second layer
+        // shows nowhere.
+        QVERIFY2(std::abs(middle("max", "#202020") - 64) <= 4, qPrintable(QString::number(middle("max", "#202020"))));
+        QVERIFY(middle("add", "#202020") >= 250);
+        // Over covers: the second layer is what is left.
+        QVERIFY(std::abs(middle("over", "#202020") - 32) <= 4);
+        // A brighter color under max takes over.
+        QVERIFY(std::abs(middle("max", "#c0c0c0") - 192) <= 6);
+
+        // Opacity past 1 is 1, on every card: it neither brightens a color
+        // nor takes away what is under it.
+        const CompiledPreset strong = presets::compile(fixture(
+            "{ 'feedback': { 'decay': 1 }, 'post': { 'bloom': 0, 'vignette': 0 }, 'layers': ["
+            "{ 'type': 'shape', 'sides': 4, 'radius': 3, 'color': '#404040', 'alpha': '3', 'blend': 'add' } ] }"));
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setPreset(strong, 0);
+        engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        QVERIFY2(std::abs(qGray(target.toImage().pixel(32, 32)) - 64) <= 4,
+                 qPrintable(QString::number(qGray(target.toImage().pixel(32, 32)))));
+    }
+
+    // Where the engine holds a setting to a range, a number past it draws
+    // as the end it passed, so check says so; a formula may swing past.
+    // The editor's ranges are not such limits: a built-in may go past them.
+    void checkWarnsWhereTheEngineHoldsAValue()
+    {
+        const CompiledPreset held = presets::compile(fixture(
+            "{ 'name': 'Held', 'feedback': { 'decay': 1.2, 'zoom': 0, 'rot': 5 },"
+            "  'layers': [ { 'type': 'wave', 'samples': 9999 }, { 'type': 'particles', 'y': 1.2 } ] }"));
+        QVERIFY(held.ok());
+        QStringList paths;
+        for (const auto &problem : held.problems) {
+            QVERIFY(!problem.error);
+            paths << problem.path;
+        }
+        QCOMPARE(paths, (QStringList{"feedback.decay", "feedback.zoom", "layers.0.samples"}));
+        QCOMPARE(held.problems.first().message, QString("Held to 0 to 1, so 1.2 draws as 1"));
+        QVERIFY(presets::compile(fixture("{ 'name': 'Swing', 'feedback': { 'decay': '0.9 + 0.2*beat' } }"))
+                    .problems.isEmpty());
+
+        // The built-ins keep to what the engine draws.
+        const Library library(QDir::tempPath() + "/trance-tests-no-such-folder");
+        for (const auto &info : library.presets()) {
+            const CompiledPreset preset = presets::compile(library.load(library.indexOf(info.name)));
+            for (const auto &problem : preset.problems)
+                QVERIFY2(!problem.message.startsWith("Held"), qPrintable(info.name + ": " + problem.path));
+        }
+        for (const QJsonObject &visitor : Library::visitors())
+            for (const auto &problem : presets::compile(visitor).problems)
+                QVERIFY2(!problem.message.startsWith("Held"), qPrintable(problem.path));
+    }
+
+    // The overlay's live line: the settings as worked out for the last
+    // frame, formulas included.
+    void engineReportsTheSettingsInEffect()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setPreset(presets::compile(fixture("{ 'name': 'Live', 'frame': 'zoom = 1.05',"
+                                                  " 'feedback': { 'decay': '0.5 + 0.25', 'rot': 0.01 },"
+                                                  " 'post': { 'bloom': 1.5 } }")),
+                         0);
+        engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+        const QVariantMap live = engine.liveSettings();
+        QCOMPARE(live.value("decay").toDouble(), 0.75);
+        QCOMPARE(live.value("zoom").toDouble(), 1.05);
+        QCOMPARE(live.value("rot").toDouble(), 0.01);
+        QCOMPARE(live.value("bloom").toDouble(), 1.5);
+        QCOMPARE(live.value("pixelCode").toBool(), false);
+    }
+
+    // Before blend, a layer said additive, true or false. Such a preset
+    // still opens, and edits as if it said blend.
+    void additiveBecomesBlend()
+    {
+        const QJsonObject old = fixture("{ 'name': 'Old', 'layers': [ { 'type': 'wave', 'additive': false },"
+                                        "{ 'type': 'bars', 'additive': true },"
+                                        "{ 'type': 'shape', 'additive': true, 'blend': 'max' } ] }");
+        const QJsonArray layers = presets::upgrade(old).value("layers").toArray();
+        QCOMPARE(layers[0].toObject().value("blend").toString(), QString("over"));
+        QCOMPARE(layers[1].toObject().value("blend").toString(), QString("add"));
+        QCOMPARE(layers[2].toObject().value("blend").toString(), QString("max"));
+        for (const auto &layer : layers)
+            QVERIFY(!layer.toObject().contains("additive"));
+        // Compiling does the same, without a word.
+        QVERIFY(presets::compile(old).problems.isEmpty());
+        // blend takes no formula, so additive by formula is pointed at it.
+        const CompiledPreset formula = presets::compile(
+            fixture("{ 'name': 'Old', 'layers': [ { 'type': 'wave', 'additive': 'above(beat, 0.5)' } ] }"));
+        QVERIFY(formula.ok());
+        QCOMPARE(formula.problems.size(), qsizetype(1));
+        QCOMPARE(formula.problems.first().path, QString("layers.0.additive"));
+        // None of the built-in presets or visitors says additive any more.
+        const QStringList folders{":/presets", ":/visitors"};
+        for (const QString &folder : folders)
+            for (const QString &file : QDir(folder).entryList({"*.json"})) {
+                QFile in(folder + "/" + file);
+                QVERIFY(in.open(QIODevice::ReadOnly));
+                QVERIFY2(!in.readAll().contains("\"additive\""), qPrintable(file));
+            }
+    }
+
     void engineRunsThePresetsOwnCode()
     {
         QSurfaceFormat format;
@@ -1568,6 +1722,222 @@ private slots:
                 continue;
             const QString lender = backend.currentName().section(" × ", 0, 0);
             QVERIFY2(!still.contains(lender), qPrintable(backend.currentName()));
+        }
+    }
+
+    // The decay, the glow, the brightness and the gamma are set against the
+    // layers, so they come with them, not with the motion or the look:
+    // Loom's dense threads under Deep Field's slow fade burned the screen
+    // white.
+    void mashupsTakeTheLightWithTheLayers()
+    {
+        QVERIFY(presets::lightSettings().contains(std::pair<QString, QString>("feedback", "decay")));
+        QVERIFY(presets::lightSettings().contains(std::pair<QString, QString>("post", "bloom")));
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        int checked = 0;
+        for (int i = 0; i < 60; ++i) {
+            if (!backend.mashup())
+                continue;
+            const QString drawn = backend.currentName().section(" × ", 1);
+            const int index = backend.library().indexOf(drawn);
+            QVERIFY2(index >= 0, qPrintable(drawn));
+            const QJsonObject from = backend.library().load(index);
+            for (const auto &[section, key] : presets::lightSettings()) {
+                const QJsonValue want = from.value(section).toObject().value(key);
+                const QJsonValue got = backend.json().value(section).toObject().value(key);
+                QVERIFY2(got == want, qPrintable(backend.currentName() + ": " + section + "." + key));
+            }
+            ++checked;
+        }
+        QVERIFY(checked > 0);
+    }
+
+    // The debug overlay names a mash-up's four sources, and each kind of
+    // layer with its blend.
+    void overlayNamesTheMashupsPartsAndBlends()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        QVERIFY(backend.select("Loom"));
+        QVERIFY(backend.stats().value("parts").toStringList().isEmpty());
+        QCOMPARE(backend.stats().value("layerSummary").toString(), QString("wave ×6 add, particles add"));
+        QVERIFY(backend.mashup());
+        const QStringList parts = backend.stats().value("parts").toStringList();
+        QCOMPARE(parts.size(), qsizetype(4));
+        QCOMPARE(parts[0] + " × " + parts[1], backend.currentName());
+        QVERIFY(backend.select("Loom"));
+        QVERIFY(backend.stats().value("parts").toStringList().isEmpty());
+    }
+
+    // A preset that draws nothing would leave a mash-up of its layers
+    // black, so it lends its motion but never its layers.
+    void mashupsBorrowLayersOnlyFromPresetsThatDraw()
+    {
+        QVERIFY(presets::draws(fixture("{ 'layers': [ { 'type': 'wave' } ] }")));
+        QVERIFY(presets::draws(fixture("{ 'layers': [ { 'type': 'wave', 'enabled': 'above(beat, 0.5)' } ] }")));
+        QVERIFY(!presets::draws(fixture("{ 'layers': [] }")));
+        QVERIFY(!presets::draws(fixture("{ 'feedback': { 'zoom': 1.02 } }")));
+        QVERIFY(!presets::draws(fixture("{ 'layers': [ { 'type': 'wave', 'enabled': false }, "
+                                        "{ 'type': 'bars', 'enabled': 0 } ] }")));
+
+        QTemporaryDir dir;
+        QVERIFY(QDir().mkpath(dir.path() + "/presets"));
+        for (int i = 0; i < 50; ++i) {
+            QFile file(dir.path() + QString("/presets/bare-%1.json").arg(i));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QString(R"({ "name": "Bare %1", "feedback": { "zoom": 1.02 }, "layers": [] })").arg(i).toUtf8());
+        }
+        Backend backend(dir.path(), false);
+        int lent = 0;
+        for (int i = 0; i < 40; ++i) {
+            if (!backend.mashup())
+                continue;
+            const QString name = backend.currentName();
+            QVERIFY2(!name.section(" × ", 1).startsWith("Bare"), qPrintable(name));
+            lent += name.startsWith("Bare");
+        }
+        // Their motion is still taken.
+        QVERIFY(lent > 0);
+    }
+
+    // Pixel code that sets the decay would bring the lender's fade back, so
+    // such a preset lends its layers but never its motion.
+    void mashupsBorrowNoMotionThatSetsItsOwnDecay()
+    {
+        QTemporaryDir dir;
+        QVERIFY(QDir().mkpath(dir.path() + "/presets"));
+        for (int i = 0; i < 50; ++i) {
+            QFile file(dir.path() + QString("/presets/self-fade-%1.json").arg(i));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QString(R"({ "name": "Self Fade %1", "pixel": "rot = 0.01\ndecay = 0.99",)"
+                               R"( "layers": [ { "type": "wave" } ] })")
+                           .arg(i)
+                           .toUtf8());
+        }
+        Backend backend(dir.path(), false);
+        QVERIFY(backend.library().indexOf("Self Fade 0") >= 0);
+        int lent = 0;
+        for (int i = 0; i < 40; ++i) {
+            if (!backend.mashup())
+                continue;
+            const QString name = backend.currentName();
+            QVERIFY2(!name.startsWith("Self Fade"), qPrintable(name));
+            lent += name.section(" × ", 1).startsWith("Self Fade");
+        }
+        // Their layers are still taken.
+        QVERIFY(lent > 0);
+    }
+
+    // How a picture comes out lit, as render --json reports it.
+    void exposureIsMeasured()
+    {
+        QImage image(10, 10, QImage::Format_RGB32);
+        image.fill(Qt::white);
+        QCOMPARE(measureExposure(image).clipped, 1.0);
+        QCOMPARE(measureExposure(image).mean, 1.0);
+        image.fill(Qt::black);
+        QCOMPARE(measureExposure(image).clipped, 0.0);
+        QCOMPARE(measureExposure(image).mean, 0.0);
+        // One channel at the top is enough to count.
+        image.fill(QColor(255, 0, 0));
+        QCOMPARE(measureExposure(image).clipped, 1.0);
+        QVERIFY(std::abs(measureExposure(image).mean - 0.299) < 1e-9);
+        image.fill(QColor(249, 249, 249));
+        QCOMPARE(measureExposure(image).clipped, 0.0);
+    }
+
+    // Not a check but a tool, run when asked: TRANCE_AUDIT=N renders every
+    // built-in preset and N mash-ups made the way the window makes them, to
+    // the demo track, and lists those that come out burnt or dark. It reads
+    // the picture at five moments, a second apart from the fourth second on,
+    // so the trails have built up. Burnt is more than 15% of the picture at
+    // the top, dark a mean under 3%. It never fails: the numbers depend on
+    // the graphics card and on the draw.
+    void mashupExposureAudit()
+    {
+        const int count = qEnvironmentVariableIntValue("TRANCE_AUDIT");
+        if (count <= 0)
+            QSKIP("A tool: set TRANCE_AUDIT to how many mash-ups to render");
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        const QByteArray track = AudioCapture::demoTrack();
+        std::vector<float> demo(size_t(track.size() / 2));
+        for (size_t i = 0; i < demo.size(); ++i)
+            demo[i] = float(qFromLittleEndian<qint16>(track.constData() + i * 2)) / 32768.f;
+        const auto measure = [&](const CompiledPreset &preset) {
+            QOpenGLFramebufferObject target(640, 360);
+            Engine engine;
+            engine.setPreset(preset, 0);
+            Analyzer analyzer;
+            const int perFrame = analyzer.sampleRate() / 60;
+            std::vector<float> chunk(size_t(perFrame) * 2);
+            Exposure seen;
+            for (int frame = 0; frame < 480; ++frame) {
+                for (size_t i = 0; i < chunk.size(); ++i)
+                    chunk[i] = demo[(size_t(frame) * chunk.size() + i) % demo.size()];
+                analyzer.push(chunk.data(), perFrame);
+                engine.render(analyzer.analyze(1.0 / 60), 1.0 / 60, target.handle(), 640, 360);
+                if (frame >= 240 && (frame + 1) % 60 == 0) {
+                    const Exposure now = measureExposure(target.toImage());
+                    seen.clipped += now.clipped / 5;
+                    seen.mean += now.mean / 5;
+                }
+            }
+            return seen;
+        };
+
+        struct Seen {
+            QString name;
+            bool mashup;
+            Exposure exposure;
+        };
+        QList<Seen> all;
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        for (int i = 0; i < backend.library().presets().size(); ++i) {
+            const CompiledPreset preset = presets::compile(backend.library().load(i));
+            if (preset.ok())
+                all.append({backend.library().presets()[i].name, false, measure(preset)});
+        }
+        for (int i = 0; i < count; ++i) {
+            if (!backend.mashup())
+                continue;
+            const CompiledPreset preset = presets::compile(backend.json());
+            if (preset.ok())
+                all.append({backend.currentName(), true, measure(preset)});
+        }
+        std::sort(all.begin(), all.end(), [](const Seen &a, const Seen &b) {
+            return a.exposure.clipped > b.exposure.clipped;
+        });
+        for (const bool mashups : {false, true}) {
+            int seen = 0, burnt = 0, dark = 0;
+            double clipped = 0;
+            for (const Seen &one : all) {
+                if (one.mashup != mashups)
+                    continue;
+                ++seen;
+                clipped += one.exposure.clipped;
+                const bool isBurnt = one.exposure.clipped > 0.15, isDark = one.exposure.mean < 0.03;
+                burnt += isBurnt;
+                dark += isDark;
+                if (isBurnt || isDark)
+                    qInfo("%-6s %5.1f%% at the top, mean %.3f  %s", isBurnt ? "burnt" : "dark",
+                          one.exposure.clipped * 100, one.exposure.mean, qPrintable(one.name));
+            }
+            qInfo("%s: %d, %d burnt, %d dark, %.1f%% at the top on average", mashups ? "Mash-ups" : "Presets",
+                  seen, burnt, dark, seen ? clipped / seen * 100 : 0.0);
         }
     }
 

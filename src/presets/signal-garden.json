@@ -31,7 +31,7 @@
       "alpha": 0.9,
       "fade": 0.5,
       "peaks": false,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "particles",

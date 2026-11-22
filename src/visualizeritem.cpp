@@ -123,6 +123,8 @@ public:
                                           {"changeProgress", m_engine.changeProgress()},
                                           {"changePattern", m_engine.changePattern()},
                                           {"visitorNames", m_engine.visitorNames()},
+                                          {"live", m_engine.liveSettings()},
+                                          {"wide", m_engine.wideBuffers()},
                                           {"glVersion", m_glVersion}};
             m_engineSeconds = 0;
             m_frames = 0;

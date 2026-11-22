@@ -28,7 +28,7 @@
       "alpha": "clamp(0.22 + 0.2*sub_att, 0, 1)",
       "color2": "palette(0.6)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",

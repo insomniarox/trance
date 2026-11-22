@@ -23,7 +23,7 @@
       "border": "palette(0.00 + time*0.03)",
       "borderAlpha": "clamp(0.3 + 0.5*sub_att, 0, 1)",
       "borderWidth": "6*(0.6 + 0.6*sub)",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -36,7 +36,7 @@
       "border": "palette(0.17 + time*0.03)",
       "borderAlpha": "clamp(0.3 + 0.5*low_att, 0, 1)",
       "borderWidth": "5*(0.6 + 0.6*low)",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -49,7 +49,7 @@
       "border": "palette(0.33 + time*0.03)",
       "borderAlpha": "clamp(0.3 + 0.5*lowmid_att, 0, 1)",
       "borderWidth": "4.2*(0.6 + 0.6*lowmid)",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -62,7 +62,7 @@
       "border": "palette(0.50 + time*0.03)",
       "borderAlpha": "clamp(0.3 + 0.5*highmid_att, 0, 1)",
       "borderWidth": "3.5*(0.6 + 0.6*highmid)",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -75,7 +75,7 @@
       "border": "palette(0.67 + time*0.03)",
       "borderAlpha": "clamp(0.3 + 0.5*presence_att, 0, 1)",
       "borderWidth": "3*(0.6 + 0.6*presence)",
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -88,7 +88,7 @@
       "alpha": 1,
       "color2": "palette(0.85)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

@@ -49,14 +49,19 @@ void main() {
   float e = length(v_edge);
   float w = max(fwidth(e), 1e-5);
   vec4 c = v_color;
-  c.a *= clamp((1.0 - e) / w - 0.5, 0.0, 1.0);
+  // Opacity is 0 to 1 on every card. Past 1 it used to brighten where the
+  // picture is kept in half floats, and to take away what was under it
+  // when covering, but not in 8 bits.
+  c.a = clamp(c.a, 0.0, 1.0) * clamp((1.0 - e) / w - 0.5, 0.0, 1.0);
   if (v_tex.x > -0.5) {
     // A texture brings its own transparency (the picture has none; text does).
     vec4 t = texture(u_tex, v_tex);
     c.rgb *= t.rgb;
     c.a *= t.a;
   }
-  o_color = c;
+  // Premultiplied, so the brighter-of-two blend, which takes no factors,
+  // weighs the color by its alpha too.
+  o_color = vec4(c.rgb * c.a, c.a);
 }
 )";
 
@@ -183,6 +188,20 @@ QString Engine::changePattern() const {
     // transitionStyles() starts with "mixed", which picks one of the rest.
     const QStringList styles = presets::transitionStyles();
     return m_old ? styles.value(m_pattern + 1) : QString();
+}
+
+QVariantMap Engine::liveSettings() const {
+    if (!m_scene)
+        return {};
+    const expr::Vars &vars = m_scene->p.vars;
+    QVariantMap live;
+    for (const char *name : {"decay", "zoom", "rot", "post.bloom"}) {
+        const int slot = vars.find(name);
+        if (slot >= 0)
+            live.insert(QString(name).remove("post."), vars.values[size_t(slot)]);
+    }
+    live.insert("pixelCode", !m_scene->p.pixel.isEmpty());
+    return live;
 }
 
 QStringList Engine::visitorNames() const {
@@ -879,7 +898,7 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
         // Old waves the new preset has no wave for fade out as they were.
         m_c = m_old.get();
         emitWave(m_stash[i]);
-        flush(m_stash[i].additive);
+        flush(m_stash[i].blend);
     }
     for (auto &visitor : m_visitors) {
         const double age = visitor->age, left = visitor->life - age;
@@ -889,6 +908,7 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     }
     m_layerAlpha = 1;
     drawText();
+    glBlendEquation(GL_FUNC_ADD);
     glDisable(GL_BLEND);
     glBindVertexArray(m_emptyVao);
 
@@ -1057,11 +1077,12 @@ void Engine::drawLayers(Scene &scene, bool stashWaves, bool morphWaves) {
         V[size_t(s.t)] = V[size_t(s.i)] = V[size_t(s.v)] = V[size_t(s.v2)] = 0;
         if (!layer.flag("enabled", V))
             continue;
-        const bool additive = layer.flag("additive", V);
+        const QString choice = layer.choice("blend");
+        const Blend blend = choice == "add" ? Blend::Add : choice == "max" ? Blend::Max : Blend::Over;
         LayerState &state = scene.layers[size_t(i)];
         if (layer.type == "wave") {
             buildWave(layer, m_wave);
-            m_wave.additive = additive;
+            m_wave.blend = blend;
             if (stashWaves) {
                 m_stash.push_back(m_wave);
                 continue;
@@ -1101,12 +1122,12 @@ void Engine::drawLayers(Scene &scene, bool stashWaves, bool morphWaves) {
                     m_morph.closed = bothClosed;
                     m_morph.dots = lead.dots;
                     m_morph.mirror = lead.mirror;
-                    m_morph.additive = lead.additive;
+                    m_morph.blend = lead.blend;
                     m_morph.halfWidth = from.halfWidth + (m_wave.halfWidth - from.halfWidth) * w;
                     const float keep = m_layerAlpha;
                     m_layerAlpha = 1;
                     emitWave(m_morph);
-                    flush(m_morph.additive);
+                    flush(m_morph.blend);
                     m_layerAlpha = keep;
                     continue;
                 }
@@ -1125,7 +1146,7 @@ void Engine::drawLayers(Scene &scene, bool stashWaves, bool morphWaves) {
         } else if (layer.type == "vectors") {
             drawVectors(layer);
         }
-        flush(additive);
+        flush(blend);
     }
 }
 
@@ -1179,7 +1200,7 @@ void Engine::drawText() {
     vertex(right, top, rgba, 0, 0, 1, 0);
     vertex(left, top, rgba, 0, 0, 0, 0);
     glBindTexture(GL_TEXTURE_2D, m_textTexture);
-    flush(false);
+    flush(Blend::Over);
     glBindTexture(GL_TEXTURE_2D, m_buffers[m_current].texture);
 }
 
@@ -1257,13 +1278,13 @@ void Engine::flowAt(Scene &scene, float x, float y, float *toX, float *toY) {
 
 // ----------------------------------------------------------------- geometry
 
-void Engine::flush(bool additive) {
+void Engine::flush(Blend blend) {
     if (!m_used)
         return;
-    if (additive)
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
-    else
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
+    // The colors come premultiplied by alpha. The picture's own alpha is
+    // left as it is.
+    glBlendEquationSeparate(blend == Blend::Max ? GL_MAX : GL_FUNC_ADD, GL_FUNC_ADD);
+    glBlendFuncSeparate(GL_ONE, blend == Blend::Over ? GL_ONE_MINUS_SRC_ALPHA : GL_ONE, GL_ZERO, GL_ONE);
     m_frameVertices += int(m_used / 10);
     glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(m_used * sizeof(float)), m_vertices.data(), GL_STREAM_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_used / 10));
@@ -2110,5 +2131,5 @@ void Engine::darkenCenter() {
         vertex(radius * std::cos(a), radius * std::sin(a), rim, 0, 0);
         vertex(radius * std::cos(b), radius * std::sin(b), rim, 0, 0);
     }
-    flush(false);
+    flush(Blend::Over);
 }

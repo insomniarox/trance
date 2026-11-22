@@ -14,7 +14,7 @@
       "thickness": 1.6,
       "color": "palette(0.6 + 0.3*t + time*0.05)",
       "alpha": 0.85,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -28,7 +28,7 @@
       "border": "palette(0.6)",
       "borderAlpha": 0.25,
       "borderWidth": 1,
-      "additive": true
+      "blend": "add"
     }
   ]
 }

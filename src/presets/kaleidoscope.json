@@ -25,7 +25,7 @@
       "border": "white",
       "borderAlpha": 0.9,
       "borderWidth": 1.5,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",

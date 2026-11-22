@@ -2,6 +2,7 @@
 
 #include <QCommandLineParser>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QFontMetrics>
@@ -13,11 +14,13 @@
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions>
 #include <QPainter>
 #include <QProcess>
 #include <QRandomGenerator>
 #include <QSaveFile>
 #include <QStandardPaths>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -217,6 +220,13 @@ QImage titleImage(const QString &text) {
     return image;
 }
 
+qint64 median(std::vector<qint64> values) {
+    if (values.empty())
+        return 0;
+    std::nth_element(values.begin(), values.begin() + values.size() / 2, values.end());
+    return values[values.size() / 2];
+}
+
 int render(const QStringList &arguments) {
     Command command("render", "Render a preset to a PNG, or every frame to PNGs, without opening a window, "
                               "reacting to a built-in test loop or to an audio file.");
@@ -301,6 +311,16 @@ int render(const QStringList &arguments) {
     if (!gl.create())
         return fail("Could not create an OpenGL context to render with.");
     QImage result;
+    // With a sheet, the average over its pictures; the gaps between them
+    // would count as dark.
+    Exposure exposure;
+    // What a frame costs: the time to draw it, and its vertices, the
+    // measure of how much is drawn (each frame's count is known once the
+    // next one starts). The first frame builds the shaders, so it is left
+    // out, and the time is the middle one, which a stall elsewhere on the
+    // machine doesn't move.
+    std::vector<qint64> times;
+    qint64 vertices = 0;
     {
         Engine engine;
         engine.setTheme(currentTheme());
@@ -326,6 +346,7 @@ int render(const QStringList &arguments) {
             result.fill(Qt::black);
         }
         int taken = 0;
+        QElapsedTimer clock;
         for (int frame = 0; frame < total; ++frame) {
             const qint64 position = qint64(frame) * perFrame;
             if (fromFile) {
@@ -348,7 +369,16 @@ int render(const QStringList &arguments) {
                 engine.setPaletteOverride(palette);
             }
             engine.setProgress(double(frame) / total);
-            engine.render(analyzer.analyze(1.0 / fps), 1.0 / fps, target.handle(), width, height);
+            const AudioFrame &heard = analyzer.analyze(1.0 / fps);
+            // Timed to the end of the drawing, so the graphics card's share
+            // counts, and the vertices are those of the frame just drawn.
+            clock.start();
+            engine.render(heard, 1.0 / fps, target.handle(), width, height);
+            QOpenGLContext::currentContext()->functions()->glFinish();
+            if (frame > 0) {
+                times.push_back(clock.nsecsElapsed());
+                vertices += engine.vertexCount();
+            }
             if (!engine.error().isEmpty())
                 return fail(command.argument(0) + ": " + engine.error());
             if (!frames.isEmpty() && frame >= first) {
@@ -359,13 +389,19 @@ int render(const QStringList &arguments) {
             }
             // Sheet frames are spread over the run and end on the last one.
             if (sheet > 1 && frame + 1 == (qint64(taken + 1) * total) / sheet) {
+                const QImage tile = target.toImage();
                 QPainter painter(&result);
-                painter.drawImage((taken % columns) * width, (taken / columns) * height, target.toImage());
+                painter.drawImage((taken % columns) * width, (taken / columns) * height, tile);
+                const Exposure seen = measureExposure(tile);
+                exposure.clipped += seen.clipped / sheet;
+                exposure.mean += seen.mean / sheet;
                 ++taken;
             }
         }
-        if (sheet == 1)
+        if (sheet == 1) {
             result = target.toImage().convertToFormat(QImage::Format_RGB32);
+            exposure = measureExposure(result);
+        }
     }
 
     if (!frames.isEmpty()) {
@@ -386,6 +422,10 @@ int render(const QStringList &arguments) {
     if (command.parser.isSet("json"))
         print({{"output", QFileInfo(output).absoluteFilePath()}, {"width", result.width()},
                {"height", result.height()}, {"preset", compiled.name},
+               {"clipped", std::round(exposure.clipped * 1000) / 1000},
+               {"mean", std::round(exposure.mean * 1000) / 1000},
+               {"ms", std::round(double(median(times)) / 1e4) / 100},
+               {"vertices", times.empty() ? 0 : vertices / qint64(times.size())},
                {"problems", problemsJson(compiled.problems)}});
     else
         print(stdout, "Wrote " + output);
@@ -544,6 +584,27 @@ int help(const QStringList &arguments) {
 }
 
 } // namespace
+
+Exposure measureExposure(const QImage &image) {
+    const QImage pixels = image.convertToFormat(QImage::Format_RGB32);
+    Exposure result;
+    if (pixels.isNull())
+        return result;
+    qint64 clipped = 0;
+    double light = 0;
+    for (int y = 0; y < pixels.height(); ++y) {
+        const QRgb *line = reinterpret_cast<const QRgb *>(pixels.constScanLine(y));
+        for (int x = 0; x < pixels.width(); ++x) {
+            const int r = qRed(line[x]), g = qGreen(line[x]), b = qBlue(line[x]);
+            clipped += std::max({r, g, b}) >= 250;
+            light += 0.299 * r + 0.587 * g + 0.114 * b;
+        }
+    }
+    const double count = double(pixels.width()) * pixels.height();
+    result.clipped = double(clipped) / count;
+    result.mean = light / 255.0 / count;
+    return result;
+}
 
 QString cliSummary() {
     return "Visualizer:\n"

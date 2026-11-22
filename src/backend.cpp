@@ -428,6 +428,7 @@ void Backend::adopt(const QJsonObject &json, const QString &name, bool saved, do
     m_json = json;
     m_saved = saved ? json : QJsonObject();
     m_currentName = name;
+    m_mashupParts.clear();
     // Only the library's own presets are shown in a round: a mash-up, or a
     // file opened from elsewhere, is none of them.
     if (const int index = m_library.indexOf(name); index >= 0 && !m_round.contains(m_library.presets()[index].name))
@@ -567,6 +568,9 @@ bool Backend::mashup(double blend) {
         // under a name that promises the lender.
         if (!presets::moves(motion))
             continue;
+        // A preset with nothing to draw leaves a mash-up of its layers black.
+        if (!presets::draws(drawn))
+            continue;
         const QString name = all[motionIndex].name + " × " + all[layersIndex].name;
         QJsonObject json{{"name", name}, {"description", tr("A mash-up. Save it to keep it.")}};
         const auto take = [&json](const QJsonObject &from, const QStringList &keys) {
@@ -578,9 +582,32 @@ bool Backend::mashup(double blend) {
         take(drawn, {"layers", "init", "frame"});
         take(look, {"post", "shade", "palette"});
         take(back, {"background"});
-        if (!presets::compile(json).ok())
+        // How much light builds up, and how bright it comes out, go with
+        // what is drawn: each preset sets these against its own layers.
+        // Dense layers made for a quick fade, under a slow one, add up to
+        // white, and a strong glow made for faint layers burns out dense
+        // ones.
+        for (const auto &[section, key] : presets::lightSettings()) {
+            QJsonObject part = json.value(section).toObject();
+            const QJsonValue value = drawn.value(section).toObject().value(key);
+            if (value.isUndefined())
+                part.remove(key);
+            else
+                part[key] = value;
+            if (part.isEmpty())
+                json.remove(section);
+            else
+                json[section] = part;
+        }
+        const CompiledPreset compiled = presets::compile(json);
+        if (!compiled.ok())
+            continue;
+        // Pixel code that sets the decay itself would bring the lender's
+        // fade back with its motion, so such a preset lends no motion.
+        if (compiled.pixel.assigns(compiled.vars.find("decay")))
             continue;
         adopt(json, name, true, blend, false);
+        m_mashupParts = {all[motionIndex].name, all[layersIndex].name, all[lookIndex].name, all[backIndex].name};
         return true;
     }
     return false;
@@ -1277,18 +1304,30 @@ QVariantMap Backend::stats() const {
         if (gap > 0)
             tempo = 60000.0 / double(gap);
     }
-    // What the preset is made of, kind by kind: "wireframe ×2, particles".
-    QStringList kinds;
-    QHash<QString, int> counts;
-    for (const auto &layer : m_json.value("layers").toArray()) {
-        const QString type = layer.toObject().value("type").toString();
-        if (!counts.contains(type))
-            kinds << type;
-        ++counts[type];
+    // What the preset is made of, kind by kind, with how each kind's light
+    // meets what is under it: "wave ×6 add, bars over".
+    QList<std::pair<QString, QString>> kinds;
+    QList<int> counts;
+    for (const auto &value : m_json.value("layers").toArray()) {
+        const QJsonObject layer = value.toObject();
+        const QString type = layer.value("type").toString();
+        QString blend = layer.value("blend").toString();
+        for (const Field &field : presets::fields(type))
+            if (blend.isEmpty() && field.key == "blend")
+                blend = field.text;
+        const qsizetype at = kinds.indexOf(std::pair(type, blend));
+        if (at < 0) {
+            kinds.append({type, blend});
+            counts.append(1);
+        } else {
+            ++counts[at];
+        }
     }
     QStringList layerSummary;
-    for (const auto &kind : kinds)
-        layerSummary << (counts[kind] > 1 ? QString("%1 ×%2").arg(kind).arg(counts[kind]) : kind);
+    for (qsizetype i = 0; i < kinds.size(); ++i) {
+        const QString many = counts[i] > 1 ? QString(" ×%1").arg(counts[i]) : QString();
+        layerSummary << (kinds[i].first + many + " " + kinds[i].second).trimmed();
+    }
     int errors = 0, warnings = 0;
     for (const auto &problem : m_problems)
         ++(problem.error ? errors : warnings);
@@ -1309,6 +1348,7 @@ QVariantMap Backend::stats() const {
             {"beats", frame.beats},
             {"tempo", tempo},
             {"layerSummary", layerSummary.join(", ")},
+            {"parts", m_mashupParts},
             {"errors", errors},
             {"warnings", warnings},
             {"path", path},

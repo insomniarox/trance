@@ -20,7 +20,7 @@
       "border": "palette(time*0.3)",
       "borderAlpha": 1,
       "borderWidth": "4 + 10*beat",
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

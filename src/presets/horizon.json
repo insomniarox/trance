@@ -31,7 +31,7 @@
       "depth": 3.5,
       "thickness": 1.5,
       "color": "palette(0.3 + 0.5*v + 0.2*t)",
-      "additive": false
+      "blend": "over"
     }
   ],
   "post": {

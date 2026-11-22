@@ -26,7 +26,7 @@
       "alpha": 0.9,
       "color2": "palette(0.5)",
       "alpha2": 0.9,
-      "additive": false
+      "blend": "over"
     },
     {
       "type": "bars",
@@ -41,7 +41,7 @@
       "fade": 0.2,
       "peaks": false,
       "symmetric": true,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",

@@ -54,6 +54,8 @@ public:
     bool isConstant() const { return m_constant; }
     // Whether any statement reads the variable in this slot.
     bool reads(int slot) const;
+    // Whether any statement assigns to it.
+    bool assigns(int slot) const;
 
     // Runs every statement and returns the value of the last one.
     double run(std::vector<double> &values) const;

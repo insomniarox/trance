@@ -12,7 +12,7 @@
       "color": "palette(n/howmany + time*0.1)",
       "alpha": 0.9,
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     }
   ]
 }

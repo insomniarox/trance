@@ -3,8 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 // What is running right now, for when something looks or sounds wrong: the
-// preset and where it came from, how hard the drawing is working, what is
-// arriving from the music, and the colors. Off unless asked for (D, or the
+// preset, its colors and where it came from, how hard the drawing is
+// working, what is arriving from the music, and when the next change is. Off unless asked for (D, or the
 // settings). It is small and half see-through, on a thin dark backing that
 // keeps it readable over light without hiding the picture under it.
 Item {
@@ -92,7 +92,30 @@ Item {
                      qsTr("quality %1 %").arg(Math.round(100 * backend.quality)),
                      backend.glass ? qsTr("glass %1 %").arg(Math.round(100 * backend.glassOpacity)) : ""])
     }
-    readonly property string graphicsLine: view ? join([view.graphics, details.glVersion]) : ""
+    readonly property string graphicsLine: view
+        ? join([view.graphics, details.glVersion,
+                details.wide === undefined ? "" : details.wide ? qsTr("half-float picture") : qsTr("8-bit picture")])
+        : ""
+    // What the motion and the light come to this frame, formulas and frame
+    // code worked out; pixel code may still bend them place by place.
+    readonly property string liveLine: {
+        const live = details.live
+        if (!live || live.decay === undefined)
+            return ""
+        return join([qsTr("decay %1").arg(number(live.decay, 3)),
+                     qsTr("zoom %1").arg(number(live.zoom, 3)),
+                     qsTr("rot %1").arg(number(live.rot, 3)),
+                     qsTr("bloom %1").arg(number(live.bloom, 2)),
+                     live.pixelCode ? qsTr("pixel code bends these") : ""])
+    }
+    // Where a mash-up's look and background came from; its name already
+    // says where the motion and the layers did.
+    readonly property string partsLine: {
+        const parts = stats.parts || []
+        if (parts.length !== 4)
+            return ""
+        return join([qsTr("look from %1").arg(parts[2]), qsTr("background from %1").arg(parts[3])])
+    }
     readonly property string visitorLine: {
         const names = details.visitorNames || []
         return names.length > 0 ? names.join(", ") : backend.visitors ? qsTr("none right now") : qsTr("off")
@@ -130,8 +153,13 @@ Item {
         Layout.maximumWidth: 420
         Layout.alignment: Qt.AlignBaseline
     }
-    // A gap between groups of rows.
-    component Gap: Item { Layout.columnSpan: 2; implicitHeight: 3 }
+    // A blank line between groups of rows.
+    FontMetrics {
+        id: lineMetrics
+        font.family: Ui.mono
+        font.pixelSize: overlay.valueSize
+    }
+    component Gap: Item { Layout.columnSpan: 2; implicitHeight: lineMetrics.height }
     // A name, a thin bar and the number, for one level as formulas know it.
     component Meter: Row {
         id: meter
@@ -182,18 +210,25 @@ Item {
         columnSpacing: 10
         rowSpacing: 2
 
+        // Rows that come and go sit at the end of their group, so they
+        // move as little as possible, and the change of preset, which comes
+        // and goes most, is the last line of all.
         Name { text: qsTr("Preset") }
         Value { text: overlay.presetLine }
         Name { text: qsTr("Layers") }
         Value { text: overlay.layerLine }
+        Name { text: qsTr("Live") }
+        Value { text: overlay.liveLine }
+        Name { text: qsTr("Colors") }
+        Value { text: overlay.colorLine }
+        Name { text: qsTr("Visitors") }
+        Value { text: overlay.visitorLine }
+        Name { text: qsTr("Mash-up"); visible: overlay.partsLine.length > 0 }
+        Value { text: overlay.partsLine; visible: overlay.partsLine.length > 0 }
         Name { text: qsTr("File"); visible: overlay.stats.path.length > 0 }
         Value { text: overlay.stats.path; visible: overlay.stats.path.length > 0; elide: Text.ElideMiddle }
         Name { text: qsTr("Problems"); visible: overlay.problemLine.length > 0; color: Ui.danger }
         Value { text: overlay.problemLine; visible: overlay.problemLine.length > 0; color: Ui.danger }
-        Name { text: qsTr("Next") }
-        Value { text: overlay.nextLine }
-        Name { text: qsTr("Changing"); visible: overlay.changeLine.length > 0 }
-        Value { text: overlay.changeLine; visible: overlay.changeLine.length > 0; color: Ui.warning }
 
         Gap {}
         Name { text: qsTr("Frame") }
@@ -204,16 +239,12 @@ Item {
         Value { text: overlay.sizeLine }
         Name { text: qsTr("Graphics") }
         Value { text: overlay.graphicsLine }
-        Name { text: qsTr("Visitors") }
-        Value { text: overlay.visitorLine }
 
         Gap {}
         Name { text: qsTr("Sound") }
         Value { text: overlay.soundLine }
         Name { text: qsTr("Tempo") }
         Value { text: overlay.tempoLine }
-        Name { text: qsTr("Track"); visible: overlay.trackLine.length > 0 }
-        Value { text: overlay.trackLine; visible: overlay.trackLine.length > 0 }
         // By the names formulas use, so a number here can be typed there.
         Name { text: qsTr("Levels") }
         Row {
@@ -244,9 +275,13 @@ Item {
                 }
             }
         }
+        Name { text: qsTr("Track"); visible: overlay.trackLine.length > 0 }
+        Value { text: overlay.trackLine; visible: overlay.trackLine.length > 0 }
 
         Gap {}
-        Name { text: qsTr("Colors") }
-        Value { text: overlay.colorLine }
+        Name { text: qsTr("Next") }
+        Value { text: overlay.nextLine }
+        Name { text: qsTr("Changing"); visible: overlay.changeLine.length > 0 }
+        Value { text: overlay.changeLine; visible: overlay.changeLine.length > 0; color: Ui.warning }
     }
 }

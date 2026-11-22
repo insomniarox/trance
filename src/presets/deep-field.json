@@ -38,7 +38,7 @@
       "alpha": 0.45,
       "color2": "palette(t)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",

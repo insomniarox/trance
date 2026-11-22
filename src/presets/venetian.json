@@ -35,7 +35,7 @@
       "size": 3.5,
       "color": "palette(0.5 + 0.3*i)",
       "alpha": 0.2,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",
@@ -47,7 +47,7 @@
       "thickness": 2.5,
       "color": "palette(0.5 + 0.5*min(abs(v)*2, 1))",
       "alpha": "0.25 + 0.6*beat",
-      "additive": true
+      "blend": "add"
     }
   ],
   "shade": "k = 0.12 + 0.88*smoothstep(0.3, 0.42, fract((y + 0.45*x)*5 + slat))\nr = r*k + 0.06*k\ng = g*k + 0.06*k\nb = b*k + 0.06*k",

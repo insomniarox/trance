@@ -341,7 +341,7 @@ brings in the opposite side, `mirror` a reflection (no seams), `clamp`
 stretches the border's color outward, `black` brings in nothing.
 
 *Darken center* exists because a zoom above 1 keeps enlarging the middle of
-the picture into itself, and additive light there piles up to white. The
+the picture into itself, and added light there piles up to white. The
 dark spot is too soft to see but enough to stop it.
 
 ## 8. Layers
@@ -356,16 +356,23 @@ can have up to 24.
 | In the editor | In the file | What it does |
 |---|---|---|
 | Shown | `enabled` | Turns the layer off without removing it |
-| Additive | `additive` | Light adds up where things overlap, instead of the newer covering the older |
+| Blend | `blend` | How its light meets what is under it: `over` covers it, `add` adds to it, `max` keeps the brighter of the two |
 | Opacity | `alpha` | How solid it is drawn, 0 to 1 |
 | Color | `color` | See [section 9](#9-colors-and-palettes) |
 
-*Additive* is the difference between light and paint. Additive layers glow
-and blend, and two of them crossing make a brighter spot. They are also the
+*Blend* is the difference between light and paint. `add` layers glow and
+blend, and two of them crossing make a brighter spot. They are also the
 usual reason a picture burns out to white: light that adds up every frame on
-top of a long decay has nowhere to go. A layer that is *not* additive covers
-what is under it, which is how to draw something solid, or something black
-that hides the middle.
+top of a long decay has nowhere to go. `over` covers what is under it, which
+is how to draw something solid, or something black that hides the middle.
+`max` keeps whichever is brighter, the layer or what is under it, so it
+glows where it is drawn but never grows past its own color, however long
+the decay and however often it crosses itself: G-Force's way, where a line
+overwrites the picture instead of adding to it. Dense layers that burn out
+as `add` keep their color as `max`; a dark color drawn with it shows only
+on darker ground. Waves, terrain, wireframes, vectors and particles are
+`add` unless you say otherwise, bars and shapes `over`. Older presets that
+say `"additive": true` or `false` mean `add` and `over`.
 
 A layer's formulas can read everything in sections 3 and 4, plus a few
 numbers of the layer's own, which are different for each point, bar, copy or
@@ -456,7 +463,7 @@ The spectrum as bars, bass to treble. `"type": "bars"`.
 Bars are the one layer that needs no explaining to whoever is watching,
 which makes them a good anchor for a picture that is otherwise abstract.
 `radial` bars round a circle with a zoom behind them make a sunburst.
-Bars are not additive unless you say so, so they cover what is under them.
+Bars are `over` unless you say otherwise, so they cover what is under them.
 
 ### Shape
 
@@ -939,7 +946,8 @@ one layer for each of the six ranges.
 
 | What you see | Why | What to do |
 |---|---|---|
-| It burns out to white | Additive light piling up on a long decay | Lower `decay`, or the layers' `alpha`, or `bloom`; turn on `darkenCenter` if it is the middle |
+| It burns out to white | `add` light piling up on a long decay | Give the dense layers `"blend": "max"`, or lower `decay`, the layers' `alpha` or `bloom`; turn on `darkenCenter` if it is the middle. `trance render --json` reports `clipped`, the share at the top |
+| It stutters | Too much drawn a frame: a shape with hundreds of copies, many sides and a border, or copies far larger than the screen drawn over each other | `trance render --json` reports `ms` and `vertices` a frame; the built-ins stay under about 40000 vertices. Fewer copies or sides, or no border, cut vertices; smaller shapes cut the time |
 | It is nearly black | Decay too low for thin lines, or opacity tied to a range that is silent | Raise `decay` or `thickness`; give the opacity a resting value (`0.3 + 0.5*x`) |
 | It jitters | Motion driven by a plain loudness | Use the `_att` one |
 | It hardly reacts | The amounts are too small beside the resting values | Double the number in front of the loudness |
@@ -952,4 +960,9 @@ one layer for each of the six ranges.
 
 `trance check` names the setting each problem is in, for example
 `feedback.zoom: Unknown variable 'basss'`, and unknown settings are
-reported as warnings rather than ignored.
+reported as warnings rather than ignored. So is a number past what the engine
+draws: `decay` and the opacities are held to 0 to 1, `zoom` and the
+stretches to at least 0.01, and the counts (samples, bars, copies, rows,
+particles) to the largest the editor offers, so `"decay": 1.2` warns that it
+draws as 1. The editor's other ranges are only where its sliders stop; a
+number past them does what it says.

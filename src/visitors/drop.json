@@ -15,7 +15,7 @@
       "border": "palette(0.2 + 0.4*n + time*0.05)",
       "borderAlpha": "clamp(1 - 1.4*age, 0, 1)*above(age, 0.14*n)*(1 - 0.4*n)",
       "borderWidth": "2.5 - n",
-      "additive": true
+      "blend": "add"
     }
   ]
 }

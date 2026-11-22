@@ -592,6 +592,13 @@ bool Program::reads(int slot) const {
     return false;
 }
 
+bool Program::assigns(int slot) const {
+    for (const Statement &statement : m_statements)
+        if (statement.target == slot)
+            return true;
+    return false;
+}
+
 bool Program::parse(const QString &source, Vars &vars, QString *error) {
     m_nodes.clear();
     m_statements.clear();

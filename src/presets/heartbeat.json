@@ -17,7 +17,7 @@
       "alpha": "0.2 + 0.3*beat",
       "color2": "palette(0.35)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "wave",

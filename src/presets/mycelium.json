@@ -63,7 +63,7 @@
       "alpha": "0.1 + 0.3*v",
       "color2": "palette(0.8)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "particles",

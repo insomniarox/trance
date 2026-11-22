@@ -24,7 +24,7 @@
       "alpha": 0.8,
       "color2": "palette(0.12)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -36,7 +36,7 @@
       "alpha": 0.65,
       "color2": "palette(0.00 + time*0.01)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -48,7 +48,7 @@
       "alpha": 0.65,
       "color2": "palette(0.17 + time*0.01)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -60,7 +60,7 @@
       "alpha": 0.65,
       "color2": "palette(0.33 + time*0.01)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -72,7 +72,7 @@
       "alpha": 0.65,
       "color2": "palette(0.50 + time*0.01)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -84,7 +84,7 @@
       "alpha": 0.65,
       "color2": "palette(0.67 + time*0.01)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -96,7 +96,7 @@
       "alpha": 0.65,
       "color2": "palette(0.83 + time*0.01)",
       "alpha2": 0,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "particles",

@@ -23,7 +23,7 @@
       "border": "palette(t + spin*0.05)",
       "borderAlpha": 0.8,
       "borderWidth": 2.4,
-      "additive": true
+      "blend": "add"
     },
     {
       "type": "shape",
@@ -38,7 +38,7 @@
       "border": "palette(t + spin*0.05 + 0.5)",
       "borderAlpha": 0.8,
       "borderWidth": 2.4,
-      "additive": true
+      "blend": "add"
     }
   ],
   "post": {

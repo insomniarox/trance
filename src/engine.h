@@ -99,6 +99,14 @@ public:
     int particleCount() const;
     int vertexCount() const { return m_lastVertices; }
     bool building() const { return m_awaitedId != 0; }
+    // The settings that decide how the picture moves and how bright it
+    // gets, as the preset showing worked them out for the last frame, so
+    // formulas and frame code are taken into account. Pixel code may still
+    // change them place by place, which pixelCode says.
+    QVariantMap liveSettings() const;
+    // Whether the picture is kept in half floats, or in 8 bits a channel
+    // where the graphics card can't draw to half floats.
+    bool wideBuffers() const { return m_wide; }
     // The size the picture is worked out at, which the quality setting and
     // the line limit make smaller than the window.
     int pictureWidth() const { return m_width; }
@@ -131,12 +139,17 @@ private:
         int band[AudioFrame::Bands], bandAtt[AudioFrame::Bands];
         int z;
     };
+    // How a layer's light meets what is under it: covering it, adding to
+    // it, or keeping the brighter of the two, which never grows past the
+    // layer's own color however often it is drawn there.
+    enum class Blend : uint8_t { Over, Add, Max };
     // A wave as it is about to be drawn, kept apart from the drawing so two
     // of them can be blended into one.
     struct WaveShape {
         std::vector<Point> points;
         std::vector<float> levels; // how loud the sound is at each point
-        bool closed = false, dots = false, additive = true;
+        bool closed = false, dots = false;
+        Blend blend = Blend::Add;
         float halfWidth = 0;
         QString mirror;
     };
@@ -232,7 +245,7 @@ private:
     }
     void polyline(const std::vector<Point> &points, bool closed, float halfWidth);
     void dot(const Point &point, float halfSize);
-    void flush(bool additive);
+    void flush(Blend blend);
     float random();
 
     bool m_initialized = false;
