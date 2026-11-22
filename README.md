@@ -47,9 +47,9 @@ Every preset can be changed while it runs. See them move on
   a ripple on every kick.
 - **Track titles** from whatever player is running, in the corner or written
   into the picture for the flow to carry off.
-- **Light on the processor.** The picture is drawn on the graphics card.
-  Even the heaviest preset takes under 2 ms of a laptop processor's time to
-  draw a 1080p frame.
+- **Light on the processor.** The picture is drawn on the graphics card, and
+  a laptop's integrated graphics draw a 1080p frame in about 2 ms on average
+  across the presets.
 
 ## Install
 
