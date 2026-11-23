@@ -1,0 +1,108 @@
+#!/bin/sh
+# Renders the pictures and clips the website shows:
+#   bin/site-media ~/trance-media [--audio track.mp3]
+#
+#   tiles/<slug>.png    every built-in preset at 1280x720, twelve seconds in,
+#                       in its own colors
+#   clips/<slug>.webm   eight seconds of seven presets at 1280x720 and 30 fps,
+#   clips/<slug>.mp4    no sound, the colors drifting as they do in the window
+#   stills/<slug>.png   the same seven at 2560x1440
+#
+# They react to the track given, or else to the built-in test loop. Needs a
+# built trance (bin/build), ffmpeg and jq.
+set -eu
+
+usage() {
+  echo "Usage: bin/site-media <out-dir> [--audio track.mp3]" >&2
+  exit 2
+}
+[ $# -ge 1 ] || usage
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+TRANCE="$ROOT/build/trance"
+OUT="$1"
+shift
+AUDIO=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --audio)
+      [ $# -ge 2 ] || usage
+      AUDIO="$(realpath -- "$2")"
+      shift 2
+      ;;
+    *) usage ;;
+  esac
+done
+for tool in ffmpeg jq; do
+  command -v "$tool" >/dev/null || { echo "bin/site-media needs $tool." >&2; exit 1; }
+done
+[ -x "$TRANCE" ] || { echo "Build trance first: bin/build" >&2; exit 1; }
+
+# Plain ones, ones listening to the six narrow ranges, and three of the
+# newest, Blueprint among them on the wireframe.
+CLIPS="Synth Road
+Nebula
+Jellyfish
+Corona
+Blueprint
+Glowstring
+Doppler"
+# Kept under about 3 MB for eight seconds.
+RATE=2600k
+
+mkdir -p "$OUT/tiles" "$OUT/clips" "$OUT/stills"
+OUT="$(realpath -- "$OUT")"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+render() {
+  if [ -n "$AUDIO" ]; then
+    "$TRANCE" render "$@" --audio "$AUDIO" >/dev/null
+  else
+    "$TRANCE" render "$@" >/dev/null
+  fi
+}
+
+# As trance names its files: lowercase, each run of anything else a dash.
+slug() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-//; s/-$//'
+}
+
+# Rendered at 60 fps and every other frame kept: at 30 the trails build up
+# differently from the window's.
+clip() {
+  name="$1"
+  shift
+  rm -rf "$WORK/frames"
+  render "$@" --frames "$WORK/frames" --size 1280x720 --fps 60 --drift
+  ffmpeg -nostdin -v error -y -framerate 60 -i "$WORK/frames/%05d.png" -vf fps=30 -an -pix_fmt yuv420p \
+    -c:v libvpx-vp9 -crf 34 -b:v "$RATE" -row-mt 1 -deadline good -cpu-used 2 "$OUT/clips/$name.webm"
+  ffmpeg -nostdin -v error -y -framerate 60 -i "$WORK/frames/%05d.png" -vf fps=30 -an -pix_fmt yuv420p \
+    -c:v libx264 -preset slow -crf 23 -maxrate "$RATE" -bufsize 5200k -movflags +faststart "$OUT/clips/$name.mp4"
+  echo "Wrote clips/$name.webm and .mp4"
+}
+
+# By the built-in's own file, so a copy of your own never stands in for it.
+"$TRANCE" list --json | jq -r '.presets[] | select(.shadowsBuiltin) | .name' | while IFS= read -r name; do
+  echo "Your copy of $name hides the built-in; its tile is left out." >&2
+done
+"$TRANCE" list --json | jq -r '.presets[] | select(.builtin) | .path' | {
+  count=0
+  while IFS= read -r path; do
+    (cd "$OUT/tiles" && render "$path" --size 1280x720 --seconds 12)
+    count=$((count + 1))
+  done
+  echo "Wrote $count tiles"
+}
+
+echo "$CLIPS" | while IFS= read -r name; do
+  render "$name" -o "$OUT/stills/$(slug "$name").png" --size 2560x1440 --seconds 12 --drift
+done
+echo "Wrote $(echo "$CLIPS" | wc -l) stills"
+
+echo "$CLIPS" | while IFS= read -r name; do
+  clip "$(slug "$name")" "$name" --seconds 12 --start 4
+done
+
+find "$OUT/clips" -type f -size +3000k | while IFS= read -r big; do
+  echo "Over 3 MB: $big" >&2
+done

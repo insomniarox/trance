@@ -1,0 +1,404 @@
+#!/usr/bin/env python3
+"""Stress presets for Trance: each pushes one boundary of the format to its end.
+
+    bin/limits              write them into the user presets folder
+    bin/limits --to DIR     write them somewhere else
+    bin/limits --remove     take them out of the user presets folder again
+
+They are named "Limit ...", by "Limit test", so they are easy to find in the
+browser and to tell apart in mash-ups. Try each alone and in mash-ups (X),
+with the debug overlay (D) on; `trance render "Limit Crowd" --json` gives its
+exposure (clipped, mean) and cost (ms, vertices).
+
+"Limit Max Solid", "Limit Max Trails" and "Limit Max Switch" check the
+brighter-of-two blend (max) on its own, on any graphics card. On the dev
+iGPU (Mesa, Intel ADL), `trance render NAME -o NAME.png --json` at the
+defaults (1280x720, 6 s, 60 fps) gives:
+
+    Limit Max Solid    clipped 0      mean 0.045  brightest R G B 192 160 176
+                       top row #c00000 #00a000 #0000b0, overlaps #c0a000
+                       #c000b0 #00a0b0 #c0a0b0, bottom row exactly half
+    Limit Max Trails   clipped 0      mean 0.624  brightest R G B 192 192 192
+    Limit Max Switch   clipped 0.073  mean 0.177  rows top down: 255, 160,
+                       48, 160, then again (gray levels)
+
+Another card should give the same colors to within a step or two; a max
+row or disc brighter than its own color means max is wrong there.
+"""
+import argparse
+import copy
+import json
+import os
+import sys
+
+AUTHOR = "Limit test"
+
+
+def presets_folder():
+    if sys.platform == "win32":
+        return os.path.join(os.environ["LOCALAPPDATA"], "trance", "presets")
+    config = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return os.path.join(config, "trance", "presets")
+
+
+def slug(name):
+    return name.lower().replace(" ", "-")
+
+
+def make():
+    presets = []
+
+    def add(p):
+        p.setdefault("author", AUTHOR)
+        presets.append(p)
+
+    # Brightness ceiling: nothing ever fades and everything adds up.
+    burn = {
+        "name": "Limit Burn",
+        "description": "Brightness ceiling: decay 1, every layer adding light at full alpha, bloom and "
+                       "brightness at their tops.",
+        "palette": "nova",
+        "feedback": {"decay": 1, "zoom": 1.004, "rot": 0.003},
+        "background": {"style": "rays", "intensity": 2},
+        "layers": [
+            {"type": "wave", "shape": "circle", "samples": 512, "scale": 2, "thickness": 40, "color": "white",
+             "alpha": 1},
+            {"type": "wave", "shape": "line", "samples": 512, "scale": 2, "thickness": 40, "mirror": "quad",
+             "color": "palette(t + time*0.1)", "alpha": 1},
+            {"type": "shape", "sides": 64, "instances": 512, "radius": 0.2, "blend": "add", "alpha": 1, "alpha2": 1,
+             "x": "(noise(n*1.3, time*0.2)*2 - 1)*aspect", "y": "noise(n*2.1, time*0.2 + 9)*2 - 1",
+             "color": "palette(t)", "color2": "palette(t + 0.5)"},
+            {"type": "bars", "count": 128, "height": 2, "alpha": 1, "blend": "add", "fade": 0},
+            {"type": "vectors", "cols": 64, "rows": 48, "length": 8, "thickness": 12, "alpha": 1},
+            {"type": "particles", "emit": "screen", "count": 4000, "rate": 2000, "size": 30, "life": 10, "alpha": 1},
+        ],
+        "post": {"bloom": 3, "bloomThreshold": 0, "brightness": 3, "contrast": 2, "saturation": 2, "vignette": 0},
+    }
+    add(burn)
+
+    # The same layers and decay, every layer brighter-of-two, from a palette
+    # without white and with the default finish: never past its own color.
+    ceiling = copy.deepcopy(burn)
+    ceiling["name"] = "Limit Ceiling"
+    ceiling["description"] = ("Limit Burn's layers and decay 1, colored from a palette without white, with every "
+                              "layer on blend max and the default finish: light that never grows past each "
+                              "layer's own color.")
+    ceiling["palette"] = "aurora"
+    ceiling.pop("post")
+    for layer in ceiling["layers"]:
+        layer["blend"] = "max"
+        if layer.get("color") == "white":
+            layer["color"] = "palette(time*0.1)"
+    add(ceiling)
+
+    # Brighter-of-two (blend max) on its own, for checking it on a graphics
+    # card against the numbers `trance render NAME --json` gives on another.
+    # The finish is neutral and there is no bloom, so what is on screen is
+    # what the layers laid down. No rand(), so a render is the same each time.
+    neutral = {"bloom": 0, "brightness": 1, "contrast": 1, "saturation": 1, "gamma": 1, "vignette": 0}
+    still = {"decay": 1, "zoom": 1, "rot": 0, "warp": 0}
+
+    # Standing still: what max settles at, read straight off the screen.
+    discs = []
+    for row, alpha in [(0.45, 1), (-0.45, 0.5)]:
+        for x, color in [(-0.2, "#c00000"), (0.2, "#00a000"), (0, "#0000b0")]:
+            discs.append({"type": "shape", "sides": 64, "radius": 0.32, "x": x, "y": row + (0.12 if x else -0.12),
+                          "color": color, "alpha": alpha, "color2": color, "alpha2": alpha, "blend": "max"})
+    add({
+        "name": "Limit Max Solid",
+        "description": "Blend max standing still: three discs drawn every frame onto themselves, nothing moving "
+                       "or fading. Top row at full opacity, #c00000, #00a000, #0000b0, with each overlap the "
+                       "brighter of each channel (#c0a000, #c000b0, #00a0b0, #c0a0b0 in the middle); bottom row "
+                       "at opacity 0.5, exactly half as bright. Nothing ever grows past that.",
+        "feedback": still,
+        "layers": discs,
+        "post": neutral,
+    })
+
+    # Moving and never fading: every kind of layer on max piles its light up
+    # where the picture carries it, and none of it may pass its own color.
+    add({
+        "name": "Limit Max Trails",
+        "description": "Blend max moving: decay 1 with a zoom and a turn, so every layer's light piles up "
+                       "where it is carried, one kind of layer of each in its own color, none brighter than "
+                       "#c0c0c0. Clipped stays 0: anything near white is wrong.",
+        "feedback": {"decay": 1, "zoom": 1.012, "rot": 0.006},
+        "layers": [
+            {"type": "wave", "shape": "circle", "radius": 0.35, "thickness": 6, "color": "#00b0b0", "alpha": 1,
+             "blend": "max"},
+            {"type": "bars", "layout": "radial", "count": 64, "radius": 0.6, "height": 0.6, "color": "#b0b000",
+             "alpha": 1, "blend": "max"},
+            {"type": "shape", "sides": 5, "instances": 24, "radius": 0.06, "x": "0.8*cos(n*0.26 + time)*aspect",
+             "y": "0.8*sin(n*0.26 + time)", "color": "#b000b0", "alpha": 1, "color2": "#b000b0", "alpha2": 1,
+             "blend": "max"},
+            {"type": "terrain", "style": "lines", "color": "#4080c0", "alpha": 1, "blend": "max"},
+            {"type": "wireframe", "form": "sphere", "yaw": "time*0.3", "color": "#c06040", "alpha": 1,
+             "blend": "max"},
+            {"type": "vectors", "cols": 32, "rows": 18, "color": "#60c060", "alpha": 1, "blend": "max"},
+            {"type": "particles", "emit": "wave", "count": 1500, "rate": 600, "size": 3, "color": "#c0c0c0",
+             "alpha": 1, "blend": "max"},
+        ],
+        "post": neutral,
+    })
+
+    # Max between the other two, again and again: each layer must take the
+    # blend it asks for, not the one before it.
+    switching = []
+    for k, blend in enumerate(["add", "max", "over", "max", "add", "max", "over", "max"]):
+        gray = "#a0a0a0" if blend == "max" else "#303030"
+        switching.append({"type": "shape", "sides": 32, "instances": 6, "radius": 0.12,
+                          "x": f"(n/count*2 - 0.85)*aspect", "y": f"{0.85 - k * 0.24:.2f}",
+                          "color": gray, "alpha": 1, "color2": gray, "alpha2": 1, "blend": blend})
+    add({
+        "name": "Limit Max Switch",
+        "description": "Blend max in between add and over, eight rows of discs taking turns: add, max, over, "
+                       "max, and again. Standing still with decay 1, so the add rows climb to white, the over "
+                       "rows stay dark gray, and every max row holds at #a0a0a0 whatever was drawn before it.",
+        "feedback": still,
+        "layers": switching,
+        "post": neutral,
+    })
+
+    # Darkness floor: fastest fade, faintest layers, the finish crushing what is left.
+    add({
+        "name": "Limit Void",
+        "description": "Darkness floor: decay 0.5, near-invisible layers, brightness and contrast near 0, "
+                       "gamma 3, vignette 1.5.",
+        "palette": "abyss",
+        "feedback": {"decay": 0.5, "zoom": 0.99, "darkenCenter": True, "edge": "black"},
+        "layers": [
+            {"type": "wave", "shape": "circle", "thickness": 0.5, "alpha": 0.02, "color": "palette(t)"},
+            {"type": "particles", "emit": "wave", "count": 16, "rate": 4, "size": 0.5, "alpha": 0.05},
+        ],
+        "post": {"bloom": 0, "brightness": 0.15, "contrast": 0, "saturation": 0, "gamma": 3, "vignette": 1.5},
+    })
+
+    # No layers at all, and the background at every top.
+    add({
+        "name": "Limit Bare",
+        "description": "No layers at all; the background at full intensity, smallest scale, fastest speed, "
+                       "whole palette.",
+        "palette": "turbo",
+        "feedback": {"decay": 0.8, "dx": 0.05},
+        "background": {"style": "plasma", "intensity": 2, "tint": 1, "spread": 1, "scale": 0.2, "speed": 5},
+        "layers": [],
+    })
+
+    # Counts: 24 layers, each at its largest count.
+    crowd = []
+    for shape, extra in [("custom", {"point": "x = (t*2 - 1)*aspect\ny = v*0.8 + 0.6*sin(t*40 + time)"}),
+                         ("circle", {"radius": 1.2}), ("xy", {"scale": 2}), ("line", {"mirror": "quad"})]:
+        crowd.append(dict({"type": "wave", "shape": shape, "samples": 512, "thickness": 12, "alpha": 0.3,
+                           "color": "palette(t + time*0.05)"}, **extra))
+    crowd += [
+        {"type": "bars", "layout": "radial", "count": 128, "radius": 1, "height": 2, "alpha": 0.4},
+        {"type": "bars", "layout": "bottom", "count": 128, "height": 2, "alpha": 0.4, "symmetric": True},
+    ]
+    for k in range(3):
+        crowd.append({"type": "shape", "sides": 64, "instances": 512, "textured": True, "texZoom": 0.2 + 2.4 * k,
+                      "radius": "0.03 + 0.05*v", "x": f"(fract(t*{7 + k}.13)*2 - 1)*aspect",
+                      "y": f"fract(t*{3 + k}.71)*2 - 1", "angle": "time + n", "alpha": 0.25,
+                      "border": "palette(t)", "borderAlpha": 0.4, "borderWidth": 20,
+                      "code": "radius = radius*(1 + 0.5*beat)"})
+    crowd += [
+        {"type": "terrain", "style": "mesh", "rows": 64, "cols": 128, "speed": 60, "alpha": 0.4},
+        {"type": "terrain", "style": "lines", "rows": 64, "cols": 128, "speed": 60, "horizon": 0.9, "y": 1,
+         "alpha": 0.4},
+    ]
+    for form, style in [("sphere", "mesh"), ("tube", "strands"), ("sheet", "dots")]:
+        crowd.append({"type": "wireframe", "form": form, "bins": 128, "rows": 64, "speed": 60, "style": style,
+                      "yaw": "time*0.3", "alpha": 0.4, "thickness": 3})
+    crowd += [
+        {"type": "vectors", "cols": 64, "rows": 48, "length": 8, "thickness": 12, "alpha": 0.2},
+        {"type": "vectors", "cols": 64, "rows": 48, "length": 8, "thickness": 12, "alpha": 0.2, "dots": True},
+    ]
+    for emit in ["wave", "bars", "edges", "screen", "point", "wave", "screen", "point"]:
+        crowd.append({"type": "particles", "emit": emit, "count": 4000, "rate": 2000, "streak": 0.5, "size": 4,
+                      "life": 3, "field": 4, "fieldScale": 8, "fieldSpeed": 3, "swirl": 2, "flow": 2, "area": 2,
+                      "alpha": 0.3})
+    assert len(crowd) == 24
+    add({
+        "name": "Limit Crowd",
+        "description": "Counts: 24 layers, the most there can be, each at its largest count: 512 samples, "
+                       "128 bars, 512 textured shapes, 64×128 terrain, 128×64 wireframes, 64×48 vectors, "
+                       "4000 particles at 2000 a second.",
+        "palette": "rainbow",
+        "feedback": {"decay": 0.9, "zoom": 1.01, "rot": 0.004},
+        "layers": crowd,
+        "post": {"bloom": 1},
+    })
+
+    # Motion at every limit, and code bending it everywhere.
+    add({
+        "name": "Limit Torrent",
+        "description": "Motion: zoom swinging 0.8 to 1.2, zoomexp 4, rot ±0.2, warp 5, slide and stretch at "
+                       "their ends, blur 1, hueshift 0.2, pixel code on top. A layer switches on and off by "
+                       "formula.",
+        "palette": "acid",
+        "feedback": {"decay": 0.92, "zoom": "1 + 0.2*sin(time*0.9)", "zoomexp": 4, "rot": "0.2*sin(time*0.37)",
+                     "warp": 5, "warpScale": 0.1, "warpSpeed": 5, "cx": "0.9*sin(time*0.2)",
+                     "cy": "0.9*cos(time*0.23)", "dx": "0.05*cos(time*0.5)", "dy": "0.05*sin(time*0.6)",
+                     "sx": 1.2, "sy": 0.8, "blur": 1, "hueshift": 0.2, "edge": "mirror"},
+        "pixel": "zoom = zoom + 0.1*sin(rad*12 - time*3)\nrot = rot + 0.1*cos(ang*5 + time)\n"
+                 "dx = dx + 0.02*sin(y*20 + time*4)\ndy = dy + 0.02*cos(x*20 + time*3)",
+        "layers": [
+            {"type": "wave", "shape": "circle", "radius": 0.3, "thickness": 4, "color": "palette(t + time*0.2)"},
+            {"type": "particles", "emit": "wave", "count": 1500, "rate": 600, "flow": 2, "size": 3},
+            {"type": "vectors", "alpha": 0.5},
+            {"type": "shape", "sides": 5, "instances": 12, "radius": 0.1, "x": "0.7*cos(n + time)*aspect",
+             "y": "0.7*sin(n + time)", "enabled": "above(beat, 0.3)", "blend": "max", "color": "palette(t)",
+             "alpha": 0.8},
+        ],
+    })
+
+    # Decay set by code: per pixel (never lends motion) and per frame (goes with the layers).
+    add({
+        "name": "Limit Self Fade",
+        "description": "Decay set by code: pixel code sets it absolutely, so this never lends its motion to a "
+                       "mash-up; frame code flips it with the beat, which goes along with its dense layers.",
+        "palette": "aurora",
+        "frame": "decay = 0.7 + 0.29*beat",
+        "pixel": "rot = 0.01*sin(rad*4 - time)\ndecay = 0.995 - 0.3*smoothstep(0.2, 1.2, rad)",
+        "feedback": {"decay": 0.86},
+        "layers": [
+            {"type": "wave", "shape": "custom", "samples": 384, "thickness": 6, "alpha": 0.5,
+             "color": "palette(t + time*0.05)",
+             "point": "ln = floor(t*8*0.9999)\nu = t*8 - ln\nx = ((ln + 0.5)/8*2 - 1)*aspect + "
+                      "0.1*sin(u*6 + time + ln)\ny = u*2 - 1"},
+            {"type": "wave", "shape": "custom", "samples": 384, "thickness": 6, "alpha": 0.5,
+             "color": "palette(t + 0.5)",
+             "point": "ln = floor(t*8*0.9999)\nu = t*8 - ln\ny = ((ln + 0.5)/8*2 - 1) + "
+                      "0.1*sin(u*6 + time*1.3 + ln)\nx = (u*2 - 1)*aspect"},
+        ],
+    })
+
+    # The finish: every post setting at its end, with a harsh palette and shade code.
+    add({
+        "name": "Limit Post",
+        "description": "Finish: colorize 1 with curve 4, kaleido 16, echo 1 at zoom 4 flipped, chroma 3, "
+                       "mirror quad, invert 1, gamma 0.3, saturation and contrast 2, grain 0.5, scanlines 1, "
+                       "vignette 1.5, a 16-stop black-and-white palette, and shade code.",
+        "palette": ["#000000", "#ffffff", "#ff0000", "#000000", "#00ff00", "#ffffff", "#0000ff", "#000000",
+                    "#ffff00", "#ffffff", "#ff00ff", "#000000", "#00ffff", "#ffffff", "#ff8000", "#000000"],
+        "feedback": {"decay": 0.95, "zoom": 1.02, "rot": 0.01},
+        "shade": "r = r*1.5\ng = abs(sin(g*10 + time))\nb = 1 - b",
+        "layers": [
+            {"type": "wave", "shape": "circle", "thickness": 5, "color": "white"},
+            {"type": "particles", "emit": "wave", "count": 800, "rate": 300, "color": "white"},
+        ],
+        "post": {"colorize": 1, "colorShift": "sin(time*0.2)", "colorCurve": 4, "bloom": 3, "bloomThreshold": 1.2,
+                 "brightness": 3, "contrast": 2, "saturation": 2, "gamma": 0.3, "hue": "3.1416*sin(time*0.3)",
+                 "invert": 1, "mirror": "quad", "kaleido": 16, "kaleidoAngle": "time", "echoAlpha": 1,
+                 "echoZoom": 4, "echoFlip": "xy", "chroma": 3, "vignette": 1.5, "grain": 0.5, "scanlines": 1},
+    })
+
+    # Reach: geometry at its extents, partly off screen.
+    add({
+        "name": "Limit Reach",
+        "description": "Extents: waves off the screen's edges, shapes twice the screen, textures at 0.2 and 5, "
+                       "terrain height 2 and depth 10, a wireframe camera inside a size-4 morphing sphere, "
+                       "particles at speed 4 with gravity 3, drag -3, pull 6 and swirl -6.",
+        "palette": "spectral",
+        "feedback": {"decay": 0.9, "rot": 0.005, "edge": "wrap"},
+        "layers": [
+            {"type": "wave", "shape": "circle", "x": 2, "radius": 1.5, "thickness": 8, "color": "palette(t)"},
+            {"type": "wave", "shape": "line", "x": -2, "y": -1, "width": 2, "scale": 2, "thickness": 8},
+            {"type": "shape", "sides": 3, "radius": 2, "textured": True, "texZoom": 0.2, "angle": "time*0.2",
+             "alpha": 0.5},
+            {"type": "shape", "sides": 64, "radius": 2, "textured": True, "texZoom": 5, "texAngle": 3.1416,
+             "alpha": 0.3},
+            {"type": "terrain", "height": 2, "depth": 10, "horizon": 1, "width": 4, "speed": 60, "y": -1.5,
+             "thickness": 10, "alpha": 0.6},
+            {"type": "wireframe", "form": "sheet", "form2": "sphere", "morph": "0.5 + 0.5*sin(time*0.5)",
+             "distance": 0.5, "size": 4, "height": 2, "radius": 3, "low": 0, "high": 16000, "tilt": 30,
+             "fade": 0.02, "smooth": 0.95, "pitch": 1.5708, "roll": "time", "fog": 0, "alpha": 0.6},
+            {"type": "particles", "emit": "point", "count": 2000, "rate": 800, "speed": 4, "gravity": 3,
+             "drag": -3, "pull": 6, "swirl": -6, "edge": "bounce", "life": 10, "size": 30, "alpha": 0.3},
+            {"type": "particles", "emit": "edges", "count": 2000, "rate": 2000, "life": 0.1, "size": 0.5},
+            {"type": "bars", "layout": "radial", "radius": 1, "height": 2, "count": 4, "gap": 0.9},
+        ],
+    })
+
+    # Code: as many variables as fit under the 480 limit, in every block.
+    # 115 statements each in frame, pixel and shade is the most that fits.
+    n = 115
+    frame = "\n".join(f"f{k} = f{k}*0.9 + 0.1*sin(time*{1 + k % 7} + {k})*bass_att" for k in range(n))
+    pixel = "\n".join(f"p{k} = sin(rad*{k % 9 + 1} + time + f{k})" for k in range(n))
+    pixel += "\nrot = 0.002*(" + " + ".join(f"p{k}" for k in range(0, n, n // 16)) + ")"
+    shade = "\n".join(f"s{k} = lum*{(k % 5) / 10 + 0.5} + 0.01*f{k}" for k in range(n))
+    shade += "\nr = r + 0.02*s0\ng = g + 0.02*s1"
+    points = 40
+    point = "\n".join(f"q{k} = sin(t*{k + 1}*6.28 + time) * v" for k in range(points))
+    point += "\nx = (t*2 - 1)*aspect\ny = (" + " + ".join(f"q{k}" for k in range(points)) + f")/{points}*2"
+    add({
+        "name": "Limit Code",
+        "description": "Code: as many variables as fit under the 480 limit, spread over frame, pixel, shade "
+                       "and per-point code, with a 512-instance shape running code per copy.",
+        "palette": "phosphor",
+        "init": "\n".join(f"f{k} = rand({k + 1})" for k in range(n)),
+        "frame": frame,
+        "pixel": pixel,
+        "shade": shade,
+        "feedback": {"decay": 0.93, "zoom": 1.01},
+        "layers": [
+            {"type": "wave", "shape": "custom", "samples": 512, "thickness": 3, "point": point,
+             "color": "palette(t + f0)"},
+            {"type": "shape", "sides": 6, "instances": 512, "radius": 0.02,
+             "code": "x = (fract(n*0.618 + f1*0.01)*2 - 1)*aspect\ny = sin(n*0.1 + time + f2)*0.9\n"
+                     "angle = n + time",
+             "color": "palette(t)", "alpha": 0.6},
+        ],
+    })
+
+    # Past the declared ranges: what the engine itself holds, which check
+    # now warns about.
+    add({
+        "name": "Limit Beyond",
+        "description": "Past the editor's ranges: decay 1.2, zoom 1.6, rot 1, hueshift 2, blur 3, warp 20, "
+                       "sx 0, counts far over their caps, thickness 200, size 300, bloom 10, brightness 8, "
+                       "chroma 20, kaleido 64, vignette 5.",
+        "palette": "carnival",
+        "feedback": {"decay": 1.2, "zoom": "1 + 0.6*sin(time*0.5)", "rot": 1, "hueshift": 2, "blur": 3,
+                     "warp": 20, "warpScale": 0, "sx": 0, "sy": -1},
+        "layers": [
+            {"type": "wave", "samples": 9999, "thickness": 200, "scale": 10, "color": "palette(t)"},
+            {"type": "shape", "instances": 9999, "sides": 999, "radius": 5, "alpha": 0.1},
+            {"type": "particles", "count": 99999, "rate": 99999, "size": 300, "life": 100, "speed": 50,
+             "alpha": 0.05},
+            {"type": "bars", "count": 9999, "height": 10},
+            {"type": "wireframe", "bins": 9999, "rows": 9999, "distance": 0, "size": 50},
+            {"type": "terrain", "rows": 9999, "cols": 9999, "depth": 1000},
+            {"type": "vectors", "cols": 9999, "rows": 9999, "length": 100},
+        ],
+        "post": {"bloom": 10, "brightness": 8, "chroma": 20, "kaleido": 64, "vignette": 5, "grain": 3,
+                 "echoZoom": 0, "gamma": 0},
+    })
+    return presets
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Write Trance's stress presets, or remove them.")
+    parser.add_argument("--to", help="folder to write them into (default: the user presets folder)")
+    parser.add_argument("--remove", action="store_true", help="remove them from the folder instead")
+    args = parser.parse_args()
+    folder = args.to or presets_folder()
+    presets = make()
+    if args.remove:
+        removed = 0
+        for p in presets:
+            path = os.path.join(folder, slug(p["name"]) + ".json")
+            if os.path.exists(path):
+                os.remove(path)
+                removed += 1
+        print(f"Removed {removed} from {folder}")
+        return
+    os.makedirs(folder, exist_ok=True)
+    for p in presets:
+        with open(os.path.join(folder, slug(p["name"]) + ".json"), "w", encoding="utf-8") as f:
+            json.dump(p, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    print(f"Wrote {len(presets)} presets to {folder}")
+
+
+if __name__ == "__main__":
+    main()
