@@ -65,10 +65,12 @@ the picture, and one palette colors all of it.
 
 **In the window.** `E` opens the editor on the preset that is showing. Its
 tabs are the three parts above, plus the whole file as JSON. Every change
-shows at once and nothing is written until you save. A setting whose name is
-in the accent color has been changed since the last save; a dot on a tab or
-a layer says something inside it has. Double-click a name to put that
-setting back to its default.
+shows at once and nothing is written until you save. Saving one of your
+presets under a name you have changed renames it; Save as (`Ctrl+Shift+S`)
+leaves it as it was and saves a copy. Neither writes over another of your
+presets. A setting whose name is in the accent color has been changed since
+the last save; a dot on a tab or a layer says something inside it has.
+Double-click a name to put that setting back to its default.
 
 **In a file.** Your presets are in `~/.config/trance/presets/`
 (`%LOCALAPPDATA%\trance\presets` on Windows), one `.json` each. Built-in

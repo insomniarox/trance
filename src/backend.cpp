@@ -948,35 +948,13 @@ void Backend::redo() {
 
 // ------------------------------------------------------------- keeping it
 
-bool Backend::save() {
-    const QString name = m_json.value("name").toString().trimmed();
-    if (name.isEmpty()) {
-        emit notice(tr("Give the preset a name first"));
-        return false;
-    }
-    QString error;
-    if (m_library.save(m_json, &error).isEmpty()) {
-        emit notice(error);
-        return false;
-    }
-    m_saved = m_json;
-    m_currentName = name;
-    store("lastPreset", name);
-    emit presetsChanged();
-    emit currentChanged();
-    emit presetChanged();
-    emit notice(tr("Saved %1").arg(name));
-    return true;
-}
+bool Backend::save() { return write(true); }
 
 bool Backend::saveAs(const QString &name) {
     const QString wanted = name.trimmed();
     if (wanted.isEmpty())
         return false;
-    // Never write over a different preset of the user's by accident.
-    const int existing = m_library.indexOf(wanted);
-    if (existing >= 0 && !m_library.presets()[existing].builtin &&
-        wanted.compare(m_currentName, Qt::CaseInsensitive) != 0) {
+    if (takenByAnother(wanted)) {
         emit notice(tr("There is already a preset called %1").arg(wanted));
         return false;
     }
@@ -987,7 +965,49 @@ bool Backend::saveAs(const QString &name) {
         ++m_revision;
         recompile(0);
     }
-    return save();
+    return write(false);
+}
+
+bool Backend::takenByAnother(const QString &name) const {
+    const int index = m_library.indexOf(name);
+    return index >= 0 && !m_library.presets()[index].builtin &&
+           name.trimmed().compare(m_currentName, Qt::CaseInsensitive) != 0;
+}
+
+bool Backend::write(bool rename) {
+    const QString name = m_json.value("name").toString().trimmed();
+    if (name.isEmpty()) {
+        emit notice(tr("Give the preset a name first"));
+        return false;
+    }
+    // The name typed may be another of the user's presets, whose file the
+    // library would otherwise write this over.
+    if (takenByAnother(name)) {
+        emit notice(tr("There is already a preset called %1").arg(name));
+        return false;
+    }
+    // One of the user's own presets under a new name: once it is written
+    // under that, the file it was in goes, and a built-in it stood in for
+    // comes back.
+    const QString was =
+        rename && currentIsYours() && name.compare(m_currentName, Qt::CaseInsensitive) != 0 ? m_currentName : QString();
+    QString error;
+    if (m_library.save(m_json, &error).isEmpty()) {
+        emit notice(error);
+        return false;
+    }
+    QString message = tr("Saved %1").arg(name);
+    if (!was.isEmpty())
+        message = m_library.remove(was, &error) ? tr("Renamed %1 to %2").arg(was, name)
+                                                : tr("Saved %1 (%2)").arg(name, error);
+    m_saved = m_json;
+    m_currentName = name;
+    store("lastPreset", name);
+    emit presetsChanged();
+    emit currentChanged();
+    emit presetChanged();
+    emit notice(message);
+    return true;
 }
 
 void Backend::revert() {
@@ -1010,25 +1030,34 @@ bool Backend::newPreset(const QString &name) {
     return true;
 }
 
-bool Backend::deleteCurrent() {
-    if (!currentIsYours()) {
+bool Backend::deletePreset(const QString &name) {
+    const int index = m_library.indexOf(name);
+    if (index < 0) {
+        emit notice(tr("%1 isn't one of your presets, so there is nothing to delete").arg(name));
+        return false;
+    }
+    if (m_library.presets()[index].builtin) {
         emit notice(tr("Built-in presets can't be deleted"));
         return false;
     }
-    const QString name = m_currentName;
-    const int index = m_library.indexOf(name);
+    const QString deleted = m_library.presets()[index].name;
+    const bool showing = index == m_library.indexOf(m_currentName);
     QString error;
-    if (!m_library.remove(name, &error)) {
+    if (!m_library.remove(deleted, &error)) {
         emit notice(error);
         return false;
     }
     emit presetsChanged();
-    emit notice(m_library.indexOf(name) >= 0 ? tr("Deleted your copy of %1; the built-in is back").arg(name)
-                                             : tr("Deleted %1").arg(name));
-    // A built-in the deleted preset stood in for is back; show that,
-    // otherwise whatever now sits in its place in the list.
-    const int builtin = m_library.indexOf(name);
-    load(builtin >= 0 ? builtin : qMin(index, int(m_library.presets().size()) - 1), m_blendSeconds);
+    // A built-in the deleted preset stood in for is back.
+    const int builtin = m_library.indexOf(deleted);
+    emit notice(builtin >= 0 ? tr("Deleted your copy of %1; the built-in is back").arg(deleted)
+                             : tr("Deleted %1").arg(deleted));
+    // Showing, it makes way for that built-in, or otherwise whatever now
+    // sits in its place in the list.
+    if (showing)
+        load(builtin >= 0 ? builtin : qMin(index, int(m_library.presets().size()) - 1), m_blendSeconds);
+    else
+        emit currentChanged();
     return true;
 }
 

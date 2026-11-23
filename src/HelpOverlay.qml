@@ -24,7 +24,7 @@ Rectangle {
             [["E"], qsTr("Edit this preset")],
             [["Ctrl", "Tab"], qsTr("Next part of the editor")],
             [["Ctrl", "S"], qsTr("Save the preset")],
-            [["Ctrl", "Shift", "S"], qsTr("Save it under a new name")],
+            [["Ctrl", "Shift", "S"], qsTr("Save a copy under a new name")],
             [["Ctrl", "N"], qsTr("New preset")],
             [["Ctrl", "Z"], qsTr("Undo")],
             [["Ctrl", "Shift", "Z"], qsTr("Redo")]

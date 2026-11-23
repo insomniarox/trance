@@ -557,20 +557,28 @@ ApplicationWindow {
         title: qsTr("Delete preset")
         Material.roundedScale: theme.radius
         onClosed: content.forceActiveFocus()
-        function ask() { open() }
+        // The preset asked about, which is the one deleted: the presets may
+        // move on while the question is up.
+        property string name
+        property bool shadows
+        function ask() {
+            name = backend.currentName
+            shadows = backend.currentShadowsBuiltin
+            open()
+        }
         Label {
             width: parent.width
             wrapMode: Text.WordWrap
-            text: backend.currentShadowsBuiltin
-                  ? qsTr("Delete your copy of %1? The built-in takes its place again. This can't be undone.").arg(backend.currentName)
-                  : qsTr("Delete %1? This can't be undone.").arg(backend.currentName)
+            text: deleteDialog.shadows
+                  ? qsTr("Delete your copy of %1? The built-in takes its place again. This can't be undone.").arg(deleteDialog.name)
+                  : qsTr("Delete %1? This can't be undone.").arg(deleteDialog.name)
         }
         footer: DialogButtonBox {
             Button {
                 text: qsTr("Delete")
                 flat: true
                 Material.roundedScale: theme.radius
-                onClicked: { deleteDialog.close(); backend.deleteCurrent() }
+                onClicked: { deleteDialog.close(); backend.deletePreset(deleteDialog.name) }
             }
             Button { text: qsTr("Cancel"); flat: true; Material.roundedScale: theme.radius; onClicked: deleteDialog.close() }
         }

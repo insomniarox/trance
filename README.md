@@ -198,7 +198,7 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
 | `F` or `F11` | Full screen (also a double-click) |
 | `Ctrl+Tab` | In the editor: the next tab |
 | `Ctrl+S` | Save the preset |
-| `Ctrl+Shift+S` | Save it under a new name |
+| `Ctrl+Shift+S` | Save a copy under a new name |
 | `Ctrl+N` | New preset |
 | `Ctrl+Z` `Ctrl+Shift+Z` | Undo, redo |
 | `Esc` | Close a panel, or leave full screen |

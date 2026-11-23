@@ -213,12 +213,16 @@ public:
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
 
-    // Keeping it.
+    // Keeping it. Saving under a name of its own renames one of your
+    // presets; saving as makes a copy and leaves the one it came from as it
+    // was. Neither writes over another of your presets.
     Q_INVOKABLE bool save();
     Q_INVOKABLE bool saveAs(const QString &name);
     Q_INVOKABLE void revert();
     Q_INVOKABLE bool newPreset(const QString &name);
-    Q_INVOKABLE bool deleteCurrent();
+    // By name rather than whichever is showing, which may have changed
+    // since the question was asked.
+    Q_INVOKABLE bool deletePreset(const QString &name);
     Q_INVOKABLE QString cyclePalette();
 
     // For the About screen: puts text on the clipboard, and opens the
@@ -287,6 +291,9 @@ private:
     void changed(bool structure);
     void tick();
     void store(const QString &key, const QVariant &value);
+    bool write(bool rename);
+    // Whether a preset of the user's other than the one showing has this name.
+    bool takenByAnother(const QString &name) const;
     const Field *fieldAt(const QStringList &parts) const;
 
     Library m_library;

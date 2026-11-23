@@ -931,9 +931,77 @@ private slots:
 
         QVERIFY(backend.saveAs("Scratch Two"));
         QCOMPARE(backend.currentName(), QString("Scratch Two"));
-        QVERIFY(backend.deleteCurrent());
+        QVERIFY(backend.deletePreset(backend.currentName()));
         QVERIFY(backend.library().indexOf("Scratch Two") < 0);
-        QVERIFY(!backend.deleteCurrent()); // back on a built-in
+        QVERIFY(!backend.deletePreset(backend.currentName())); // back on a built-in
+    }
+
+    // Saving under a new name renames one of your presets, in place of
+    // leaving a copy behind; save as copies. Neither writes over another of
+    // yours, however its name is typed.
+    void backendRenamesAndNeverWritesOverAnother()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const QString folder = dir.path() + "/presets/";
+        const auto zoomOf = [&](const QString &name) {
+            return backend.library().find(name, nullptr).value("feedback").toObject().value("zoom").toDouble();
+        };
+        QVERIFY(backend.newPreset("Glow"));
+        backend.setParam("feedback.zoom", 1.07);
+        QVERIFY(backend.save());
+
+        QSignalSpy notices(&backend, &Backend::notice);
+        QVERIFY(backend.select("Neon Tunnel"));
+        backend.setParam("name", "glow");
+        QVERIFY(!backend.save());
+        QCOMPARE(notices.last().first().toString(), QString("There is already a preset called glow"));
+        QCOMPARE(zoomOf("Glow"), 1.07);
+        QVERIFY(!backend.saveAs("GLOW"));
+        QCOMPARE(zoomOf("Glow"), 1.07);
+
+        // A built-in under a new name becomes yours, and stays itself.
+        backend.setParam("name", "Tunnel Two");
+        QVERIFY(backend.save());
+        QVERIFY(backend.currentIsYours());
+        QVERIFY(backend.library().presets()[backend.library().indexOf("Neon Tunnel")].builtin);
+
+        backend.setParam("name", "Tunnel Three");
+        QVERIFY(backend.save());
+        QCOMPARE(notices.last().first().toString(), QString("Renamed Tunnel Two to Tunnel Three"));
+        QVERIFY(backend.library().indexOf("Tunnel Two") < 0);
+        QVERIFY(!QFile::exists(folder + "tunnel-two.json"));
+        QCOMPARE(backend.currentName(), QString("Tunnel Three"));
+        QVERIFY(!backend.dirty());
+
+        // Only the case changing keeps the file.
+        const int count = int(backend.library().presets().size());
+        backend.setParam("name", "tunnel three");
+        QVERIFY(backend.save());
+        QCOMPARE(int(backend.library().presets().size()), count);
+        QCOMPARE(backend.library().presets()[backend.library().indexOf("Tunnel Three")].name, QString("tunnel three"));
+
+        QVERIFY(backend.saveAs("Tunnel Copy"));
+        QVERIFY(backend.library().indexOf("tunnel three") >= 0);
+
+        // Your copy of a built-in, renamed, gives the built-in back.
+        QVERIFY(backend.select("Skyline"));
+        backend.setParam("feedback.zoom", 1.01);
+        QVERIFY(backend.save());
+        QVERIFY(backend.currentShadowsBuiltin());
+        backend.setParam("name", "My Skyline");
+        QVERIFY(backend.save());
+        QVERIFY(backend.library().presets()[backend.library().indexOf("Skyline")].builtin);
+        QVERIFY(backend.library().indexOf("My Skyline") >= 0);
+
+        // Deleting goes by the name asked about, not whatever shows by then.
+        QVERIFY(backend.deletePreset("Glow"));
+        QVERIFY(backend.library().indexOf("Glow") < 0);
+        QCOMPARE(backend.currentName(), QString("My Skyline"));
+        QVERIFY(backend.mashup());
+        QVERIFY(!backend.deletePreset(backend.currentName()));
+        QCOMPARE(notices.last().first().toString(),
+                 QString("%1 isn't one of your presets, so there is nothing to delete").arg(backend.currentName()));
     }
 
     void backendMovesThroughPresets()
