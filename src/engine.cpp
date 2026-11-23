@@ -106,6 +106,11 @@ void hsvToRgb(double h, double s, double v, float out[3]) {
 
 template <typename T> T clampTo(T value, T low, T high) { return std::min(std::max(value, low), high); }
 
+// A count from a setting, held before it is made whole: a formula can give
+// far more than an int holds, which made into one first comes out as
+// anything at all (the fewest, on x86).
+int countFrom(double value, int low, int high) { return int(clampTo(value, double(low), double(high))); }
+
 // Shrinks `count` source values to `out.size()` points, keeping peaks when
 // several fall on one point.
 void resample(const float *source, int count, std::vector<float> &out, bool keepPeaks) {
@@ -1374,7 +1379,7 @@ void Engine::dot(const Point &p, float halfSize) {
 void Engine::buildWave(const Block &layer, WaveShape &out) {
     auto &V = m_c->p.vars.values;
     const Slots &m_s = m_c->s;
-    const int count = clampTo(int(layer.num("samples", V)), 8, AudioFrame::WaveSize);
+    const int count = countFrom(layer.num("samples", V), 8, AudioFrame::WaveSize);
     const QString source = layer.choice("source"), shape = layer.choice("shape");
     const float scale = float(layer.num("scale", V)), smooth = clampTo(float(layer.num("smooth", V)), 0.f, 0.98f);
     const float x0 = float(layer.num("x", V)), y0 = float(layer.num("y", V));
@@ -1506,7 +1511,7 @@ void Engine::emitWave(const WaveShape &shape) {
 void Engine::drawBars(const Block &layer, LayerState &state) {
     auto &V = m_c->p.vars.values;
     const Slots &m_s = m_c->s;
-    const int count = clampTo(int(layer.num("count", V)), 4, 128);
+    const int count = countFrom(layer.num("count", V), 4, 128);
     const QString layout = layer.choice("layout");
     const float x0 = float(layer.num("x", V)), y0 = float(layer.num("y", V));
     const float width = float(layer.num("width", V)), height = float(layer.num("height", V));
@@ -1594,8 +1599,8 @@ void Engine::drawBars(const Block &layer, LayerState &state) {
 void Engine::drawShape(const Block &layer) {
     auto &V = m_c->p.vars.values;
     const Slots &m_s = m_c->s;
-    const int instances = clampTo(int(layer.num("instances", V)), 1, 512);
-    const int sides = clampTo(int(layer.num("sides", V)), 3, 64);
+    const int instances = countFrom(layer.num("instances", V), 1, 512);
+    const int sides = countFrom(layer.num("sides", V), 3, 64);
     const bool textured = layer.flag("textured", V);
     const ColorSpec *color = layer.color("color"), *color2 = layer.color("color2"), *border = layer.color("border");
     const expr::Program *code = layer.program("code");
@@ -1683,7 +1688,7 @@ void Engine::drawShape(const Block &layer) {
 void Engine::drawTerrain(const Block &layer, LayerState &state) {
     auto &V = m_c->p.vars.values;
     const Slots &m_s = m_c->s;
-    const int rows = clampTo(int(layer.num("rows", V)), 8, 64), cols = clampTo(int(layer.num("cols", V)), 16, 128);
+    const int rows = countFrom(layer.num("rows", V), 8, 64), cols = countFrom(layer.num("cols", V), 16, 128);
     const QString style = layer.choice("style");
     const float height = float(layer.num("height", V)), width = float(layer.num("width", V));
     const float front = float(layer.num("y", V)), horizon = float(layer.num("horizon", V));
@@ -1763,7 +1768,7 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
     static const QStringList formNames = {"sheet", "tube", "ring", "sphere"};
     const int form = int(formNames.indexOf(layer.choice("form")));
     const int form2 = int(formNames.indexOf(layer.choice("form2")));
-    const int across = clampTo(int(layer.num("bins", V)), 8, 128), rows = clampTo(int(layer.num("rows", V)), 4, 64);
+    const int across = countFrom(layer.num("bins", V), 8, 128), rows = countFrom(layer.num("rows", V), 4, 64);
     const QString style = layer.choice("style");
     const float morph = form == form2 ? 0.f : clampTo(float(layer.num("morph", V)), 0.f, 1.f);
     const float height = float(layer.num("height", V)), width = float(layer.num("width", V));
@@ -1981,7 +1986,7 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
 void Engine::drawParticles(const Block &layer, LayerState &state) {
     auto &V = m_c->p.vars.values;
     const Slots &m_s = m_c->s;
-    const size_t limit = size_t(clampTo(int(layer.num("count", V)), 16, 4000));
+    const size_t limit = size_t(countFrom(layer.num("count", V), 16, 4000));
     const QString origin = layer.choice("emit"), edge = layer.choice("edge");
     const float x0 = float(layer.num("x", V)), y0 = float(layer.num("y", V)), area = float(layer.num("area", V));
     const float speed = float(layer.num("speed", V)), angle = float(layer.num("angle", V));
@@ -2104,7 +2109,7 @@ void Engine::drawParticles(const Block &layer, LayerState &state) {
 void Engine::drawVectors(const Block &layer) {
     auto &V = m_c->p.vars.values;
     const Slots &m_s = m_c->s;
-    const int cols = clampTo(int(layer.num("cols", V)), 2, 64), rows = clampTo(int(layer.num("rows", V)), 2, 48);
+    const int cols = countFrom(layer.num("cols", V), 2, 64), rows = countFrom(layer.num("rows", V), 2, 48);
     const float length = float(layer.num("length", V)), alpha = float(layer.num("alpha", V));
     const float halfWidth = float(layer.num("thickness", V)) / 1080.f;
     const bool dots = layer.flag("dots", V);

@@ -1199,6 +1199,41 @@ private slots:
         QCOMPARE(live.value("pixelCode").toBool(), false);
     }
 
+    // A count far past its top, typed or worked out by a formula, draws as
+    // the most there can be, never as the fewest.
+    void countsFarPastTheTopDrawTheMost()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+        QOpenGLFramebufferObject target(64, 64);
+        const auto vertices = [&](const QString &instances, const QString &count) {
+            Engine engine;
+            const QString preset = QString("{ 'name': 'Many', 'layers': [ { 'type': 'shape', 'sides': 8, "
+                                           "'instances': %1, 'radius': 0.01 }, { 'type': 'bars', 'count': %2 } ] }")
+                                       .arg(instances, count);
+            engine.setPreset(presets::compile(fixture(qPrintable(preset))), 0);
+            // What a frame drew is known by the next.
+            for (int frame = 0; frame < 2; ++frame)
+                engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+            return engine.vertexCount();
+        };
+        const int most = vertices("512", "128");
+        QVERIFY(most > 0);
+        QCOMPARE(vertices("1e10", "1e10"), most);
+        QCOMPARE(vertices("'512 + 1e12*(1 + bass)'", "'-1e12*bass + 1e12'"), most);
+        QVERIFY(vertices("-1e10", "-1e10") < most / 100);
+    }
+
     // The picture fades by the second and the layers are drawn every frame,
     // so a layer lays down the same light a second at any frame rate: at
     // 120 Hz each frame adds and covers less, and the picture settles where
