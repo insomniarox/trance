@@ -23,7 +23,7 @@ Rotation::Rotation(const Library &library, const QString &listsFile)
     : m_library(library), m_listsFile(listsFile) {
     QFile file(listsFile);
     if (!listsFile.isEmpty() && file.exists()) {
-        const QJsonDocument document = QJsonDocument::fromJson(file.open(QIODevice::ReadOnly) ? file.readAll() : "");
+        const QJsonDocument document = QJsonDocument::fromJson(file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray());
         m_unreadable = !document.isObject();
         for (const auto &value : document.object().value("lists").toArray()) {
             const QJsonObject object = value.toObject();
