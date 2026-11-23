@@ -190,7 +190,25 @@ private slots:
         QCOMPARE(parseError("(1 + 2"), QString("Missing ')'"));
         QCOMPARE(parseError("2 $ 3"), QString("Unexpected '$'"));
         QCOMPARE(parseError("sin = 3"), QString("'sin' is a function and can't be assigned"));
+        // However far a formula goes, it is turned away before it can run
+        // the parser out of stack, which once took a few hundred brackets.
+        const auto repeat = [](const QString &text, int times) {
+            QString out;
+            for (int i = 0; i < times; ++i)
+                out += text;
+            return out;
+        };
+        QCOMPARE(parseError(repeat("(", 20000) + "1" + repeat(")", 20000)), QString("Expression is nested too deeply"));
+        QCOMPARE(parseError(repeat("-", 20000) + "1"), QString("Expression is nested too deeply"));
+        QCOMPARE(parseError(repeat("2^", 20000) + "1"), QString("Expression is nested too deeply"));
+        QCOMPARE(parseError("x = 1" + repeat(" + 1", 200000)),
+                 QString("Expression is too long: at most 256 operations one after another"));
+        QCOMPARE(parseError(repeat("(", 60) + "1" + repeat(")", 60)), QString());
         expr::Vars vars;
+        expr::Program chain;
+        QVERIFY(chain.parse("x = 1" + repeat(" + 1", 255), vars, nullptr));
+        std::vector<double> values(size_t(vars.size()));
+        QCOMPARE(chain.run(values), 256.0);
         expr::Program program;
         QVERIFY(program.parse("x = speeed * 2", vars, nullptr));
         QCOMPARE(vars.undefined(), QStringList{"speeed"});

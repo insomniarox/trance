@@ -323,6 +323,13 @@ QString GlslScope::ref(const QString &name, const Vars &vars) const {
 
 // ------------------------------------------------------------------- parser
 
+// How far a formula may go, so that the parser, which calls itself for
+// every bracket, sign and function, and the code and shader writers, which
+// go down the tree of operations, never run out of stack (1 MB on Windows):
+// brackets, signs and functions inside one another, and operations built on
+// one another, as a long sum is. The built-in presets need 6 and 16.
+constexpr int MaxNesting = 64, MaxChain = 256;
+
 class Parser {
 public:
     Parser(Program &program, Vars &vars, const QList<Token> &tokens)
@@ -365,7 +372,14 @@ private:
         return -1;
     }
     int add(const Program::Node &node) {
+        int height = 1;
+        for (const int child : {node.a, node.b, node.c})
+            if (child >= 0)
+                height = qMax(height, m_heights[size_t(child)] + 1);
+        if (height > MaxChain)
+            return fail(QString("Expression is too long: at most %1 operations one after another").arg(MaxChain));
         m_program.m_nodes.push_back(node);
+        m_heights.push_back(height);
         return int(m_program.m_nodes.size()) - 1;
     }
     int binary(int op, int a, int b) {
@@ -464,7 +478,17 @@ private:
     int sum() { return level({{"+", OpAdd}, {"-", OpSub}}, &Parser::product); }
     int product() { return level({{"*", OpMul}, {"/", OpDiv}, {"%", OpMod}}, &Parser::unary); }
 
+    // Every bracket, sign and function argument comes through here.
     int unary() {
+        if (m_nesting >= MaxNesting)
+            return fail("Expression is nested too deeply");
+        ++m_nesting;
+        const int result = prefixed();
+        --m_nesting;
+        return result;
+    }
+
+    int prefixed() {
         if (accept("-") || accept("!")) {
             const bool negate = m_tokens[m_index - 1].text == "-";
             const int operand = unary();
@@ -568,6 +592,8 @@ private:
     Vars &m_vars;
     const QList<Token> &m_tokens;
     int m_index = 0;
+    int m_nesting = 0;
+    std::vector<int> m_heights; // each node's, as add() works it out
     QString m_error;
 };
 

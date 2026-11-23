@@ -174,7 +174,10 @@ Besides the music, a formula can read:
 
 Arithmetic is `+ - * / %` and `^` for powers. Comparisons (`<`, `>`, `==`)
 give 1 or 0, `&&` `||` `!` combine them, and `condition ? a : b` chooses.
-Dividing by zero gives 0 rather than an error.
+Dividing by zero gives 0 rather than an error. A formula can put brackets,
+signs and functions inside one another up to 64 deep, and a statement can
+chain up to 256 operations, as a long sum does: far more than any preset
+needs, and the check says so if one goes past.
 
 Functions:
 
