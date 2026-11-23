@@ -21,7 +21,8 @@ Every preset can be changed while it runs. See them move on
 - **103 presets** built in, changing on the beat. A change is not a cut: for
   a few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next. Search them, filter them by
-  color or by what they are made of, and keep the changes to what matches.
+  color or by what they are made of, gather them into lists of your own,
+  and keep the changes to what matches.
 - **A layer for every part of the sound.** Besides bass, mid and treble,
   formulas can follow six narrower ranges (`sub`, `low`, `lowmid`,
   `highmid`, `presence`, `air`), so each layer of a preset moves to its own.
@@ -185,6 +186,7 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
 | `R` | Random preset |
 | `X` | Mash up a new preset from parts of others |
 | `L` | Hold this preset, or let it change again |
+| `H` | Put this preset in Favorites, or take it out |
 | `P` | Browse presets |
 | `/` | Search presets by name |
 | `E` | Edit this preset: its motion, layers and look |
@@ -231,8 +233,15 @@ that move with one narrow range of the sound. A preset must have every
 chip that is lit. Both are read from the presets themselves, so a new
 palette, or a preset of your own, is sorted as soon as it is saved.
 
+Below them are your lists, picked the same way. **Favorites** is always
+there: the star beside a preset in the list puts it in or takes it out, and
+so does `H` for the one showing. Right-click a preset to put it in any list,
+or in a new one, and right-click a list to rename or delete it; `+` starts
+an empty one. A preset stays in its lists when you rename it. The lists are
+kept in `lists.json`, beside the settings.
+
 **Cycle through these only** keeps every change among the presets that
-match: the ones that come by themselves, `Space`, `Backspace`, `R` and
+match, a list's included: the ones that come by themselves, `Space`, `Backspace`, `R` and
 mash-ups, and with **Colors drift** on, the colors stay in the chosen
 family. Picking a preset from the list still shows any preset. The
 filters are remembered between runs; **Clear** lets everything back in.

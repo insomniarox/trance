@@ -39,6 +39,7 @@ QString joined(const QJsonValue &value) {
 
 Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
     : QObject(parent), m_library(configPath(configDirectory) + "/presets"),
+      m_rotation(m_library, configPath(configDirectory) + "/lists.json"),
       m_settings(std::make_unique<QSettings>(configPath(configDirectory) + "/settings.ini", QSettings::IniFormat)) {
     m_sensitivity = qBound(0.2, m_settings->value("sensitivity", 1.0).toDouble(), 4.0);
     m_cycleSeconds = qBound(0, m_settings->value("cycleSeconds", 30).toInt(), 3600);
@@ -69,6 +70,7 @@ Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
     m_colorDrift = m_settings->value("colorDrift", false).toBool();
     m_rotation.setColor(m_settings->value("filterColor").toString());
     m_rotation.setFeatures(m_settings->value("filterFeatures").toStringList());
+    m_rotation.setList(m_settings->value("filterList").toString());
     m_rotation.setKeep(m_settings->value("keepToFilter", false).toBool());
     m_showNames = m_settings->value("showNames", false).toBool();
     m_debug = m_settings->value("debug", false).toBool();
@@ -217,8 +219,21 @@ QVariantList Backend::presets() const {
     for (const auto &preset : m_library.presets())
         list << QVariantMap{{"name", preset.name}, {"author", preset.author}, {"builtin", preset.builtin},
                             {"shadowsBuiltin", preset.shadowsBuiltin}, {"family", preset.family},
-                            {"features", preset.features}, {"matches", m_rotation.matches(preset)}};
+                            {"features", preset.features}, {"matches", m_rotation.matches(preset)},
+                            {"favorite", m_rotation.contains(Rotation::favorites(), preset.name)},
+                            {"lists", m_rotation.listsOf(preset.name)}};
     return list;
+}
+
+QVariantList Backend::presetLists() const {
+    QVariantList lists;
+    for (const Rotation::List &list : m_rotation.lists()) {
+        int count = 0;
+        for (const QString &name : list.presets)
+            count += m_library.indexOf(name) >= 0;
+        lists << QVariantMap{{"name", list.name}, {"count", count}};
+    }
+    return lists;
 }
 
 // ------------------------------------------------------------ the filters
@@ -325,6 +340,73 @@ void Backend::setFilterFeatures(const QStringList &features) {
     emit presetsChanged();
 }
 
+void Backend::setFilterList(const QString &list) {
+    if (!m_rotation.setList(list))
+        return;
+    store("filterList", m_rotation.list());
+    emit presetsChanged();
+}
+
+bool Backend::toggleInList(const QString &list, const QString &preset) {
+    QString error;
+    if (!m_rotation.toggle(list, preset, &error)) {
+        emit notice(error);
+        return false;
+    }
+    emit presetsChanged();
+    return true;
+}
+
+bool Backend::toggleFavorite(const QString &preset) {
+    if (!preset.isEmpty())
+        return toggleInList(Rotation::favorites(), preset);
+    if (m_library.indexOf(m_currentName) < 0) {
+        emit notice(tr("Save %1 first to put it in a list").arg(m_currentName));
+        return false;
+    }
+    if (!toggleInList(Rotation::favorites(), m_currentName))
+        return false;
+    emit notice(m_rotation.contains(Rotation::favorites(), m_currentName)
+                    ? tr("Added %1 to %2").arg(m_currentName, Rotation::favorites())
+                    : tr("Took %1 out of %2").arg(m_currentName, Rotation::favorites()));
+    return true;
+}
+
+bool Backend::newList(const QString &name, const QString &preset) {
+    QString error;
+    if (!m_rotation.addList(name, &error) ||
+        (!preset.isEmpty() && !m_rotation.toggle(name, preset, &error))) {
+        emit notice(error);
+        emit presetsChanged();
+        return false;
+    }
+    emit presetsChanged();
+    return true;
+}
+
+bool Backend::renameList(const QString &from, const QString &to) {
+    QString error;
+    if (!m_rotation.renameList(from, to, &error)) {
+        emit notice(error);
+        return false;
+    }
+    store("filterList", m_rotation.list());
+    emit presetsChanged();
+    return true;
+}
+
+bool Backend::deleteList(const QString &name) {
+    QString error;
+    if (!m_rotation.removeList(name, &error)) {
+        emit notice(error);
+        return false;
+    }
+    store("filterList", m_rotation.list());
+    emit presetsChanged();
+    emit notice(tr("Deleted the list %1").arg(name.trimmed()));
+    return true;
+}
+
 void Backend::toggleFeature(const QString &feature) {
     QStringList features = m_rotation.features();
     if (!features.removeAll(feature))
@@ -335,6 +417,7 @@ void Backend::toggleFeature(const QString &feature) {
 void Backend::clearFilter() {
     setFilterColor({});
     setFilterFeatures({});
+    setFilterList({});
 }
 
 void Backend::setKeepToFilter(bool keep) {
@@ -893,9 +976,13 @@ bool Backend::write(bool rename) {
         return false;
     }
     QString message = tr("Saved %1").arg(name);
-    if (!was.isEmpty())
-        message = m_library.remove(was, &error) ? tr("Renamed %1 to %2").arg(was, name)
-                                                : tr("Saved %1 (%2)").arg(name, error);
+    if (!was.isEmpty() && m_library.remove(was, &error)) {
+        message = tr("Renamed %1 to %2").arg(was, name);
+        // Its places in the lists go with it.
+        m_rotation.renamed(was, name);
+    } else if (!was.isEmpty()) {
+        message = tr("Saved %1 (%2)").arg(name, error);
+    }
     m_saved = m_json;
     m_currentName = name;
     store("lastPreset", name);
@@ -943,6 +1030,7 @@ bool Backend::deletePreset(const QString &name) {
         emit notice(error);
         return false;
     }
+    m_rotation.removed(deleted);
     emit presetsChanged();
     // A built-in the deleted preset stood in for is back.
     const int builtin = m_library.indexOf(deleted);

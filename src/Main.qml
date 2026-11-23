@@ -111,6 +111,7 @@ ApplicationWindow {
     Shortcut { sequence: "Space"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.next() }) }
     Shortcut { sequence: "Backspace"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.previous() }) }
     Shortcut { sequence: "R"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.random() }) }
+    Shortcut { sequence: "H"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: backend.toggleFavorite() }
     Shortcut {
         sequence: "L"; context: Qt.ApplicationShortcut; enabled: !win.typing
         onActivated: {
@@ -584,8 +585,42 @@ ApplicationWindow {
         }
     }
 
+    // A question with one thing to do if the answer is yes.
+    Dialog {
+        id: confirmDialog
+        anchors.centerIn: parent
+        width: win.dialogWidth
+        modal: true
+        Material.roundedScale: theme.radius
+        onClosed: content.forceActiveFocus()
+        property string text
+        property string button
+        property var action
+        Label {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: confirmDialog.text
+        }
+        footer: DialogButtonBox {
+            Button {
+                text: confirmDialog.button
+                flat: true
+                Material.roundedScale: theme.radius
+                onClicked: { confirmDialog.close(); confirmDialog.action() }
+            }
+            Button { text: qsTr("Cancel"); flat: true; Material.roundedScale: theme.radius; onClicked: confirmDialog.close() }
+        }
+    }
+
     // Panels reach the window's helpers through these.
     function askDelete() { deleteDialog.ask() }
+    function confirm(title, text, button, action) {
+        confirmDialog.title = title
+        confirmDialog.text = text
+        confirmDialog.button = button
+        confirmDialog.action = action
+        confirmDialog.open()
+    }
     function showHelp(item, title, body, detail) { helpTip.show(item, title, body, detail) }
     function hideHelp(item) { helpTip.hide(item) }
 

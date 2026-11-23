@@ -69,6 +69,11 @@ class Backend : public QObject {
     // match, so the filters can set a mood for a while.
     Q_PROPERTY(QString filterColor READ filterColor WRITE setFilterColor NOTIFY presetsChanged)
     Q_PROPERTY(QStringList filterFeatures READ filterFeatures WRITE setFilterFeatures NOTIFY presetsChanged)
+    // One of the user's lists of presets, which a preset must be in.
+    Q_PROPERTY(QString filterList READ filterList WRITE setFilterList NOTIFY presetsChanged)
+    // The lists, Favorites first: each one's name and how many presets of
+    // the library are in it.
+    Q_PROPERTY(QVariantList presetLists READ presetLists NOTIFY presetsChanged)
     Q_PROPERTY(bool keepToFilter READ keepToFilter WRITE setKeepToFilter NOTIFY presetsChanged)
     Q_PROPERTY(bool filtering READ filtering NOTIFY presetsChanged)
     Q_PROPERTY(int matchCount READ matchCount NOTIFY presetsChanged)
@@ -91,6 +96,8 @@ public:
     QVariantList presets() const;
     QString filterColor() const { return m_rotation.color(); }
     QStringList filterFeatures() const { return m_rotation.features(); }
+    QString filterList() const { return m_rotation.list(); }
+    QVariantList presetLists() const;
     bool keepToFilter() const { return m_rotation.keep(); }
     bool filtering() const { return m_rotation.filtering(); }
     int matchCount() const { return m_rotation.matchCount(); }
@@ -99,6 +106,7 @@ public:
     QVariantMap about() const;
     void setFilterColor(const QString &family);
     void setFilterFeatures(const QStringList &features);
+    void setFilterList(const QString &list);
     void setKeepToFilter(bool keep);
     QString currentName() const { return m_currentName; }
     bool currentIsYours() const;
@@ -187,6 +195,16 @@ public:
     // layers, a third's colors and finish. False if nothing workable came up.
     Q_INVOKABLE bool mashup();
     Q_INVOKABLE void toggleFeature(const QString &feature);
+    // The user's lists. A preset goes in by name, and stays there when it is
+    // renamed; a mash-up has to be saved first.
+    Q_INVOKABLE bool toggleInList(const QString &list, const QString &preset);
+    // A preset in Favorites or out of it again; the one showing when none
+    // is named, which says which it was.
+    Q_INVOKABLE bool toggleFavorite(const QString &preset = {});
+    // A new list, with the preset in it when one is named.
+    Q_INVOKABLE bool newList(const QString &name, const QString &preset = {});
+    Q_INVOKABLE bool renameList(const QString &from, const QString &to);
+    Q_INVOKABLE bool deleteList(const QString &name);
     Q_INVOKABLE void clearFilter();
     Q_INVOKABLE void refreshSources();
     Q_INVOKABLE QString cycleTitleStyle();
@@ -291,7 +309,7 @@ private:
     const Field *fieldAt(const QStringList &parts) const;
 
     Library m_library;
-    Rotation m_rotation{m_library};
+    Rotation m_rotation;
     std::unique_ptr<QSettings> m_settings;
     bool m_starting = true;
     Theme *m_theme = nullptr;

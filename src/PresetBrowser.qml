@@ -91,6 +91,75 @@ SidePanel {
         }
     }
 
+    // One of the user's lists, picked like a filter. Right-click to rename
+    // or delete it; Favorites is always there.
+    component ListChip: AbstractButton {
+        id: listChip
+        required property var modelData
+        required property int index
+        readonly property bool chosen: backend.filterList === modelData.name
+        implicitWidth: listLabel.implicitWidth + listCount.implicitWidth + 26
+        implicitHeight: 24
+        focusPolicy: Qt.NoFocus
+        hoverEnabled: true
+        onClicked: backend.filterList = chosen ? "" : modelData.name
+        background: Rectangle {
+            radius: Math.min(height / 2, Math.max(4, theme.radius))
+            color: listChip.chosen ? theme.accent : listChip.hovered ? Ui.fieldHover : Ui.field
+        }
+        contentItem: Row {
+            spacing: 6
+            leftPadding: 10
+            Label {
+                id: listLabel
+                anchors.verticalCenter: parent.verticalCenter
+                text: listChip.modelData.name
+                font.pixelSize: Ui.small
+                font.weight: listChip.chosen ? Font.DemiBold : Font.Normal
+                color: listChip.chosen ? theme.accentForeground : Ui.textDim
+            }
+            Label {
+                id: listCount
+                anchors.verticalCenter: parent.verticalCenter
+                text: listChip.modelData.count
+                font.pixelSize: Ui.tiny
+                color: listChip.chosen ? theme.accentForeground : Ui.textFaint
+                opacity: listChip.chosen ? 0.75 : 1
+            }
+        }
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            enabled: listChip.index > 0
+            onTapped: function (point) {
+                const name = listChip.modelData.name
+                menu.show(listChip, point.position.x, point.position.y, [
+                    { text: qsTr("Rename…"), run: function () {
+                        win.askName(qsTr("Rename list"), name, function (to) { backend.renameList(name, to) })
+                    } },
+                    { text: qsTr("Delete…"), run: function () {
+                        win.confirm(qsTr("Delete list"), qsTr("Delete the list %1? The presets in it stay.").arg(name),
+                                    qsTr("Delete"), function () { backend.deleteList(name) })
+                    } }
+                ])
+            }
+        }
+    }
+
+    // Every list, ticked where the preset is in it, and a new one.
+    function listEntries(preset) {
+        const entries = backend.presetLists.map(function (list) {
+            return { text: list.name, ticked: preset.lists.indexOf(list.name) >= 0,
+                     run: function () { backend.toggleInList(list.name, preset.name) } }
+        })
+        entries.push({ line: true })
+        entries.push({ text: qsTr("New list…"), run: function () {
+            win.askName(qsTr("New list"), "", function (name) { backend.newList(name, preset.name) })
+        } })
+        return entries
+    }
+
+    PopupMenu { id: menu }
+
     function focusSearch() {
         search.take()
     }
@@ -141,6 +210,25 @@ SidePanel {
             Repeater {
                 model: backend.featureList
                 delegate: Chip {}
+            }
+        }
+        Flow {
+            Layout.fillWidth: true
+            Layout.leftMargin: 12
+            Layout.rightMargin: 12
+            Layout.topMargin: 8
+            spacing: 6
+            Repeater {
+                model: backend.presetLists
+                delegate: ListChip {}
+            }
+            IconButton {
+                implicitWidth: 24
+                implicitHeight: 24
+                glyph: "plus"
+                glyphSize: 14
+                tip: qsTr("New list")
+                onClicked: win.askName(qsTr("New list"), "", function (name) { backend.newList(name) })
             }
         }
         ColumnLayout {
@@ -195,7 +283,10 @@ SidePanel {
                 width: parent.width - 32
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                text: search.text.trim().length > 0 ? qsTr("No preset by that name here") : qsTr("No preset has all of these")
+                text: search.text.trim().length > 0 ? qsTr("No preset by that name here")
+                    : backend.filterList.length > 0 && backend.matchCount === 0
+                      ? qsTr("Nothing in %1 yet: star a preset, or right-click it to put it in a list").arg(backend.filterList)
+                    : qsTr("No preset has all of these")
                 font.pixelSize: Ui.small
                 color: Ui.textFaint
             }
@@ -241,12 +332,34 @@ SidePanel {
                         font.pixelSize: Ui.tiny
                         color: theme.accent
                     }
+                    // In Favorites, or not yet, which shows while pointed at.
+                    AbstractButton {
+                        id: star
+                        implicitWidth: 20
+                        implicitHeight: 20
+                        focusPolicy: Qt.NoFocus
+                        hoverEnabled: true
+                        opacity: entry.modelData.favorite || hover.hovered ? 1 : 0
+                        onClicked: backend.toggleFavorite(entry.modelData.name)
+                        contentItem: Glyph {
+                            name: "star"
+                            size: 14
+                            filled: entry.modelData.favorite
+                            color: entry.modelData.favorite ? theme.accent : star.hovered ? Ui.text : Ui.textFaint
+                        }
+                    }
                 }
                 HoverHandler { id: hover }
                 TapHandler {
                     onTapped: {
                         browser.picked()
                         browser.pick(entry.modelData.name)
+                    }
+                }
+                TapHandler {
+                    acceptedButtons: Qt.RightButton
+                    onTapped: function (point) {
+                        menu.show(entry, point.position.x, point.position.y, browser.listEntries(entry.modelData))
                     }
                 }
             }

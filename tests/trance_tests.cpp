@@ -735,6 +735,87 @@ private slots:
         QVERIFY(terraces.features.contains("wireframe") && terraces.features.contains("ranges"));
     }
 
+    // Lists of presets: Favorites always there, more of the user's own,
+    // picked like a filter and kept to like one, by name, so a preset keeps
+    // its places when it is renamed and leaves them when it is deleted.
+    void listsGatherPresetsByName()
+    {
+        QTemporaryDir dir;
+        {
+            Backend backend(dir.path(), false);
+            QSignalSpy notices(&backend, &Backend::notice);
+            QCOMPARE(backend.presetLists().size(), 1);
+            QCOMPARE(backend.presetLists().first().toMap().value("name").toString(), QString("Favorites"));
+
+            QVERIFY(backend.select("Aurora"));
+            QVERIFY(backend.toggleFavorite());
+            QCOMPARE(notices.last().first().toString(), QString("Added Aurora to Favorites"));
+            QVERIFY(backend.toggleFavorite("skyline"));
+            QCOMPARE(backend.presetLists().first().toMap().value("count").toInt(), 2);
+            QVERIFY(backend.toggleFavorite());
+            QCOMPARE(notices.last().first().toString(), QString("Took Aurora out of Favorites"));
+
+            QVERIFY(backend.newList("Late night", "Borehole"));
+            QVERIFY(!backend.newList("late NIGHT"));
+            QCOMPARE(notices.last().first().toString(), QString("There is already a list called late NIGHT"));
+            QVERIFY(backend.toggleInList("Late night", "Corona"));
+            backend.setFilterList("late night");
+            QCOMPARE(backend.filterList(), QString("Late night"));
+            QCOMPARE(backend.matchCount(), 2);
+            backend.setKeepToFilter(true);
+            QVERIFY(backend.select("Borehole"));
+            backend.next();
+            QCOMPARE(backend.currentName(), QString("Corona"));
+            backend.next();
+            QCOMPARE(backend.currentName(), QString("Borehole"));
+
+            // A preset of the user's, renamed, keeps its place; deleted,
+            // it leaves.
+            QVERIFY(backend.newPreset("Glow"));
+            QVERIFY(backend.save());
+            QVERIFY(backend.toggleInList("Late night", "Glow"));
+            backend.setParam("name", "Glow Two");
+            QVERIFY(backend.save());
+            QCOMPARE(backend.presetLists().at(1).toMap().value("count").toInt(), 3);
+            QVERIFY(backend.presets().at(backend.library().indexOf("Glow Two")).toMap().value("lists").toStringList()
+                        .contains("Late night"));
+            QVERIFY(backend.deletePreset("Glow Two"));
+            QCOMPARE(backend.presetLists().at(1).toMap().value("count").toInt(), 2);
+
+            // Neither a mash-up nor Favorites' own name and place can be had.
+            // (A mash-up kept to two presets has too few to draw from.)
+            QVERIFY(!backend.mashup());
+            backend.setKeepToFilter(false);
+            QVERIFY(backend.mashup());
+            QVERIFY(!backend.toggleFavorite());
+            QCOMPARE(notices.last().first().toString(), QString("Save %1 first to put it in a list").arg(backend.currentName()));
+            QVERIFY(!backend.deleteList("Favorites"));
+            QVERIFY(!backend.renameList("Favorites", "Best"));
+            QVERIFY(backend.renameList("Late night", "Late"));
+            QCOMPARE(backend.filterList(), QString("Late"));
+        }
+        {
+            // All of it is there again on the next start.
+            Backend backend(dir.path(), false);
+            QCOMPARE(backend.filterList(), QString("Late"));
+            QCOMPARE(backend.matchCount(), 2);
+            QVERIFY(backend.presets().at(backend.library().indexOf("Skyline")).toMap().value("favorite").toBool());
+            QVERIFY(backend.deleteList("Late"));
+            QCOMPARE(backend.filterList(), QString());
+            QCOMPARE(backend.presetLists().size(), 1);
+        }
+        // A file of lists that can't be read is left as it is, never
+        // written over.
+        write(dir.path() + "/lists.json", "{ broken");
+        Backend backend(dir.path(), false);
+        QSignalSpy notices(&backend, &Backend::notice);
+        QVERIFY(!backend.toggleFavorite("Aurora"));
+        QVERIFY(notices.last().first().toString().contains("could not be read"));
+        QFile file(dir.path() + "/lists.json");
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), QByteArray("{ broken"));
+    }
+
     void backendKeepsToTheFilter()
     {
         QTemporaryDir dir;
