@@ -9,6 +9,12 @@
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#include <QQmlApplicationEngine>
+#include <QQmlComponent>
+#include <QQmlContext>
+#include <QQmlExpression>
+#include <QQuickStyle>
+#include <QQuickWindow>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtEndian>
@@ -28,6 +34,7 @@
 #include "preset.h"
 #include "remote.h"
 #include "shaderworker.h"
+#include "visualizeritem.h"
 #include "theme.h"
 
 #ifdef Q_OS_WIN
@@ -129,6 +136,21 @@ QStringList playersWindowsLists() {
 
 } // namespace
 #endif
+
+// What the window reads of the track playing, without a media player to
+// ask: the real one needs D-Bus on Linux, which the tests don't link.
+class Playing : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString title READ title NOTIFY changed)
+    Q_PROPERTY(QString artist READ artist NOTIFY changed)
+
+public:
+    QString title() const { return "A Track"; }
+    QString artist() const { return "Someone"; }
+
+signals:
+    void changed();
+};
 
 class TranceTests : public QObject {
     Q_OBJECT
@@ -3073,6 +3095,78 @@ private slots:
 #else
         QSKIP("Hyprland is not on this system");
 #endif
+    }
+
+    // ----------------------------------------------------------- the window
+
+    // Every QML file builds, and the window opens every panel and overlay
+    // without a word from QML. Panels load only when opened, so starting
+    // the window alone says nothing about them; and a property newer than
+    // the Qt Trance asks for fails here, on the oldest Qt CI builds with.
+    void windowLoadsEveryPanel()
+    {
+        QOpenGLContext probe;
+        if (!probe.create())
+            QSKIP("No OpenGL context here");
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        format.setAlphaBufferSize(8);
+        QSurfaceFormat::setDefaultFormat(format);
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+        QQuickStyle::setStyle("Material");
+
+        QTemporaryDir dir;
+        Theme theme(dir.path(), nullptr, dir.path());
+        Backend backend(dir.path(), false);
+        backend.setTheme(&theme);
+        Playing playing;
+        VisualizerItem::setBackend(&backend);
+        QOffscreenSurface buildSurface;
+        buildSurface.setFormat(format);
+        buildSurface.create();
+        VisualizerItem::setBuildSurface(&buildSurface);
+        qmlRegisterType<VisualizerItem>("Trance", 1, 0, "Visualizer");
+
+        QStringList said;
+        QQmlApplicationEngine engine;
+        engine.setOutputWarningsToStandardError(false);
+        connect(&engine, &QQmlEngine::warnings, this, [&said](const QList<QQmlError> &warnings) {
+            for (const QQmlError &warning : warnings)
+                said << warning.toString();
+        });
+        engine.rootContext()->setContextProperty("theme", &theme);
+        engine.rootContext()->setContextProperty("backend", &backend);
+        engine.rootContext()->setContextProperty("nowPlaying", &playing);
+
+        const QStringList files = QDir(":/").entryList({"*.qml"}, QDir::Files);
+        QVERIFY(files.contains("Main.qml") && files.contains("PresetBrowser.qml"));
+        for (const QString &file : files) {
+            QQmlComponent component(&engine, QUrl("qrc:/" + file));
+            QVERIFY2(!component.isError(), qPrintable(component.errorString()));
+        }
+
+        engine.load(QUrl("qrc:/Main.qml"));
+        QCOMPARE(engine.rootObjects().size(), 1);
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+        QVERIFY(window);
+        const auto run = [&](const QString &script) {
+            QQmlExpression expression(qmlContext(window), window, script);
+            expression.evaluate();
+            QVERIFY2(!expression.hasError(), qPrintable(script + ": " + expression.error().toString()));
+            QTest::qWait(150);
+        };
+        QTest::qWait(300);
+        backend.newList("Late night", "Aurora");
+        for (const char *script : {"win.toggleBrowser()", "backend.filterList = 'Late night'", "win.toggleBrowser()",
+                                   "win.toggleSide('editor')", "win.editorTab = 1", "win.editorTab = 2",
+                                   "win.editorTab = 3", "win.toggleSide('settings')", "win.toggleSide('settings')",
+                                   "win.toggleHelp()", "win.toggleHelp()", "win.toggleAbout()", "win.toggleAbout()",
+                                   "backend.debug = true",
+                                   "win.confirm('Delete list', 'Sure?', 'Delete', function () {})",
+                                   "win.askName('New list', '', function (name) {})"})
+            run(script);
+        QVERIFY2(said.isEmpty(), qPrintable(said.join('\n')));
     }
 
 private:
