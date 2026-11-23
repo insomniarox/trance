@@ -83,8 +83,9 @@ win32 {
 
 RESOURCES += src/resources.qrc
 
-# Material.roundedScale, which the corners are drawn with, came in Qt 6.5.
-!versionAtLeast(QT_VERSION, 6.5.0): error("Trance needs Qt 6.5 or newer; this is Qt $$QT_VERSION.")
+# Popups drawn inside the window (Popup.popupType) came in Qt 6.8, and the
+# smooth icons (Shape.CurveRenderer) in 6.6; QML a Qt before them can't load.
+!versionAtLeast(QT_VERSION, 6.8.0): error("Trance needs Qt 6.8 or newer; this is Qt $$QT_VERSION.")
 
 # make install, for where there is no package: qmake6 PREFIX=/usr to move it.
 isEmpty(PREFIX): PREFIX = /usr/local

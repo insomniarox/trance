@@ -81,7 +81,7 @@ bin/build && build/trance
 
 It needs:
 
-- Qt 6.5 or newer, with Qt Quick, Quick Controls and the Wayland platform
+- Qt 6.8 or newer, with Qt Quick, Quick Controls and the Wayland platform
   plugin (on Arch: `qt6-base qt6-declarative qt6-wayland`, which Omarchy
   already has), and a C++17 compiler with `make` to build it.
 - PipeWire with its `pw-cat` and `pw-dump` tools, which is how it hears the
