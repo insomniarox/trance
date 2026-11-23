@@ -67,13 +67,9 @@ Backend::Backend(const QString &configDirectory, bool listen, QObject *parent)
     m_mashups = m_settings->value("mashups", false).toBool();
     m_visitors = m_settings->value("visitors", true).toBool();
     m_colorDrift = m_settings->value("colorDrift", false).toBool();
-    m_filterColor = m_settings->value("filterColor").toString();
-    if (!presets::colorFamilies().contains(m_filterColor))
-        m_filterColor.clear();
-    for (const QString &feature : m_settings->value("filterFeatures").toStringList())
-        if (presets::featureNames().contains(feature) && !m_filterFeatures.contains(feature))
-            m_filterFeatures << feature;
-    m_keepToFilter = m_settings->value("keepToFilter", false).toBool();
+    m_rotation.setColor(m_settings->value("filterColor").toString());
+    m_rotation.setFeatures(m_settings->value("filterFeatures").toStringList());
+    m_rotation.setKeep(m_settings->value("keepToFilter", false).toBool());
     m_showNames = m_settings->value("showNames", false).toBool();
     m_debug = m_settings->value("debug", false).toBool();
     for (const QJsonObject &visitor : Library::visitors()) {
@@ -200,7 +196,7 @@ void Backend::tick() {
         m_driftAfter = 22 + QRandomGenerator::global()->bounded(20.0);
         // Kept to a family of colors, the drift stays in it too.
         m_driftPalette =
-            presets::driftPalette(m_driftPalette, m_keepToFilter ? m_filterColor : QString());
+            presets::driftPalette(m_driftPalette, m_rotation.keep() ? m_rotation.color() : QString());
         emit paletteChanged();
     }
     // Moving on: when the time is up, wait for the next beat (a few seconds
@@ -210,7 +206,7 @@ void Backend::tick() {
         return;
     const double elapsed = m_sinceChange.elapsed() / 1000.0;
     if (elapsed >= m_cycleSeconds && (frame.beat > 0.75f || frame.silent || elapsed >= m_cycleSeconds + 4) &&
-        pool().size() >= 2)
+        m_rotation.pool().size() >= 2)
         advance(true);
 }
 
@@ -221,54 +217,11 @@ QVariantList Backend::presets() const {
     for (const auto &preset : m_library.presets())
         list << QVariantMap{{"name", preset.name}, {"author", preset.author}, {"builtin", preset.builtin},
                             {"shadowsBuiltin", preset.shadowsBuiltin}, {"family", preset.family},
-                            {"features", preset.features}, {"matches", matches(preset)}};
+                            {"features", preset.features}, {"matches", m_rotation.matches(preset)}};
     return list;
 }
 
 // ------------------------------------------------------------ the filters
-
-bool Backend::matches(const PresetInfo &preset) const {
-    if (!m_filterColor.isEmpty() && preset.family != m_filterColor)
-        return false;
-    for (const QString &feature : m_filterFeatures)
-        if (!preset.features.contains(feature))
-            return false;
-    return true;
-}
-
-int Backend::matchCount() const {
-    const auto &all = m_library.presets();
-    return int(std::count_if(all.begin(), all.end(), [this](const PresetInfo &preset) { return matches(preset); }));
-}
-
-QList<int> Backend::pool() const {
-    QList<int> all, kept;
-    for (int i = 0; i < m_library.presets().size(); ++i) {
-        all << i;
-        if (m_keepToFilter && filtering() && matches(m_library.presets()[i]))
-            kept << i;
-    }
-    return kept.isEmpty() ? all : kept;
-}
-
-// The next or the previous preset in the pool, from wherever the one on
-// screen is in the whole list, so leaving the pool comes straight back.
-int Backend::step(int direction) const {
-    const QList<int> from = pool();
-    if (from.isEmpty())
-        return -1;
-    const int current = m_library.indexOf(m_currentName);
-    if (direction > 0) {
-        for (int index : from)
-            if (index > current)
-                return index;
-        return from.first();
-    }
-    for (auto it = from.rbegin(); it != from.rend(); ++it)
-        if (current < 0 || *it < current)
-            return *it;
-    return from.last();
-}
 
 QVariantList Backend::colorFamilies() const {
     // Each family's swatch, with every hue round the wheel for many and the
@@ -359,28 +312,21 @@ bool Backend::openFolder(const QString &which) {
 }
 
 void Backend::setFilterColor(const QString &family) {
-    const QString wanted = presets::colorFamilies().contains(family) ? family : QString();
-    if (wanted == m_filterColor)
+    if (!m_rotation.setColor(family))
         return;
-    m_filterColor = wanted;
-    store("filterColor", wanted);
+    store("filterColor", m_rotation.color());
     emit presetsChanged();
 }
 
 void Backend::setFilterFeatures(const QStringList &features) {
-    QStringList wanted;
-    for (const QString &feature : presets::featureNames())
-        if (features.contains(feature))
-            wanted << feature;
-    if (wanted == m_filterFeatures)
+    if (!m_rotation.setFeatures(features))
         return;
-    m_filterFeatures = wanted;
-    store("filterFeatures", wanted);
+    store("filterFeatures", m_rotation.features());
     emit presetsChanged();
 }
 
 void Backend::toggleFeature(const QString &feature) {
-    QStringList features = m_filterFeatures;
+    QStringList features = m_rotation.features();
     if (!features.removeAll(feature))
         features << feature;
     setFilterFeatures(features);
@@ -392,9 +338,8 @@ void Backend::clearFilter() {
 }
 
 void Backend::setKeepToFilter(bool keep) {
-    if (keep == m_keepToFilter)
+    if (!m_rotation.setKeep(keep))
         return;
-    m_keepToFilter = keep;
     store("keepToFilter", keep);
     emit presetsChanged();
 }
@@ -429,10 +374,7 @@ void Backend::adopt(const QJsonObject &json, const QString &name, bool saved, do
     m_saved = saved ? json : QJsonObject();
     m_currentName = name;
     m_mashupParts.clear();
-    // Only the library's own presets are shown in a round: a mash-up, or a
-    // file opened from elsewhere, is none of them.
-    if (const int index = m_library.indexOf(name); index >= 0 && !m_round.contains(m_library.presets()[index].name))
-        m_round << m_library.presets()[index].name;
+    m_rotation.shown(name);
     m_undo.clear();
     m_redo.clear();
     m_lastEditKey.clear();
@@ -469,57 +411,11 @@ bool Backend::open(const QString &nameOrPath, QString *error) {
 
 // A change asked for by hand is quick; one that comes round by itself takes
 // its time (G-Force keeps the same two speeds).
-void Backend::next() { load(step(1), quickBlend()); }
+void Backend::next() { load(m_rotation.step(m_currentName, 1), quickBlend()); }
 
-void Backend::previous() { load(step(-1), quickBlend()); }
+void Backend::previous() { load(m_rotation.step(m_currentName, -1), quickBlend()); }
 
-int Backend::randomIndex() {
-    const QList<int> all = pool();
-    const auto &presets = m_library.presets();
-    const auto without = [&](const QStringList &names) {
-        QList<int> left;
-        for (const int index : all)
-            if (!names.contains(presets[index].name) && presets[index].name != m_currentName)
-                left << index;
-        return left;
-    };
-    // Of those the round has shown, the ones in the pool, in the order they
-    // were. Kept to a filter, the round is of the presets that match.
-    QStringList shown;
-    for (const QString &name : m_round)
-        if (all.contains(m_library.indexOf(name)))
-            shown << name;
-    QList<int> from = without(m_round);
-    // Every one has been shown: the next round begins. What the rest of the
-    // library has shown, left out by a filter, is kept for when it is let go
-    // of; any deleted since are forgotten.
-    if (from.isEmpty()) {
-        QStringList rest;
-        for (const QString &name : m_round)
-            if (!shown.contains(name) && m_library.indexOf(name) >= 0)
-                rest << name;
-        m_round = rest;
-        m_lastRound = shown;
-        shown.clear();
-        from = without(m_round);
-    }
-    // The first quarter of a round leaves out the last quarter of the one
-    // before, so that a preset shown near the end of one doesn't come back
-    // near the start of the next. Only the first quarter, or the two halves
-    // would keep to their halves round after round.
-    const int gap = int(all.size() / 4);
-    if (shown.size() <= gap) {
-        const QList<int> rested = without(m_round + m_lastRound.mid(qMax(0, int(m_lastRound.size()) - gap)));
-        if (!rested.isEmpty())
-            from = rested;
-    }
-    // The only preset there is.
-    if (from.isEmpty())
-        from = all;
-    return from.isEmpty() ? -1 : from.at(QRandomGenerator::global()->bounded(int(from.size())));
-}
-
-void Backend::random() { load(randomIndex(), quickBlend()); }
+void Backend::random() { load(m_rotation.random(m_currentName), quickBlend()); }
 
 bool Backend::select(const QString &name) {
     const int index = m_library.indexOf(name);
@@ -535,7 +431,7 @@ void Backend::advance(bool automatic) {
         return;
     if (m_mashups && QRandomGenerator::global()->bounded(100) < 40 && mashup(blend))
         return;
-    load(m_shuffle ? randomIndex() : step(1), blend);
+    load(m_shuffle ? m_rotation.random(m_currentName) : m_rotation.step(m_currentName, 1), blend);
 }
 
 bool Backend::mashup() { return mashup(quickBlend()); }
@@ -548,7 +444,7 @@ bool Backend::mashup() { return mashup(quickBlend()); }
 bool Backend::mashup(double blend) {
     const auto &all = m_library.presets();
     // Kept to the filters, the parts come from the presets that match.
-    const QList<int> from = pool();
+    const QList<int> from = m_rotation.pool();
     if (from.size() < 3)
         return false;
     auto *dice = QRandomGenerator::global();
@@ -1316,7 +1212,7 @@ QVariantMap Backend::stats() const {
         waiting = "editing";
     else if (dirty())
         waiting = "unsaved";
-    else if (pool().size() < 2)
+    else if (m_rotation.pool().size() < 2)
         waiting = "alone";
     QVariantList bands;
     for (int band = 0; band < AudioFrame::Bands; ++band)

@@ -13,6 +13,7 @@
 #include "audiocapture.h"
 #include "library.h"
 #include "preset.h"
+#include "rotation.h"
 
 class Theme;
 
@@ -88,11 +89,11 @@ public:
     bool open(const QString &nameOrPath, QString *error = nullptr);
 
     QVariantList presets() const;
-    QString filterColor() const { return m_filterColor; }
-    QStringList filterFeatures() const { return m_filterFeatures; }
-    bool keepToFilter() const { return m_keepToFilter; }
-    bool filtering() const { return !m_filterColor.isEmpty() || !m_filterFeatures.isEmpty(); }
-    int matchCount() const;
+    QString filterColor() const { return m_rotation.color(); }
+    QStringList filterFeatures() const { return m_rotation.features(); }
+    bool keepToFilter() const { return m_rotation.keep(); }
+    bool filtering() const { return m_rotation.filtering(); }
+    int matchCount() const { return m_rotation.matchCount(); }
     QVariantList colorFamilies() const;
     QVariantList featureList() const;
     QVariantMap about() const;
@@ -278,13 +279,6 @@ private:
     void adopt(const QJsonObject &json, const QString &name, bool saved, double blend, bool remember = true);
     void advance(bool automatic);
     bool mashup(double blend);
-    // A preset at random, from those the round has not shown yet.
-    int randomIndex();
-    bool matches(const PresetInfo &preset) const;
-    // Where the changes come from: the presets that match when the filters
-    // are kept to and any do, otherwise all of them. In library order.
-    QList<int> pool() const;
-    int step(int direction) const;
     double quickBlend() const { return qMin(m_blendSeconds, 1.2); }
     void recompile(double blend);
     void pushUndo(const QString &key);
@@ -297,6 +291,7 @@ private:
     const Field *fieldAt(const QStringList &parts) const;
 
     Library m_library;
+    Rotation m_rotation{m_library};
     std::unique_ptr<QSettings> m_settings;
     bool m_starting = true;
     Theme *m_theme = nullptr;
@@ -318,10 +313,6 @@ private:
     double m_sensitivity = 1.0;
     int m_cycleSeconds = 30;
     bool m_shuffle = true;
-    // The library's presets shown in this round, in the order they were,
-    // and the pool's round before. A random change shows every preset in
-    // the pool once before any comes round again.
-    QStringList m_round, m_lastRound;
     bool m_locked = false;
     QString m_paletteOverride;
     double m_quality = 1.0;
@@ -336,9 +327,6 @@ private:
     // Where the mash-up showing took each part from: motion, layers, look
     // and background. Empty for anything else.
     QStringList m_mashupParts;
-    QString m_filterColor;
-    QStringList m_filterFeatures;
-    bool m_keepToFilter = false;
     QString m_driftPalette; // null until the drift first moves
     QElapsedTimer m_sinceDrift, m_sinceSources;
     double m_driftAfter = 30;

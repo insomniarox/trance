@@ -22,6 +22,7 @@ HEADERS += \
     src/nowplaying.h \
     src/preset.h \
     src/remote.h \
+    src/rotation.h \
     src/shaderworker.h \
     src/theme.h \
     src/visualizeritem.h
@@ -38,6 +39,7 @@ SOURCES += \
     src/preset.cpp \
     src/presetdocs.cpp \
     src/remote.cpp \
+    src/rotation.cpp \
     src/shaderworker.cpp \
     src/theme.cpp \
     src/visualizeritem.cpp

@@ -6,9 +6,9 @@ TEMPLATE = app
 INCLUDEPATH += ../src
 
 HEADERS += ../src/audio.h ../src/audiocapture.h ../src/backend.h ../src/cli.h ../src/engine.h ../src/expr.h \
-    ../src/library.h ../src/preset.h ../src/remote.h ../src/shaderworker.h ../src/theme.h
+    ../src/library.h ../src/preset.h ../src/remote.h ../src/rotation.h ../src/shaderworker.h ../src/theme.h
 SOURCES += trance_tests.cpp ../src/audio.cpp ../src/audiocapture.cpp ../src/backend.cpp ../src/cli.cpp ../src/engine.cpp \
-    ../src/expr.cpp ../src/library.cpp ../src/preset.cpp ../src/presetdocs.cpp ../src/remote.cpp ../src/shaderworker.cpp ../src/theme.cpp
+    ../src/expr.cpp ../src/library.cpp ../src/preset.cpp ../src/presetdocs.cpp ../src/remote.cpp ../src/rotation.cpp ../src/shaderworker.cpp ../src/theme.cpp
 
 unix: SOURCES += ../src/audiocapture_pipewire.cpp ../src/theme_hyprland.cpp
 win32 {
