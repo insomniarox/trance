@@ -27,6 +27,7 @@
 #include "library.h"
 #include "preset.h"
 #include "remote.h"
+#include "shaderworker.h"
 #include "theme.h"
 
 #ifdef Q_OS_WIN
@@ -2230,6 +2231,70 @@ private slots:
             QCOMPARE(engine.variable("mark"), 4.0);
             QCOMPARE(engine.variable("zoom"), 1.03);
             QVERIFY(engine.changing());
+        }
+        context.doneCurrent();
+    }
+
+    // The worker the window uses: its own thread, with a context of its own
+    // that shares with the one drawing, so what it builds draws here.
+    void workerBuildsShadersOnItsOwnThread()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface, buildSurface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        buildSurface.setFormat(context.format());
+        buildSurface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+        {
+            ShaderWorker worker(&buildSurface);
+            if (!worker.usable())
+                QSKIP("No second context to share with here");
+            Engine engine;
+            engine.setProgramBuilder(&worker);
+            QOpenGLFramebufferObject target(160, 90);
+            Analyzer analyzer;
+            const auto draw = [&] { engine.render(analyzer.analyze(1.0 / 60), 1.0 / 60, target.handle(), 160, 90); };
+            // Drawing goes on while the worker builds; what it built comes
+            // on at the first frame after.
+            const auto drawUntil = [&](double mark) {
+                QElapsedTimer waited;
+                waited.start();
+                while (engine.variable("mark") != mark && waited.elapsed() < 10000) {
+                    draw();
+                    QThread::msleep(5);
+                }
+                return engine.variable("mark") == mark;
+            };
+            const auto preset = [](const char *name, const char *init, const char *pixel) {
+                return presets::compile(fixture(QByteArray("{ 'name': '") + name + "', 'init': '" + init +
+                                                "', 'pixel': '" + pixel +
+                                                "', 'layers': [ { 'type': 'wave', 'color': 'white' } ] }"));
+            };
+            engine.setPreset(preset("First", "mark = 1", "dx = 0.001"), 0);
+            QVERIFY(drawUntil(1));
+            QVERIFY(engine.error().isEmpty());
+            // Asked for twice before either is ready, only the later comes on.
+            engine.setPreset(preset("Second", "mark = 2", "dx = 0.002"), 0);
+            draw();
+            engine.setPreset(preset("Third", "mark = 3", "dy = 0.003"), 2);
+            QVERIFY(drawUntil(3));
+            for (int frame = 0; frame < 10; ++frame)
+                draw();
+            QVERIFY(engine.error().isEmpty());
+            const QImage picture = target.toImage();
+            int lit = 0;
+            for (int y = 0; y < picture.height(); ++y)
+                for (int x = 0; x < picture.width(); ++x)
+                    lit += qGray(picture.pixel(x, y)) > 40;
+            QVERIFY2(lit > 50, "What the worker built draws nothing");
         }
         context.doneCurrent();
     }
