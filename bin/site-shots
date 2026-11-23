@@ -6,11 +6,12 @@
 # 1200x750 in the middle of the screen, opens each panel with its key and
 # takes three pictures of it with grim, 0.4 s apart, to pick the best from:
 #
-#   editor-1..3.png     Jellyfish in the editor, on the Motion tab
-#   settings-1..3.png
-#   help-1..3.png
-#   browser-1..3.png    the preset list
-#   glass-1..3.png      glass on, so the desktop shows through
+#   editor-1..3.png     Hanami in the editor, on the Motion tab
+#   settings-1..3.png   over Doppler
+#   help-1..3.png       over Rose Window
+#   browser-1..3.png    the preset list, with a few favorites and a list,
+#                       over Jellyfish
+#   glass-1..3.png      glass on over Spirograph, so the desktop shows through
 #
 # Needs a built trance (bin/build), hyprctl, grim, jq and wtype, and music
 # playing.
@@ -53,6 +54,14 @@ colorDrift=true
 glass=false
 titleStyle=off
 EOF
+# A few favorites and a list of one's own, for the browser to show its stars
+# and lists.
+cat >"$CONFIG/trance/lists.json" <<'EOF'
+{ "lists": [
+  { "name": "Favorites", "presets": ["Aurora", "Borehole", "Corona", "Jellyfish", "Nebula", "Spillway"] },
+  { "name": "Late night", "presets": ["Borehole", "Ink Well", "Nebula", "Undertow"] }
+] }
+EOF
 XDG_CONFIG_HOME="$CONFIG" "$TRANCE" open Jellyfish >/dev/null 2>&1 &
 PID=$!
 trap 'kill $PID 2>/dev/null; rm -rf "$CONFIG"' EXIT
@@ -77,6 +86,12 @@ question() {
 geometry() {
   hyprctl clients -j | jq -r '.[] | select(.class == "trance") | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'
 }
+# Each panel over a preset of its own: the window changes to it, and the
+# trails build up again before the panel opens.
+preset() {
+  XDG_CONFIG_HOME="$CONFIG" "$TRANCE" preset "$1" >/dev/null || { echo "Trance didn't change to $1." >&2; exit 1; }
+  sleep 7
+}
 shoot() {
   for i in 1 2 3; do
     grim -g "$(geometry)" "$OUT/$1-$i.png"
@@ -95,27 +110,32 @@ dispatch "hl.dsp.window.move({ workspace = \"empty\", window = \"$WINDOW\" })"
 dispatch "hl.dsp.window.float({ action = \"enable\", window = \"$WINDOW\" })"
 dispatch "hl.dsp.window.resize({ x = 1200, y = 750, window = \"$WINDOW\" })"
 dispatch "hl.dsp.window.center({ window = \"$WINDOW\" })"
-# Past the hint the window gives at first, with the trails built up.
-sleep 6
+# Past the hint and the logo the window gives at first.
+sleep 8
 case "$(geometry)" in
   *" 1200x750") ;;
   *) echo "The window is $(geometry), not 1200x750; going on." >&2 ;;
 esac
 
+preset Hanami
 key "" E
 shoot editor
 key "" E
+preset Doppler
 key "" S
 shoot settings
 key "" S
+preset "Rose Window"
 question
 shoot help
 question
+preset Jellyfish
 key "" P
 shoot browser
 # The search field has the keys while the list is open.
 key "" Escape 0.3
 key "" P
+preset Spirograph
 # Past the toast that says glass is on.
 key "" G 3
 shoot glass
