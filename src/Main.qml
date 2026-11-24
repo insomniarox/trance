@@ -30,10 +30,6 @@ ApplicationWindow {
     property int editorTab: 0
     readonly property bool settingsVisible: sidePanel === "settings"
     property var pendingAction: null
-    // Dialogs get a set width. Left to size themselves, one whose text is
-    // wider than its row of buttons chases its own button box, which Qt
-    // reports as a binding loop every time the text changes.
-    readonly property real dialogWidth: Math.min(420, width - 48)
     // Letter keys belong to the text box while one has the cursor.
     readonly property bool typing: activeFocusItem !== null && activeFocusItem.hasOwnProperty("cursorPosition")
     readonly property bool fullScreen: visibility === Window.FullScreen
@@ -80,8 +76,7 @@ ApplicationWindow {
         nameField.text = initial
         nameDialog.accept = accept
         nameDialog.open()
-        nameField.selectAll()
-        nameField.forceActiveFocus()
+        nameField.take()
     }
     function saveAs() {
         askName(qsTr("Save as"), backend.currentName, function (name) { backend.saveAs(name) })
@@ -468,35 +463,30 @@ ApplicationWindow {
         }
     }
 
-    Dialog {
+    PopupDialog {
         id: discardDialog
-        anchors.centerIn: parent
-        width: win.dialogWidth
-        modal: true
         title: qsTr("Unsaved changes")
-        Material.roundedScale: theme.radius
         onClosed: content.forceActiveFocus()
         Label {
             width: parent.width
             wrapMode: Text.WordWrap
+            font.pixelSize: Ui.body
+            color: Ui.textDim
             text: qsTr("%1 has changes that aren't saved.").arg(backend.currentName)
         }
-        footer: DialogButtonBox {
-            Button {
+        buttons: [
+            TextButton {
                 text: qsTr("Save")
-                flat: true
-                Material.roundedScale: theme.radius
+                primary: true
                 onClicked: {
                     discardDialog.close()
                     if (backend.save() && win.pendingAction)
                         win.pendingAction()
                     win.pendingAction = null
                 }
-            }
-            Button {
+            },
+            TextButton {
                 text: qsTr("Discard")
-                flat: true
-                Material.roundedScale: theme.radius
                 onClicked: {
                     discardDialog.close()
                     backend.revert()
@@ -508,25 +498,19 @@ ApplicationWindow {
                     if (action)
                         action()
                 }
-            }
-            Button {
+            },
+            TextButton {
                 text: qsTr("Cancel")
-                flat: true
-                Material.roundedScale: theme.radius
                 onClicked: {
                     win.pendingAction = null
                     discardDialog.close()
                 }
             }
-        }
+        ]
     }
 
-    Dialog {
+    PopupDialog {
         id: nameDialog
-        anchors.centerIn: parent
-        width: win.dialogWidth
-        modal: true
-        Material.roundedScale: theme.radius
         property var accept: null
         onClosed: content.forceActiveFocus()
         function confirm() {
@@ -537,26 +521,23 @@ ApplicationWindow {
             if (accept)
                 accept(name)
         }
-        TextField {
+        CompactField {
             id: nameField
             width: parent.width
-            placeholderText: qsTr("Name")
-            Material.roundedScale: Math.min(4, theme.radius)
+            mono: false
+            placeholder: qsTr("Name")
             onAccepted: nameDialog.confirm()
+            onCancelled: nameDialog.close()
         }
-        footer: DialogButtonBox {
-            Button { text: qsTr("OK"); flat: true; Material.roundedScale: theme.radius; onClicked: nameDialog.confirm() }
-            Button { text: qsTr("Cancel"); flat: true; Material.roundedScale: theme.radius; onClicked: nameDialog.close() }
-        }
+        buttons: [
+            TextButton { text: qsTr("OK"); primary: true; onClicked: nameDialog.confirm() },
+            TextButton { text: qsTr("Cancel"); onClicked: nameDialog.close() }
+        ]
     }
 
-    Dialog {
+    PopupDialog {
         id: deleteDialog
-        anchors.centerIn: parent
-        width: win.dialogWidth
-        modal: true
         title: qsTr("Delete preset")
-        Material.roundedScale: theme.radius
         onClosed: content.forceActiveFocus()
         // The preset asked about, which is the one deleted: the presets may
         // move on while the question is up.
@@ -570,28 +551,21 @@ ApplicationWindow {
         Label {
             width: parent.width
             wrapMode: Text.WordWrap
+            font.pixelSize: Ui.body
+            color: Ui.textDim
             text: deleteDialog.shadows
                   ? qsTr("Delete your copy of %1? The built-in takes its place again. This can't be undone.").arg(deleteDialog.name)
                   : qsTr("Delete %1? This can't be undone.").arg(deleteDialog.name)
         }
-        footer: DialogButtonBox {
-            Button {
-                text: qsTr("Delete")
-                flat: true
-                Material.roundedScale: theme.radius
-                onClicked: { deleteDialog.close(); backend.deletePreset(deleteDialog.name) }
-            }
-            Button { text: qsTr("Cancel"); flat: true; Material.roundedScale: theme.radius; onClicked: deleteDialog.close() }
-        }
+        buttons: [
+            TextButton { text: qsTr("Delete"); primary: true; onClicked: { deleteDialog.close(); backend.deletePreset(deleteDialog.name) } },
+            TextButton { text: qsTr("Cancel"); onClicked: deleteDialog.close() }
+        ]
     }
 
     // A question with one thing to do if the answer is yes.
-    Dialog {
+    PopupDialog {
         id: confirmDialog
-        anchors.centerIn: parent
-        width: win.dialogWidth
-        modal: true
-        Material.roundedScale: theme.radius
         onClosed: content.forceActiveFocus()
         property string text
         property string button
@@ -599,17 +573,14 @@ ApplicationWindow {
         Label {
             width: parent.width
             wrapMode: Text.WordWrap
+            font.pixelSize: Ui.body
+            color: Ui.textDim
             text: confirmDialog.text
         }
-        footer: DialogButtonBox {
-            Button {
-                text: confirmDialog.button
-                flat: true
-                Material.roundedScale: theme.radius
-                onClicked: { confirmDialog.close(); confirmDialog.action() }
-            }
-            Button { text: qsTr("Cancel"); flat: true; Material.roundedScale: theme.radius; onClicked: confirmDialog.close() }
-        }
+        buttons: [
+            TextButton { text: confirmDialog.button; primary: true; onClicked: { confirmDialog.close(); confirmDialog.action() } },
+            TextButton { text: qsTr("Cancel"); onClicked: confirmDialog.close() }
+        ]
     }
 
     // Panels reach the window's helpers through these.

@@ -17,7 +17,7 @@ ColumnLayout {
     readonly property bool numeric: field.type === "number" || field.type === "integer" || field.type === "toggle"
     readonly property bool formula: numeric && typeof current === "string"
     // A setting the preset says nothing about runs on its default, and
-    // shows fainter for it.
+    // shows fainter for it, without the dot of one the preset sets.
     readonly property bool changed: { backend.revision; return backend.isSet(row.path) }
     // One that no longer matches the saved preset is marked until it is
     // saved or put back.
@@ -60,6 +60,17 @@ ColumnLayout {
             font.pixelSize: Ui.body
             font.weight: row.edited ? Font.DemiBold : Font.Normal
             color: row.edited ? theme.accent : row.changed ? Ui.text : Ui.textDim
+            // The mark of a setting the preset sets, which gives way to the
+            // bar below once it is changed.
+            Rectangle {
+                visible: row.changed && !row.edited
+                x: -9.5
+                anchors.verticalCenter: parent.verticalCenter
+                width: 4
+                height: 4
+                radius: 2
+                color: Ui.textDim
+            }
             // The mark of a setting that has been changed since the save.
             Rectangle {
                 visible: row.edited

@@ -35,6 +35,15 @@ SidePanel {
         }
     }
 
+    // What the presets are picked by. While it stays the same, a change to
+    // the presets themselves (a star, a list, a save) leaves the list
+    // where it was; a new search or filter starts it from the top.
+    // A function rather than a binding, so it is never read before it has
+    // caught up with a change.
+    function query() {
+        return [search.text.trim().toLowerCase(), backend.filterColor,
+                backend.filterFeatures.join(","), backend.filterList].join("|")
+    }
     readonly property var shown: {
         const needle = search.text.trim().toLowerCase()
         return backend.presets.filter(function (p) {
@@ -303,7 +312,19 @@ SidePanel {
             Layout.fillHeight: true
             Layout.leftMargin: 8
             clip: true
-            model: browser.shown
+            // Given a new model, a ListView goes back to the top, and the
+            // presets come as a new one every time any of them changes.
+            readonly property int rowHeight: 32
+            property string shownFor
+            function refill() {
+                const y = contentY
+                const same = shownFor === browser.query()
+                shownFor = browser.query()
+                model = browser.shown
+                contentY = same ? Math.min(y, Math.max(0, browser.shown.length * rowHeight - height)) : 0
+            }
+            Component.onCompleted: refill()
+            Connections { target: browser; function onShownChanged() { list.refill() } }
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: ScrollBar {}
             Label {
@@ -324,7 +345,7 @@ SidePanel {
                 required property var modelData
                 required property int index
                 width: list.width
-                height: 32
+                height: list.rowHeight
                 readonly property bool current: modelData.name === backend.currentName
                 readonly property bool flashing: browser.flashPreset === modelData.name
                 // The lists it is in besides Favorites, which the star shows.

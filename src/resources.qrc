@@ -12,6 +12,7 @@
         <file alias="qmldir">qmldir</file>
         <file alias="Ui.qml">Ui.qml</file>
         <file alias="PopupMenu.qml">PopupMenu.qml</file>
+        <file alias="PopupDialog.qml">PopupDialog.qml</file>
         <file alias="Glyph.qml">Glyph.qml</file>
         <file alias="IconButton.qml">IconButton.qml</file>
         <file alias="TextButton.qml">TextButton.qml</file>
