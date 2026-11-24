@@ -1,5 +1,5 @@
 pkgname=trance
-pkgver=0.2.8
+pkgver=0.2.9
 pkgrel=1
 pkgdesc='Music visualizer for the Linux desktop: feedback, flow and spectrum presets you can edit live'
 arch=('x86_64' 'aarch64')
