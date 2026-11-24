@@ -8,22 +8,74 @@
 They are named "Limit ...", by "Limit test", so they are easy to find in the
 browser and to tell apart in mash-ups. Try each alone and in mash-ups (X),
 with the debug overlay (D) on; `trance render "Limit Crowd" --json` gives its
-exposure (clipped, mean) and cost (ms, vertices).
+exposure (clipped, mean), its cost (ms, vertices) and its warnings.
 
-"Limit Max Solid", "Limit Max Trails" and "Limit Max Switch" check the
-brighter-of-two blend (max) on its own, on any graphics card. On the dev
-iGPU (Mesa, Intel ADL), `trance render NAME -o NAME.png --json` at the
-defaults (1280x720, 6 s, 60 fps) gives:
+What each one tests, and what it should look like:
 
-    Limit Max Solid    clipped 0      mean 0.045  brightest R G B 192 160 176
-                       top row #c00000 #00a000 #0000b0, overlaps #c0a000
-                       #c000b0 #00a0b0 #c0a0b0, bottom row exactly half
-    Limit Max Trails   clipped 0      mean 0.624  brightest R G B 192 192 192
-    Limit Max Switch   clipped 0.073  mean 0.177  rows top down: 255, 160,
-                       48, 160, then again (gray levels)
+    Limit Burn         Brightness ceiling: nothing fades, every layer adds
+                       light at full opacity, bloom and brightness at their
+                       tops. All white is right here; a crash, a black frame
+                       or NaN speckles are not.
+    Limit Ceiling      Burn's layers and decay 1, every layer on max, in a
+                       palette without white: light never grows past each
+                       layer's own color, so it stays colored, never white.
+    Limit Max Solid    Max standing still: three discs drawn onto themselves.
+    Limit Max Trails   Max moving and never fading, one layer of each kind.
+    Limit Max Switch   Max between add and over, eight rows taking turns:
+                       each layer gets the blend it asks for.
+    Limit Void         Darkness floor: fastest fade, near-invisible layers,
+                       brightness and contrast near 0, gamma 3. Dim and
+                       gray, but never stuck or flickering.
+    Limit Bare         No layers at all, the background at every top. Must
+                       still draw, and can't be a mash-up's layers.
+    Limit Crowd        Counts: 24 layers, each at its largest count. The
+                       heaviest a preset can be; frame time is the number.
+    Limit Torrent      Motion: every feedback setting swinging to its ends,
+                       pixel code on top, a layer switched by formula.
+    Limit Self Fade    Decay set by code, per pixel and per frame: it never
+                       lends its motion to a mash-up.
+    Limit Post         The finish: every post setting at its end, a harsh
+                       16-stop palette and shade code. Grainy by design:
+                       grain 0.5, the editor's top.
+    Limit Reach        Extents: geometry off screen and twice its size,
+                       textures at 0.2 and 5, a camera inside a sphere,
+                       particles at the force limits.
+    Limit Code         The 480-variable limit, spread over every code block.
+                       Compiles, runs, and costs little more than it draws.
+    Limit Beyond       Past the ranges the engine holds: 20 warnings, each a
+                       setting drawn at the end it passed ("decay 1.2 draws
+                       as 1", grain 3 as 1, the counts at their caps), and
+                       nothing worse. Grainy by design, at grain 1.
 
-Another card should give the same colors to within a step or two; a max
-row or disc brighter than its own color means max is wrong there.
+Reference on the dev iGPU (Mesa, Intel ADL), `trance render NAME -o NAME.png
+--json` at the defaults (1280x720, 6 s, 60 fps, the built-in test loop).
+Clipped, mean and vertices should match on another card to within a little;
+ms is this machine's and only compares with itself.
+
+    Limit Burn         clipped 1      mean 0.514  ms 17.5   vertices 153629
+    Limit Ceiling      clipped 0.162  mean 0.778  ms 18.0   vertices 153629
+    Limit Max Solid    clipped 0      mean 0.045  ms 4.2    vertices 1152
+                       brightest R G B 192 160 176; top row #c00000 #00a000
+                       #0000b0, overlaps #c0a000 #c000b0 #00a0b0 #c0a0b0,
+                       bottom row exactly half
+    Limit Max Trails   clipped 0      mean 0.624  ms 5.8    vertices 44543
+                       brightest R G B 192 192 192
+    Limit Max Switch   clipped 0.073  mean 0.177  ms 4.5    vertices 4608
+                       rows top down: 255, 160, 48, 160, then again (grays)
+    Limit Void         clipped 0      mean 0.174  ms 4.1    vertices 1623
+    Limit Bare         clipped 0.852  mean 0.819  ms 2.4    vertices 0
+    Limit Crowd        clipped 0.223  mean 0.677  ms 62.7   vertices 1427052
+    Limit Torrent      clipped 0.001  mean 0.085  ms 8.3    vertices 10221
+    Limit Self Fade    clipped 0.023  mean 0.097  ms 4.6    vertices 4596
+    Limit Post         clipped 0.038  mean 0.156  ms 4.9    vertices 4506
+    Limit Reach        clipped 0.079  mean 0.351  ms 8.6    vertices 44647
+    Limit Code         clipped 0.001  mean 0.035  ms 6.8    vertices 12282
+    Limit Beyond       clipped 0.29   mean 0.337  ms 61.2   vertices 274160
+                       20 warnings
+
+Windows with NVIDIA (RTX 5070 Ti) gave the same for the three Max presets,
+Trails at mean 0.622: max blends alike on both. A max disc or row brighter
+than its own color means max is wrong on that card.
 """
 import argparse
 import copy
