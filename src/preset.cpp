@@ -60,7 +60,7 @@ const QHash<QString, QList<Field>> &allFields() {
             choice("mirror", {"none", "x", "y", "quad"}), integer("kaleido", 0, 0, 16),
             number("kaleidoAngle", 0, -3.1416, 3.1416), held(number("echoAlpha", 0, 0, 1), 0, 1),
             held(number("echoZoom", 1, 0.25, 4), 0.05), choice("echoFlip", {"none", "x", "y", "xy"}),
-            number("chroma", 0, 0, 3), held(number("vignette", 0.3, 0, 1.5), 0, 2), number("grain", 0, 0, 0.5),
+            number("chroma", 0, 0, 3), held(number("vignette", 0.3, 0, 1.5), 0, 2), held(number("grain", 0, 0, 0.5), 0, 1),
             held(number("scanlines", 0, 0, 1), 0, 1),
         }},
         // What shows where the picture is dark. It is drawn fresh every
@@ -261,6 +261,23 @@ const QHash<QString, QStringList> &palettes() {
         // Lichen on stone, from the dark of the rock through moss to the
         // pale green of new growth.
         {"lichen", {"#050805", "#122515", "#25502a", "#4f8a3c", "#94c265", "#d7ecb0", "#fbfde9"}},
+        // Three more from black: washi paper over indigo ink with a
+        // vermilion seal where it is brightest; the deep sea up to the cyan
+        // and green of things that glow in it; and candlelight, from the
+        // dark of a nave through wine and amber to the flame.
+        {"washi", {"#05070f", "#111c38", "#24407a", "#5a78b0", "#c9c0aa", "#f4ecdc", "#d4412b"}},
+        {"biolume", {"#000308", "#001a2c", "#00395a", "#006f8e", "#00b3b8", "#3dffd0", "#d4fff4"}},
+        {"vesper", {"#070302", "#2a0d0a", "#5c1a17", "#9c3b1a", "#d9782a", "#ffc05c", "#fff0c9"}},
+        // Two bright ones: a peacock's teal, emerald, sapphire, violet and
+        // gold, and a desert mesa's terracotta, sand, sage and dusk.
+        {"peacock", {"#0b7a75", "#14a05a", "#1e5bb8", "#4a2f9a", "#8a2e8e", "#c9a227"}},
+        {"mesa", {"#c1502e", "#e08a4c", "#efc78a", "#a7b48a", "#6d8c8a", "#7a5c86"}},
+        // Banded, like contour, for colorize: a survey map's greens and
+        // browns, dark and light in turn, cream at the top.
+        {"topo", {"#030502", "#1d3b1a", "#a8d08d", "#0e1f0c", "#6b8f3a", "#f2e8c4", "#2a1e10", "#d9a55a",
+                  "#fffbea"}},
+        // Two colors only, as mono is, but a night violet into coral.
+        {"duotone", {"#12062e", "#ff7a59"}},
         {"mono", {"#000000", "#ffffff"}},
     };
     return all;
@@ -842,7 +859,8 @@ QStringList paletteNames() {
             "abyss",   "tropic", "twilight", "thermal", "nova", "jade",    "retro",  "carnival", "phase",
             "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "cividis", "noir", "storm",
             "spectral", "reef", "hologram", "blacklight", "cyanotype", "sakura", "autumn", "riso", "turbo",
-            "contour", "inkwell", "solstice", "lichen", "mono"};
+            "contour", "inkwell", "solstice", "lichen", "washi", "biolume", "vesper", "peacock", "mesa",
+            "topo", "duotone", "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }

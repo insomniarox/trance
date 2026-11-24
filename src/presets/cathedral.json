@@ -1,0 +1,67 @@
+{
+  "name": "Cathedral",
+  "author": "Trance",
+  "description": "Organ pipes rising from the floor of a candlelit nave, the bass in the middle and the treble out to the sides, with sparks of incense drifting up from their tips toward light that falls from high windows.",
+  "palette": "vesper",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": 1.003,
+    "dy": 0.004,
+    "blur": 0.4
+  },
+  "background": {
+    "style": "rays",
+    "intensity": 0.25,
+    "tint": 0.6,
+    "spread": 0.2,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "symmetric": true,
+      "count": 64,
+      "height": 1.4,
+      "width": 0.7,
+      "gap": 0.35,
+      "fade": 0.8,
+      "color": "palette(0.3 + 0.6*v)",
+      "alpha": 0.9
+    },
+    {
+      "type": "bars",
+      "layout": "top",
+      "symmetric": true,
+      "count": 32,
+      "height": 0.4,
+      "gap": 0.5,
+      "fade": 0.9,
+      "peaks": false,
+      "color": "palette(0.5 + 0.3*v)",
+      "alpha": 0.25
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 1200,
+      "rate": "80 + 300*beat",
+      "speed": 0.1,
+      "angle": 1.5708,
+      "spread": 0.6,
+      "gravity": -0.3,
+      "drag": 0.5,
+      "field": 0.4,
+      "life": 2.5,
+      "size": 2.5,
+      "color": "palette(0.8 + 0.2*i)",
+      "alpha": 0.6
+    }
+  ],
+  "post": {
+    "bloom": 0.7,
+    "bloomThreshold": 0.5,
+    "contrast": 1.1,
+    "vignette": 0.7
+  }
+}

@@ -745,15 +745,16 @@ The theme's colors are `accent`, `foreground`, `background`, `selection`,
 | | |
 |---|---|
 | `theme` `accent` | Built from the desktop theme, and follow it live |
-| `fire` `ocean` `ice` `gold` `magma` `inferno` `viridis` `lagoon` `forest` `dusk` `arctic` `amethyst` `copper` `phosphor` `sepia` `steel` `rose` `abyss` `thermal` `nova` `jade` `crimson` `sulfur` `cobalt` `cividis` `noir` `storm` `blacklight` `cyanotype` `sakura` `lichen` | Run from dark to bright, which is what Colorize wants |
-| `neon` `sunset` `aurora` `vapor` `acid` `rainbow` `cyber` `candy` `tropic` `retro` `carnival` `bauhaus` `citrus` `spectral` `reef` `autumn` `riso` `solstice` | Bright all the way round, for coloring layers apart |
+| `fire` `ocean` `ice` `gold` `magma` `inferno` `viridis` `lagoon` `forest` `dusk` `arctic` `amethyst` `copper` `phosphor` `sepia` `steel` `rose` `abyss` `thermal` `nova` `jade` `crimson` `sulfur` `cobalt` `cividis` `noir` `storm` `blacklight` `cyanotype` `sakura` `lichen` `washi` `biolume` `vesper` | Run from dark to bright, which is what Colorize wants |
+| `neon` `sunset` `aurora` `vapor` `acid` `rainbow` `cyber` `candy` `tropic` `retro` `carnival` `bauhaus` `citrus` `spectral` `reef` `autumn` `riso` `solstice` `peacock` `mesa` | Bright all the way round, for coloring layers apart |
 | `twilight` | Pale, down through dark and back up: its ends meet, so a palette that keeps turning has no seam |
 | `phase` | Every hue at about the same brightness, so a palette that keeps turning changes color without pulsing |
 | `opal` | Pale all the way round, for a glow that changes color but never darkens; its ends meet too |
 | `hologram` | Light and bright all the way round, like the foil of a hologram turning; its ends meet too |
 | `turbo` | A rainbow from the plotting world, dark blue up through cyan, green and yellow and down through orange to dark red: dark at both ends and brightest in the middle |
-| `contour` `inkwell` | Dark and light in turn, bright at the end: under Colorize a fading trail passes through every band, so the screen is drawn in contours, the way G-Force colors its pictures |
+| `contour` `inkwell` `topo` | Dark and light in turn, bright at the end: under Colorize a fading trail passes through every band, so the screen is drawn in contours, the way G-Force colors its pictures |
 | `mono` | Black to white |
+| `duotone` | Night violet to coral, the same two-color way |
 
 A palette is a strip of colors that blends from each to the next and then
 round to the first again. `palette(0)` is its start, `palette(0.5)` halfway along, and

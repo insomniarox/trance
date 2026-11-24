@@ -1,0 +1,58 @@
+{
+  "name": "Torrent",
+  "author": "Trance",
+  "description": "Light poured into a river in spate: a ring of sound sheds sparks that the current tears away, the whole picture swirling, stretching and rippling round a wandering center, with stars that flash only on the beat.",
+  "palette": "acid",
+  "feedback": {
+    "decay": 0.92,
+    "zoom": "1 + 0.04*sin(time*0.9)",
+    "zoomexp": 1.6,
+    "rot": "0.015*sin(time*0.37)",
+    "warp": "1 + 0.8*min(bass_att, 2)",
+    "warpScale": 0.5,
+    "warpSpeed": 1.2,
+    "cx": "0.5*sin(time*0.2)",
+    "cy": "0.5*cos(time*0.23)",
+    "dx": "0.004*cos(time*0.5)",
+    "dy": "0.004*sin(time*0.6)",
+    "sx": 1.006,
+    "sy": 0.994,
+    "blur": 0.35,
+    "hueshift": 0.012,
+    "edge": "mirror"
+  },
+  "pixel": "zoom = zoom + 0.012*sin(rad*12 - time*3)\nrot = rot + 0.012*cos(ang*5 + time)\ndx = dx + 0.004*sin(y*20 + time*4)\ndy = dy + 0.004*cos(x*20 + time*3)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": 0.3,
+      "thickness": 4,
+      "color": "palette(t + time*0.2)"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 1500,
+      "rate": 600,
+      "flow": 2,
+      "size": 3
+    },
+    {
+      "type": "vectors",
+      "alpha": 0.5
+    },
+    {
+      "type": "shape",
+      "sides": 5,
+      "instances": 12,
+      "radius": 0.1,
+      "x": "0.7*cos(n + time)*aspect",
+      "y": "0.7*sin(n + time)",
+      "enabled": "above(beat, 0.3)",
+      "blend": "max",
+      "color": "palette(t)",
+      "alpha": 0.8
+    }
+  ]
+}

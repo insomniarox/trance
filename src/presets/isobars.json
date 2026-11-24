@@ -1,0 +1,51 @@
+{
+  "name": "Isobars",
+  "author": "Trance",
+  "description": "A weather map drawn by the music: rings and loops of sound spread across the screen as long trails, and colorize turns every level of their light into a band of a survey map, greens and browns up to cream.",
+  "palette": "topo",
+  "feedback": {
+    "decay": 0.975,
+    "zoom": 1.004,
+    "warp": "0.6 + 0.4*min(bass_att, 2)",
+    "warpScale": 1.2,
+    "warpSpeed": 0.4,
+    "blur": 0.5
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.25 + 0.1*bass_att",
+      "thickness": 6,
+      "color": "white",
+      "alpha": 0.7
+    },
+    {
+      "type": "wave",
+      "shape": "xy",
+      "scale": 0.6,
+      "thickness": 3,
+      "color": "white",
+      "alpha": 0.4
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 600,
+      "rate": 200,
+      "speed": 0.1,
+      "flow": 1,
+      "life": 3,
+      "size": 3,
+      "color": "white",
+      "alpha": 0.5
+    }
+  ],
+  "post": {
+    "colorize": 1,
+    "colorCurve": 1.2,
+    "colorShift": "0.03*sin(time*0.1)",
+    "bloom": 0.3,
+    "vignette": 0.5
+  }
+}

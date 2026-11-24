@@ -1,0 +1,16 @@
+{
+  "name": "Heartline",
+  "init": "py = -0.75 + rand(0.2)\nrate = 0.3 + rand(0.15)",
+  "frame": "head = fract(time*rate)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 384,
+      "thickness": 2,
+      "color": "palette(0.6)",
+      "point": "d = t - head\nx = (t*2 - 1)*aspect\ny = py + (0.1 + 0.2*beat)*exp(-d*d*2500)*sin(d*300)\na = clamp(1 + d*3, 0, 1)*below(d, 0.002)",
+      "alpha": 0.8
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "name": "Reach",
+  "author": "Trance",
+  "description": "A neon highway into the hills: rainbow terrain rolling toward the horizon under a wireframe sky that bends from a sheet into a sphere, with glowing motes thrown round by gravity and swirl, and the music's waves running off the screen's edges.",
+  "palette": "spectral",
+  "feedback": {
+    "decay": 0.86,
+    "rot": 0.005,
+    "edge": "wrap"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "x": 2,
+      "radius": 1.5,
+      "thickness": 8,
+      "color": "palette(t)",
+      "alpha": 0.6
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "x": -2,
+      "y": -1,
+      "width": 2,
+      "scale": 2,
+      "thickness": 8,
+      "alpha": 0.6
+    },
+    {
+      "type": "terrain",
+      "height": 2,
+      "depth": 10,
+      "horizon": 1,
+      "width": 4,
+      "speed": 60,
+      "y": -1.5,
+      "thickness": 6,
+      "alpha": 0.4
+    },
+    {
+      "type": "wireframe",
+      "form": "sheet",
+      "form2": "sphere",
+      "morph": "0.5 + 0.5*sin(time*0.5)",
+      "distance": 0.5,
+      "size": 4,
+      "height": 2,
+      "radius": 3,
+      "low": 0,
+      "high": 16000,
+      "tilt": 30,
+      "fade": 0.02,
+      "smooth": 0.95,
+      "pitch": 1.5708,
+      "roll": "time",
+      "fog": 0,
+      "alpha": 0.4
+    },
+    {
+      "type": "particles",
+      "emit": "point",
+      "count": 2000,
+      "rate": 800,
+      "speed": 4,
+      "gravity": 3,
+      "drag": -3,
+      "pull": 6,
+      "swirl": -6,
+      "edge": "bounce",
+      "life": 10,
+      "size": 30,
+      "alpha": 0.2
+    }
+  ]
+}

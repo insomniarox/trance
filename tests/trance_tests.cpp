@@ -523,7 +523,8 @@ private slots:
                 }
         static const QStringList words{"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
                                        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
-                                       "Seventeen", "Eighteen", "Nineteen", "Twenty"};
+                                       "Seventeen", "Eighteen", "Nineteen", "Twenty", "Twenty-one", "Twenty-two",
+                                       "Twenty-three", "Twenty-four", "Twenty-five"};
         const QString said = wireframes < words.size() ? words[wireframes] : QString::number(wireframes);
         QVERIFY2(readme.contains(said + " presets are built on it"),
                  qPrintable(QString("The README should say %1 presets are built on the wireframe").arg(said)));

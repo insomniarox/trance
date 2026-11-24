@@ -1,0 +1,20 @@
+{
+  "name": "Paper Planes",
+  "init": "seed = rand(10)",
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 3,
+      "instances": 4,
+      "x": "(fract(time*0.04 + n*0.27 + seed)*2.4 - 1.2)*aspect",
+      "y": "0.6*sin(n*2.1 + seed) + 0.08*sin(time*0.7 + n)",
+      "radius": 0.05,
+      "angle": "0.15*sin(time*0.7 + n)",
+      "color": "palette(0.6 + 0.15*t)",
+      "alpha": 0.85,
+      "color2": "palette(0.6 + 0.15*t)",
+      "alpha2": 0.5,
+      "blend": "max"
+    }
+  ]
+}

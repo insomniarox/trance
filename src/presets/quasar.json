@@ -1,0 +1,80 @@
+{
+  "name": "Quasar",
+  "author": "Trance",
+  "description": "A galaxy's furious core: two jets of violet and coral fired out of the middle, harder with the bass and slowly swinging, across a tilted ring of the spectrum turning round it.",
+  "palette": "duotone",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": 1.008,
+    "rot": 0.004
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.3
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "ring",
+      "style": "lines",
+      "bins": 64,
+      "rows": 16,
+      "radius": 0.9,
+      "height": 0.3,
+      "yaw": "time*0.5",
+      "pitch": 0.3,
+      "distance": 3,
+      "thickness": 1.2,
+      "color": "palette(0.15 + 0.85*v*v)",
+      "alpha": 0.45,
+      "fog": 0.6,
+      "roll": 0.35
+    },
+    {
+      "type": "particles",
+      "emit": "point",
+      "count": 2000,
+      "rate": "300 + 600*bass_att",
+      "speed": "1.2 + 0.8*bass_att",
+      "angle": "1.5708 + 0.3*sin(time*0.2)",
+      "spread": 0.12,
+      "drag": 0.8,
+      "life": 1.5,
+      "size": 3,
+      "streak": 0.05,
+      "color": "palette(1 - 0.6*t)",
+      "alpha": 0.8
+    },
+    {
+      "type": "particles",
+      "emit": "point",
+      "count": 2000,
+      "rate": "300 + 600*bass_att",
+      "speed": "1.2 + 0.8*bass_att",
+      "angle": "-1.5708 + 0.3*sin(time*0.2)",
+      "spread": 0.12,
+      "drag": 0.8,
+      "life": 1.5,
+      "size": 3,
+      "streak": 0.05,
+      "color": "palette(1 - 0.6*t)",
+      "alpha": 0.8
+    },
+    {
+      "type": "shape",
+      "sides": 48,
+      "radius": "0.05 + 0.03*bass_att",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "palette(1)",
+      "alpha2": 0,
+      "blend": "add"
+    }
+  ],
+  "post": {
+    "bloom": 1,
+    "bloomThreshold": 0.5,
+    "chroma": 0.4,
+    "vignette": 0.5
+  }
+}

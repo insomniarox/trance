@@ -1,0 +1,26 @@
+{
+  "name": "Dandelion",
+  "init": "px = (rand(2) - 1)*0.7",
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "point",
+      "x": "px*aspect",
+      "y": -0.95,
+      "area": 0.05,
+      "count": 300,
+      "rate": "25 + 120*beat",
+      "speed": 0.15,
+      "angle": 1.5708,
+      "spread": 1.2,
+      "gravity": -0.05,
+      "drag": 0.6,
+      "field": 0.6,
+      "fieldScale": 2,
+      "life": 6,
+      "size": 2,
+      "color": "palette(0.9 - 0.2*t)",
+      "alpha": 0.7
+    }
+  ]
+}

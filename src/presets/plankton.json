@@ -1,0 +1,77 @@
+{
+  "name": "Plankton",
+  "author": "Trance",
+  "description": "A night dive: drifting specks of the deep sea flare cyan and green when the beat stirs the water, soft glowing bells hang in the current, and the music's line sheds more of them as it passes.",
+  "palette": "biolume",
+  "feedback": {
+    "decay": 0.95,
+    "warp": "0.3 + 0.2*min(bass_att, 2)",
+    "warpScale": 1.5,
+    "warpSpeed": 0.3,
+    "dy": 0.001,
+    "blur": 0.25
+  },
+  "background": {
+    "style": "nebula",
+    "intensity": 0.15,
+    "tint": 0.1,
+    "spread": 0.2,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "scale": "0.12 + 0.06*min(vol_att, 2)",
+      "smooth": 0.7,
+      "thickness": 1.5,
+      "color": "palette(0.6 + 0.3*t)",
+      "alpha": 0.25
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 800,
+      "rate": "40 + 400*beat",
+      "speed": 0.05,
+      "flow": 1,
+      "life": 4,
+      "size": 2.5,
+      "color": "palette(0.75 + 0.2*i)",
+      "alpha": 0.6
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 3000,
+      "rate": 500,
+      "speed": 0.02,
+      "field": 1.2,
+      "fieldScale": 2.5,
+      "fieldSpeed": 0.15,
+      "flow": 1,
+      "life": 5,
+      "size": "1.5 + 1.5*treb_att",
+      "color": "palette(0.5 + 0.4*i)",
+      "alpha": "0.2 + 0.6*beat"
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "instances": 6,
+      "radius": "0.04 + 0.04*noise(n, time*0.2)",
+      "x": "(noise(n*2.3, time*0.05)*2 - 1)*aspect*0.9",
+      "y": "(noise(n*1.7 + 5, time*0.05)*2 - 1)*0.8",
+      "color": "palette(0.85)",
+      "alpha": "0.25 + 0.25*beat",
+      "color2": "palette(0.6)",
+      "alpha2": 0,
+      "blend": "add"
+    }
+  ],
+  "post": {
+    "bloom": 0.8,
+    "bloomThreshold": 0.4,
+    "vignette": 0.6
+  }
+}

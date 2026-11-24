@@ -1,0 +1,23 @@
+{
+  "name": "Fountain",
+  "init": "fx = (rand(2) - 1)*0.6",
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "point",
+      "x": "fx*aspect",
+      "y": -1,
+      "count": 1500,
+      "rate": "10 + 900*beat",
+      "speed": "0.9 + 0.4*min(bass, 2)",
+      "angle": 1.5708,
+      "spread": 0.35,
+      "gravity": 1.4,
+      "life": 2.2,
+      "size": 2.2,
+      "streak": 0.04,
+      "color": "palette(0.2 + 0.6*i)",
+      "alpha": 0.8
+    }
+  ]
+}
