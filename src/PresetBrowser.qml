@@ -17,6 +17,24 @@ SidePanel {
     // shortcuts.
     signal picked()
 
+    // The preset and the list it was just put in or taken out of, lit for
+    // a moment so the change is seen where it happened.
+    property string flashPreset
+    property string flashList
+    function flash(listName, preset) {
+        flashPreset = preset
+        flashList = listName
+        flashTimer.restart()
+    }
+    Timer {
+        id: flashTimer
+        interval: 450
+        onTriggered: {
+            browser.flashPreset = ""
+            browser.flashList = ""
+        }
+    }
+
     readonly property var shown: {
         const needle = search.text.trim().toLowerCase()
         return backend.presets.filter(function (p) {
@@ -98,6 +116,7 @@ SidePanel {
         required property var modelData
         required property int index
         readonly property bool chosen: backend.filterList === modelData.name
+        readonly property bool flashing: browser.flashList === modelData.name
         implicitWidth: listLabel.implicitWidth + listCount.implicitWidth + 26
         implicitHeight: 24
         focusPolicy: Qt.NoFocus
@@ -106,6 +125,13 @@ SidePanel {
         background: Rectangle {
             radius: Math.min(height / 2, Math.max(4, theme.radius))
             color: listChip.chosen ? theme.accent : listChip.hovered ? Ui.fieldHover : Ui.field
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: listChip.chosen ? theme.accentForeground : theme.accent
+                opacity: listChip.flashing ? 0.4 : 0
+                Behavior on opacity { NumberAnimation { duration: listChip.flashing ? 80 : 600; easing.type: Easing.OutQuad } }
+            }
         }
         contentItem: Row {
             spacing: 6
@@ -149,7 +175,10 @@ SidePanel {
     function listEntries(preset) {
         const entries = backend.presetLists.map(function (list) {
             return { text: list.name, ticked: preset.lists.indexOf(list.name) >= 0,
-                     run: function () { backend.toggleInList(list.name, preset.name) } }
+                     run: function () {
+                         if (backend.toggleInList(list.name, preset.name))
+                             browser.flash(list.name, preset.name)
+                     } }
         })
         entries.push({ line: true })
         entries.push({ text: qsTr("New list…"), run: function () {
@@ -285,7 +314,7 @@ SidePanel {
                 wrapMode: Text.WordWrap
                 text: search.text.trim().length > 0 ? qsTr("No preset by that name here")
                     : backend.filterList.length > 0 && backend.matchCount === 0
-                      ? qsTr("Nothing in %1 yet: star a preset, or right-click it to put it in a list").arg(backend.filterList)
+                      ? qsTr("Nothing in %1 yet: star a preset, or put it in a list with the button beside the star").arg(backend.filterList)
                     : qsTr("No preset has all of these")
                 font.pixelSize: Ui.small
                 color: Ui.textFaint
@@ -297,6 +326,11 @@ SidePanel {
                 width: list.width
                 height: 32
                 readonly property bool current: modelData.name === backend.currentName
+                readonly property bool flashing: browser.flashPreset === modelData.name
+                // The lists it is in besides Favorites, which the star shows.
+                readonly property var inLists: modelData.lists.filter(function (name) {
+                    return name !== backend.presetLists[0].name
+                })
                 Rectangle {
                     anchors.fill: parent
                     anchors.rightMargin: 8
@@ -311,6 +345,13 @@ SidePanel {
                         anchors.verticalCenter: parent.verticalCenter
                         radius: Math.min(1.5, theme.radius)
                         color: theme.accent
+                    }
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: theme.accent
+                        opacity: entry.flashing ? 0.3 : 0
+                        Behavior on opacity { NumberAnimation { duration: entry.flashing ? 80 : 600; easing.type: Easing.OutQuad } }
                     }
                 }
                 RowLayout {
@@ -332,6 +373,41 @@ SidePanel {
                         font.pixelSize: Ui.tiny
                         color: theme.accent
                     }
+                    // In other lists, and how many; shows while pointed at
+                    // when in none. Opens the same menu as a right-click.
+                    AbstractButton {
+                        id: listMark
+                        implicitWidth: listMarkRow.implicitWidth + 6
+                        implicitHeight: 20
+                        focusPolicy: Qt.NoFocus
+                        hoverEnabled: true
+                        opacity: entry.inLists.length > 0 || hover.hovered ? 1 : 0
+                        onClicked: menu.show(listMark, 0, height, browser.listEntries(entry.modelData))
+                        contentItem: Row {
+                            id: listMarkRow
+                            spacing: 3
+                            leftPadding: 3
+                            readonly property color tint: entry.inLists.length > 0 ? theme.accent
+                                                        : listMark.hovered ? Ui.text : Ui.textFaint
+                            Glyph {
+                                anchors.verticalCenter: parent.verticalCenter
+                                name: "list"
+                                size: 14
+                                color: listMarkRow.tint
+                            }
+                            Label {
+                                visible: entry.inLists.length > 0
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: entry.inLists.length
+                                font.pixelSize: Ui.tiny
+                                color: listMarkRow.tint
+                            }
+                        }
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 600
+                        ToolTip.text: entry.inLists.length > 0 ? qsTr("In %1").arg(entry.inLists.join(", "))
+                                                               : qsTr("Put in a list")
+                    }
                     // In Favorites, or not yet, which shows while pointed at.
                     AbstractButton {
                         id: star
@@ -340,7 +416,10 @@ SidePanel {
                         focusPolicy: Qt.NoFocus
                         hoverEnabled: true
                         opacity: entry.modelData.favorite || hover.hovered ? 1 : 0
-                        onClicked: backend.toggleFavorite(entry.modelData.name)
+                        onClicked: {
+                            if (backend.toggleFavorite(entry.modelData.name))
+                                browser.flash(backend.presetLists[0].name, entry.modelData.name)
+                        }
                         contentItem: Glyph {
                             name: "star"
                             size: 14
