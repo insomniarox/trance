@@ -1,6 +1,6 @@
 #!/bin/sh
 # Renders the pictures and clips the website shows:
-#   bin/site-media ~/trance-media [--audio track.mp3]
+#   bin/site-media ~/trance-media [--audio track.mp3] [--since REV | --all]
 #
 #   tiles/<slug>.png    every built-in preset at 1280x720, twelve seconds in,
 #                       in its own colors
@@ -9,11 +9,17 @@
 #   stills/<slug>.png   the same seven at 2560x1440
 #
 # They react to the track given, or else to the built-in test loop. Needs a
-# built trance (bin/build), ffmpeg and jq.
+# built trance (bin/build), ffmpeg, jq and git.
+#
+# Only the presets added or changed since the newest release tag are
+# rendered, uncommitted changes included, since the site already has the
+# rest: the site's `pnpm media` keeps what it isn't given anew. --since REV
+# counts from another revision; --all renders everything, as after a change
+# to the engine that alters every picture.
 set -eu
 
 usage() {
-  echo "Usage: bin/site-media <out-dir> [--audio track.mp3]" >&2
+  echo "Usage: bin/site-media <out-dir> [--audio track.mp3] [--since REV | --all]" >&2
   exit 2
 }
 [ $# -ge 1 ] || usage
@@ -22,6 +28,8 @@ TRANCE="$ROOT/build/trance"
 OUT="$1"
 shift
 AUDIO=""
+SINCE=""
+ALL=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --audio)
@@ -29,10 +37,20 @@ while [ $# -gt 0 ]; do
       AUDIO="$(realpath -- "$2")"
       shift 2
       ;;
+    --since)
+      [ $# -ge 2 ] || usage
+      SINCE="$2"
+      shift 2
+      ;;
+    --all)
+      ALL=1
+      shift
+      ;;
     *) usage ;;
   esac
 done
-for tool in ffmpeg jq; do
+[ -z "$SINCE" ] || [ -z "$ALL" ] || usage
+for tool in ffmpeg jq git; do
   command -v "$tool" >/dev/null || { echo "bin/site-media needs $tool." >&2; exit 1; }
 done
 [ -x "$TRANCE" ] || { echo "Build trance first: bin/build" >&2; exit 1; }
@@ -53,6 +71,27 @@ mkdir -p "$OUT/tiles" "$OUT/clips" "$OUT/stills"
 OUT="$(realpath -- "$OUT")"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+
+# The built-ins to render, by file name without .json: every one, or those
+# added or changed since a revision.
+if [ -z "$ALL" ] && [ -z "$SINCE" ]; then
+  SINCE="$(git -C "$ROOT" describe --tags --abbrev=0 2>/dev/null || true)"
+  [ -n "$SINCE" ] || ALL=1
+fi
+if [ -n "$ALL" ]; then
+  echo "Rendering every preset."
+else
+  git -C "$ROOT" diff --name-only --diff-filter=AM "$SINCE" -- src/presets |
+    sed -n 's|^src/presets/\(.*\)\.json$|\1|p' >"$WORK/changed"
+  if [ ! -s "$WORK/changed" ]; then
+    echo "No preset added or changed since $SINCE; --since REV or --all to render more."
+    exit 0
+  fi
+  echo "Rendering the $(wc -l <"$WORK/changed") presets added or changed since $SINCE (--all for every one)."
+fi
+wanted() {
+  [ -n "$ALL" ] || grep -qx -- "$1" "$WORK/changed"
+}
 
 render() {
   if [ -n "$AUDIO" ]; then
@@ -88,20 +127,23 @@ done
 "$TRANCE" list --json | jq -r '.presets[] | select(.builtin) | .path' | {
   count=0
   while IFS= read -r path; do
+    wanted "$(basename "$path" .json)" || continue
     (cd "$OUT/tiles" && render "$path" --size 1280x720 --seconds 12)
     count=$((count + 1))
   done
   echo "Wrote $count tiles"
 }
 
-echo "$CLIPS" | while IFS= read -r name; do
-  render "$name" -o "$OUT/stills/$(slug "$name").png" --size 2560x1440 --seconds 12 --drift
-done
-echo "Wrote $(echo "$CLIPS" | wc -l) stills"
-
-echo "$CLIPS" | while IFS= read -r name; do
-  clip "$(slug "$name")" "$name" --seconds 12 --start 4
-done
+echo "$CLIPS" | {
+  count=0
+  while IFS= read -r name; do
+    wanted "$(slug "$name")" || continue
+    render "$name" -o "$OUT/stills/$(slug "$name").png" --size 2560x1440 --seconds 12 --drift
+    clip "$(slug "$name")" "$name" --seconds 12 --start 4
+    count=$((count + 1))
+  done
+  echo "Wrote $count stills and clips"
+}
 
 find "$OUT/clips" -type f -size +3000k | while IFS= read -r big; do
   echo "Over 3 MB: $big" >&2

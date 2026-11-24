@@ -1,6 +1,6 @@
 #!/bin/sh
 # Pictures of the window for the website, on Hyprland:
-#   bin/site-shots ~/trance-media/shots
+#   bin/site-shots ~/trance-media/shots [panel...]
 #
 # Opens Trance on settings of its own (yours are left alone), floats it at
 # 1200x750 in the middle of the screen, opens each panel with its key and
@@ -13,14 +13,31 @@
 #                       over Jellyfish
 #   glass-1..3.png      glass on over Spirograph, so the desktop shows through
 #
+# Name panels to take only those: after adding presets, `browser` alone is
+# enough, since it is the one that says how many there are. The site keeps
+# the pictures it isn't given anew.
+#
 # Needs a built trance (bin/build), hyprctl, grim, jq and wtype, and music
 # playing.
 set -eu
 
-if [ $# -ne 1 ]; then
-  echo "Usage: bin/site-shots <out-dir>" >&2
+PANELS="editor settings help browser glass"
+if [ $# -lt 1 ]; then
+  echo "Usage: bin/site-shots <out-dir> [$(echo $PANELS | tr ' ' '|')]..." >&2
   exit 2
 fi
+OUT_ARG="$1"
+shift
+WANTED="${*:-$PANELS}"
+for panel in $WANTED; do
+  case " $PANELS " in
+    *" $panel "*) ;;
+    *) echo "No panel called $panel: one of $PANELS." >&2; exit 2 ;;
+  esac
+done
+want() {
+  case " $WANTED " in *" $1 "*) return 0 ;; *) return 1 ;; esac
+}
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 TRANCE="$ROOT/build/trance"
 for tool in hyprctl grim jq wtype; do
@@ -32,8 +49,8 @@ if [ "$(hyprctl clients -j | jq '[.[] | select(.class == "trance")] | length')" 
   echo "Close Trance first: the pictures start from a window of their own." >&2
   exit 1
 fi
-mkdir -p "$1"
-OUT="$(realpath -- "$1")"
+mkdir -p "$OUT_ARG"
+OUT="$(realpath -- "$OUT_ARG")"
 
 cat <<'EOF'
 Play some music now and leave it playing: Trance moves with what it hears,
@@ -117,25 +134,35 @@ case "$(geometry)" in
   *) echo "The window is $(geometry), not 1200x750; going on." >&2 ;;
 esac
 
-preset Hanami
-key "" E
-shoot editor
-key "" E
-preset Doppler
-key "" S
-shoot settings
-key "" S
-preset "Rose Window"
-question
-shoot help
-question
-preset Jellyfish
-key "" P
-shoot browser
-# The search field has the keys while the list is open.
-key "" Escape 0.3
-key "" P
-preset Spirograph
-# Past the toast that says glass is on.
-key "" G 3
-shoot glass
+if want editor; then
+  preset Hanami
+  key "" E
+  shoot editor
+  key "" E
+fi
+if want settings; then
+  preset Doppler
+  key "" S
+  shoot settings
+  key "" S
+fi
+if want help; then
+  preset "Rose Window"
+  question
+  shoot help
+  question
+fi
+if want browser; then
+  preset Jellyfish
+  key "" P
+  shoot browser
+  # The search field has the keys while the list is open.
+  key "" Escape 0.3
+  key "" P
+fi
+if want glass; then
+  preset Spirograph
+  # Past the toast that says glass is on.
+  key "" G 3
+  shoot glass
+fi
