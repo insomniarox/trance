@@ -43,7 +43,7 @@ Rectangle {
         ] },
         { title: qsTr("Window"), keys: [
             [["S"], qsTr("Settings")],
-            [["Esc"], qsTr("Close a panel, or leave full screen")],
+            [["Esc"], qsTr("Close what is on top, or leave full screen; in a box, put back what was there")],
             [["?"], qsTr("Show or hide this")],
             [["A"], qsTr("About Trance: version, system and files")],
             [["Q"], qsTr("Quit")]

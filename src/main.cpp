@@ -1,4 +1,4 @@
-// trance — a music visualizer for the Linux desktop: MilkDrop-style
+// trance — a music visualizer for Linux and Windows 11: MilkDrop-style
 // feedback and SoundSpectrum-style flow, in the colors of your theme.
 
 #include <QGuiApplication>

@@ -255,9 +255,9 @@ public:
     const CompiledPreset &compiled() const { return m_compiled; }
     int compiledRevision() const { return m_compiledRevision; }
     double pendingBlend() const { return m_blend; }
-    // The palette in force: the user's pick, or wherever the drift has got to.
-    // The palette in place of the preset's own, if any. Not while the preset
-    // is being edited, so its own palette shows as it is changed.
+    // The palette in place of the preset's own, if any: wherever the drift
+    // has got to, or else the user's pick. None while the preset is being
+    // edited, so its own palette shows as it is changed.
     QString effectivePalette() const {
         return m_editing ? QString() : m_colorDrift && !m_driftPalette.isNull() ? m_driftPalette : m_paletteOverride;
     }

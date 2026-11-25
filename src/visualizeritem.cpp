@@ -135,8 +135,9 @@ public:
     }
 
 private:
-    // The engine goes last and the worker first, so nothing the engine was
-    // handed is gone while it still stands.
+    // The worker goes first and the engine last. That is safe: the engine
+    // asks nothing of the worker while it is taken down, and the programs
+    // the worker built stay in the drawing context, which they share.
     Engine m_engine;
     std::unique_ptr<ShaderWorker> m_worker;
     bool m_workerTried = false;

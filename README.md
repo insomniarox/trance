@@ -203,7 +203,7 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
 | `Ctrl+Shift+S` | Save a copy under a new name |
 | `Ctrl+N` | New preset |
 | `Ctrl+Z` `Ctrl+Shift+Z` | Undo, redo |
-| `Esc` | Close a panel, or leave full screen |
+| `Esc` | Close what is on top: a menu, a question, the list, a panel; or leave full screen. In a box, put back what was there |
 | `?` | Show every shortcut |
 | `A` | About Trance: its version, the system it runs on, where your presets are |
 | `Q` | Quit |
