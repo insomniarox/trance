@@ -405,7 +405,8 @@ std::unique_ptr<Engine::Scene> Engine::makeScene(const CompiledPreset &preset, b
                      vars.find("b2"), vars.find("a2"), vars.find("warpSpeed"), vars.find("rad"), vars.find("ang"),
                      vars.find("zoom"), vars.find("zoomexp"), vars.find("rot"), vars.find("warp"),
                      vars.find("warpScale"), vars.find("cx"), vars.find("cy"), vars.find("dx"), vars.find("dy"),
-                     vars.find("sx"), vars.find("sy"), vars.find("bg.speed"), {}, {}, vars.find("z")};
+                     vars.find("sx"), vars.find("sy"), vars.find("bg.speed"), {}, {}, vars.find("z"),
+                     vars.find("travel")};
     for (int band = 0; band < AudioFrame::Bands; ++band) {
         scene->s.band[band] = vars.find(bandInfo(band).name);
         scene->s.bandAtt[band] = vars.find(QString(bandInfo(band).name) + "_att");
@@ -1807,6 +1808,7 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
         std::copy_backward(state.history.begin(), state.history.end() - bins, state.history.end());
         std::copy(live.begin(), live.end(), state.history.begin());
         state.phase -= 1;
+        state.taken += 1;
     }
     state.phase = std::fmod(state.phase, 1.0);
 
@@ -1879,6 +1881,10 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
         const float *values = row == 0 ? live.data() : &state.history[size_t(row - 1) * size_t(bins)];
         // The oldest row thins out as it leaves instead of vanishing.
         const float rowAlpha = row == rows ? alpha * (1 - float(state.phase)) : alpha;
+        // Where the row lies on the ground, in lengths of the sheet: the
+        // samples taken so far less its age, so it keeps one value from the
+        // moment it is taken until it leaves, however the speed changes.
+        V[m_s.travel] = (state.taken + state.phase) / rows - age;
         for (int col = 0; col < across; ++col) {
             const Column &column = columns[size_t(col)];
             const int below = column.below;

@@ -208,11 +208,13 @@ const QHash<QString, Entry> &entries() {
         {"wireframe.fog", {"Fog", "How much the far side is dimmed, so near and far can be told apart. 0 draws all "
                                   "of it alike."}},
         {"wireframe.color", {"Color", "A color, worked out for every point: t runs 0 to 1 from the lowest pitch to "
-                                      "the highest, i 0 to 1 from the newest sample to the oldest, and v is the "
-                                      "height there."}},
-        {"wireframe.point", {"Point code", "Runs for every point, after the form has placed it. Reads t, i and v, "
-                                           "and may change x, y and z (right, up and away, before the camera) and r, "
-                                           "g, b and a."}},
+                                      "the highest, i 0 to 1 from the newest sample to the oldest, v is the "
+                                      "height there, and travel is where the sample lies on the ground."}},
+        {"wireframe.point", {"Point code", "Runs for every point, after the form has placed it. Reads t, i, v and "
+                                           "travel, and may change x, y and z (right, up and away, before the "
+                                           "camera) and r, g, b and a. travel is how far along the ground the "
+                                           "sample lies, in lengths of the sheet: it stays the same while the "
+                                           "sample moves back, so hills drawn from it move with the rows."}},
 
         // -------------------------------------------------------- vectors
         {"vectors.cols", {"Columns", "How many strokes across the screen."}},

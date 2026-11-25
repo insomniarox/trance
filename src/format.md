@@ -193,8 +193,12 @@ tube's length), `radius` (tube, ring, sphere), `height`. The camera: `yaw`
 `distance` (close exaggerates depth; inside the form's size it is a tunnel),
 `size`, `x`, `y`. Drawing: `style` (`mesh`, `lines`, `strands`, `dots`),
 `thickness`, `fog` (dims the far side), `color` (with `t` pitch 0–1, `i` age
-0–1, `v` height), `alpha`, and `point`: code per point with `t i v`, which
-may change `x y z` (right, up, away, before the camera) and `r g b a`.
+0–1, `v` height, `travel` below), `alpha`, and `point`: code per point with
+`t i v travel`, which may change `x y z` (right, up, away, before the camera)
+and `r g b a`. `travel` is where the sample lies on the ground, in lengths of
+the sheet: it keeps its value while the sample moves back, whatever the
+`speed` or `rows`, so scenery drawn from it, `noise(u*6, travel)`, moves with
+the rows.
 When either form closes on itself (all but `sheet`), pitch runs up one half
 of the sheet and back down the other, so the edges meet without a step.
 

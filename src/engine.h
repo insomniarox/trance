@@ -129,6 +129,7 @@ private:
         std::vector<float> history; // terrain and wireframe rows, newest first
         int rows = 0, cols = 0;
         double phase = 0;
+        double taken = 0; // samples a wireframe has taken, for its travel
         std::vector<float> peaks;
         Bins bins; // a wireframe's own reading of the spectrum
     };
@@ -137,7 +138,7 @@ private:
             progress, t, i, v, v2, n, count, x, y, r, g, b, a, radius, angle, size, r2, g2, b2, a2, warpSpeed,
             rad, ang, zoom, zoomexp, rot, warp, warpScale, cx, cy, dx, dy, sx, sy, bgSpeed;
         int band[AudioFrame::Bands], bandAtt[AudioFrame::Bands];
-        int z;
+        int z, travel;
     };
     // How a layer's light meets what is under it: covering it, adding to
     // it, or keeping the brighter of the two, which never grows past the

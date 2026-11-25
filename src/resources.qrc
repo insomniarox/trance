@@ -26,6 +26,7 @@
         <file alias="ControlBar.qml">ControlBar.qml</file>
         <file alias="Logo.qml">Logo.qml</file>
         <file alias="HelpTip.qml">HelpTip.qml</file>
+        <file alias="presets/apogee.json">presets/apogee.json</file>
         <file alias="presets/aurora.json">presets/aurora.json</file>
         <file alias="presets/blueprint.json">presets/blueprint.json</file>
         <file alias="presets/borehole.json">presets/borehole.json</file>
@@ -34,7 +35,6 @@
         <file alias="presets/cathedral.json">presets/cathedral.json</file>
         <file alias="presets/chorus.json">presets/chorus.json</file>
         <file alias="presets/clockwork.json">presets/clockwork.json</file>
-        <file alias="presets/composition.json">presets/composition.json</file>
         <file alias="presets/concentric.json">presets/concentric.json</file>
         <file alias="presets/confetti.json">presets/confetti.json</file>
         <file alias="presets/corkscrew.json">presets/corkscrew.json</file>
@@ -54,9 +54,7 @@
         <file alias="presets/dunes.json">presets/dunes.json</file>
         <file alias="presets/ember-drift.json">presets/ember-drift.json</file>
         <file alias="presets/equalizer.json">presets/equalizer.json</file>
-        <file alias="presets/escapement.json">presets/escapement.json</file>
         <file alias="presets/event-horizon.json">presets/event-horizon.json</file>
-        <file alias="presets/fiddlehead.json">presets/fiddlehead.json</file>
         <file alias="presets/fireworks.json">presets/fireworks.json</file>
         <file alias="presets/fizz.json">presets/fizz.json</file>
         <file alias="presets/flow-state.json">presets/flow-state.json</file>
@@ -67,6 +65,7 @@
         <file alias="presets/gemini.json">presets/gemini.json</file>
         <file alias="presets/geode.json">presets/geode.json</file>
         <file alias="presets/glowstring.json">presets/glowstring.json</file>
+        <file alias="presets/green-flash.json">presets/green-flash.json</file>
         <file alias="presets/growth-rings.json">presets/growth-rings.json</file>
         <file alias="presets/gyroscope.json">presets/gyroscope.json</file>
         <file alias="presets/hall-of-mirrors.json">presets/hall-of-mirrors.json</file>
@@ -78,6 +77,7 @@
         <file alias="presets/horizon.json">presets/horizon.json</file>
         <file alias="presets/hyperdrive.json">presets/hyperdrive.json</file>
         <file alias="presets/ink-well.json">presets/ink-well.json</file>
+        <file alias="presets/interstate.json">presets/interstate.json</file>
         <file alias="presets/isobars.json">presets/isobars.json</file>
         <file alias="presets/jellyfish.json">presets/jellyfish.json</file>
         <file alias="presets/kaleidoscope.json">presets/kaleidoscope.json</file>

@@ -1,0 +1,119 @@
+{
+  "name": "Interstate",
+  "author": "Trance",
+  "description": "Driving at night toward a city on the horizon, under a striped sun in red and yellow. The towers stand still but for a stir of the mids; the blue road grid rolls in from the skyline with the spectrum on it and streams past you, the kick puts your foot down, and sparks fly off the horizon on the beat.",
+  "palette": "bauhaus",
+  "init": "seed = rand(50)",
+  "frame": "spd = 10 + 6*min(bass_att, 2)\nsunY = 0.3\nsunR = 0.3 + 0.015*min(low_att, 2)",
+  "pixel": "zoom = 1 + (0.005 + 0.006*min(bass_att, 2))*smoothstep(-0.05, -0.39999999999999997, y)",
+  "feedback": {
+    "decay": 0.86,
+    "cy": -0.05,
+    "blur": 0.1,
+    "edge": "black"
+  },
+  "shade": "sy = y - sunY\ninside = step(length(x, sy), sunR + 0.004)*step(sy, 0.08)*step(0.03, y)\nk = (0.08 - sy)/sunR\ngap = step(fract(k*5 - time*0.12), 0.1 + 0.55*k)\nm = 1 - inside*gap\nr = r*m\ng = g*m\nb = b*m",
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "x": 0,
+      "y": "sunY",
+      "radius": "sunR*2.1",
+      "color": "palette(0.1)",
+      "alpha": "0.45 + 0.15*min(low_att, 2)",
+      "color2": "palette(0.1)",
+      "alpha2": 0,
+      "blend": "max"
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.05,
+      "scale": 0.01,
+      "smooth": 0.9,
+      "thickness": 36,
+      "color": "palette(0.15)",
+      "alpha": 0.35,
+      "blend": "max"
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "y": "sunY",
+      "radius": "sunR",
+      "color": "palette(0.25)",
+      "alpha": 1,
+      "color2": "palette(0.02)",
+      "alpha2": 0.85,
+      "blend": "max"
+    },
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "y": 0.95,
+      "count": 46,
+      "width": 1,
+      "gap": 0.06,
+      "height": 0.1,
+      "color": "palette(0.5 + 0.25*step(0.5, noise(i*1.7 + seed)))",
+      "alpha": 1,
+      "fade": 0.6,
+      "peaks": false,
+      "blend": "max",
+      "point": "c = abs(t*2 - 1)\ntall = (0.2 + 0.8*noise(i*0.9 + seed))*(0.6 + 0.4*step(0.55, noise(i*2.3 + seed)))*smoothstep(1, 0.4, c)*(0.12 + 0.88*smoothstep(0.1, 0.32, c))\nv = tall*1.6 + 0.12*v*min(mid_att, 2)\na = a*(0.55 + 0.45*tall)"
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.05,
+      "scale": 0.05,
+      "smooth": 0.7,
+      "thickness": "3 + 5*beat",
+      "color": "palette(0.25)",
+      "alpha": "0.6 + 0.4*beat",
+      "blend": "add"
+    },
+    {
+      "type": "wireframe",
+      "form": "sheet",
+      "style": "mesh",
+      "bins": 64,
+      "rows": 32,
+      "speed": "spd",
+      "height": 1,
+      "fade": 0.4,
+      "pitch": 0,
+      "yaw": 0,
+      "distance": 2,
+      "size": 2,
+      "y": 0.1,
+      "fog": 0.5,
+      "thickness": 2.4,
+      "color": "palette(0.75 + 0.2*min(v, 1))",
+      "alpha": 0.95,
+      "blend": "max",
+      "point": "u = t*2 - 1\nx = u*13\nz = (1 - i)*20\ny = -1 + 0.7*v*smoothstep(0.7, 0.1, abs(u))"
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 800,
+      "rate": "20 + 900*beat",
+      "speed": 0.15,
+      "flow": 1,
+      "life": 1.6,
+      "size": 2,
+      "streak": 0.05,
+      "color": "palette(0.25 + 0.25*i)",
+      "alpha": 0.85
+    }
+  ],
+  "post": {
+    "bloom": 1.2,
+    "bloomThreshold": 0.4,
+    "chroma": 0.3,
+    "scanlines": 0.2,
+    "vignette": 0.45
+  }
+}

@@ -524,7 +524,8 @@ private slots:
         static const QStringList words{"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
                                        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
                                        "Seventeen", "Eighteen", "Nineteen", "Twenty", "Twenty-one", "Twenty-two",
-                                       "Twenty-three", "Twenty-four", "Twenty-five"};
+                                       "Twenty-three", "Twenty-four", "Twenty-five", "Twenty-six", "Twenty-seven",
+                                       "Twenty-eight"};
         const QString said = wireframes < words.size() ? words[wireframes] : QString::number(wireframes);
         QVERIFY2(readme.contains(said + " presets are built on it"),
                  qPrintable(QString("The README should say %1 presets are built on the wireframe").arg(said)));
@@ -1485,6 +1486,53 @@ private slots:
         engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
         QVERIFY(!engine.error().isEmpty());
         QCOMPARE(engine.variable("count_frames"), 106.0);
+    }
+
+    // A wireframe row keeps one travel from the moment its sample is taken
+    // until it leaves the far end, however the speed changes, so scenery
+    // drawn from it moves with the rows instead of sliding over them. The
+    // third sample taken is always at 3/rows; the point code reports the age
+    // of whichever point is there.
+    void wireframeRowsKeepTheirTravel()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setPreset(presets::compile(fixture(
+            "{ 'name': 'Travel', 'init': 'goal = 3/8', 'frame': 'found = -1', 'layers': [ { 'type': "
+            "'wireframe', 'rows': 8, 'bins': 8, 'speed': '3 + 25*step(0.5, fract(time*1.7))', 'point': "
+            "'found = if(below(abs(travel - goal), 0.000001), i, found)' } ] }")), 0);
+        QList<double> ages;
+        bool gone = false;
+        for (int frame = 0; frame < 240; ++frame) {
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+            const double age = engine.variable("found");
+            if (age >= 0) {
+                QVERIFY2(!gone, qPrintable(QString("Back at frame %1").arg(frame)));
+                const double before = ages.isEmpty() ? -1 : ages.last();
+                QVERIFY2(age > before, qPrintable(QString("Age %1 after %2 at frame %3").arg(age).arg(before).arg(frame)));
+                ages << age;
+            } else if (!ages.isEmpty()) {
+                gone = true;
+            }
+        }
+        QVERIFY2(engine.error().isEmpty(), qPrintable(engine.error()));
+        // Seen all the way back, then gone off the far end.
+        QVERIFY2(ages.size() > 10, qPrintable(QString::number(ages.size())));
+        QVERIFY2(ages.last() > 0.85, qPrintable(QString::number(ages.last())));
+        QVERIFY(gone);
     }
 
     // noise() is the same field on the CPU as in a shader, so particles and

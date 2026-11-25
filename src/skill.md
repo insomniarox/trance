@@ -49,6 +49,10 @@ trance render "Night Drive" -o look.png --sheet 6 --seconds 8
   `time*0.2` or it reads as flat. `trance show Whitecaps` is the plain
   sheet, `trance show Scroll` morphs two forms, `trance show Ribbon` bends
   one with `point` code, and `trance show Borehole` puts the camera inside.
+- For ground running to a horizon, set `pitch` to 0 and lay the sheet out
+  in `point` code (`z = (1 - i)*20` brings the rows toward you). Draw hills
+  from `travel`, not `time`, or the ground slides under them: `trance show
+  Apogee`.
 - To give each range of the sound a wireframe of its own, set its `low` and
   `high` to the range's Hz (sub 20-60, low 60-200, lowmid 200-600, highmid
   600-2000, presence 2000-6000, air 6000-16000) and drive its height or

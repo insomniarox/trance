@@ -29,7 +29,8 @@ Every preset can be changed while it runs. See them move on
 - **Wireframes in space.** The last few seconds of the spectrum as a sheet
   of lines, laid flat like a sea, rolled into a tube, spread into a ring or
   wrapped round a ball, folding from one form into another while a camera
-  turns round it. Twenty-five presets are built on it.
+  turns round it, or shaped by its own code into hills and a road running
+  to the horizon. Twenty-eight presets are built on it.
 - **Everything works on everything else.** Flow fields bend the picture,
   waves and bars throw particles, the particles ride the flow, and one
   palette colors all of it.

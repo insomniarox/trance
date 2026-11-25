@@ -1146,7 +1146,7 @@ CompiledPreset compile(const QJsonObject &json) {
     p.vars.declare("tau", 2 * M_PI);
     // ...and what it hands a layer's own code for each point or instance.
     for (const char *name : {"t", "i", "v", "v2", "n", "count", "x", "y", "z", "r", "g", "b", "a", "radius",
-                             "angle", "size", "r2", "g2", "b2", "a2"})
+                             "angle", "size", "r2", "g2", "b2", "a2", "travel"})
         p.vars.declare(name);
     // Feedback settings are variables, so the frame code can push them
     // around and the pixel code can bend them across the screen.
@@ -1237,7 +1237,8 @@ CompiledPreset compile(const QJsonObject &json) {
         // worked out point by point; the engine sets these names to 0 for
         // everything else, which is never what was meant.
         if (type != "shape") {
-            const int own[] = {p.vars.find("t"), p.vars.find("i"), p.vars.find("v"), p.vars.find("v2")};
+            const int own[] = {p.vars.find("t"), p.vars.find("i"), p.vars.find("v"), p.vars.find("v2"),
+                               p.vars.find("travel")};
             for (const Field &field : fields(type)) {
                 const auto found = layer.numbers.constFind(field.key);
                 if (found == layer.numbers.constEnd())

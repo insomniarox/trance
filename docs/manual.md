@@ -393,6 +393,7 @@ spark. Those are what make one layer a rainbow rather than one color:
 | `v` | the sound there | the bar's height | the spectrum at `t` | the height there | the height there | speed | how fast the picture moves there |
 | `v2` | the other channel | | the waveform at `t` | | | | |
 | `n` `count` | | | the copy's number, and how many | | | | |
+| `travel` | | | | | where the sample lies on the ground, in lengths of the sheet | | |
 
 Only the color and the `point` code are worked out point by point. Every
 other setting, `alpha` included, is worked out once a frame for the whole
@@ -575,6 +576,21 @@ sheet along its length:
 
 ```json
 "point": "w = z*1.5; x1 = x*cos(w) - y*sin(w); y = x*sin(w) + y*cos(w); x = x1"
+```
+
+The point code can also set `x`, `y` and `z` outright, and then the sheet is
+whatever you lay it out as. Apogee and Interstate use it for ground: a level
+camera (`"pitch": 0`), `z = (1 - i)*20` so the newest sample is at the
+horizon and the rows roll toward you, and `y = -1` plus a little of `v` down
+the middle. Hills have to move with the rows, or the ground slides under
+them, so draw them from `travel`: where the sample lies on the ground, in
+lengths of the sheet. It keeps its value from the moment a sample is taken
+until it leaves the far end, so `speed` can be any formula and `rows` any
+number:
+
+```json
+"speed": "9 + 4*min(bass_att, 2)",
+"point": "u = t*2 - 1; x = u*13; z = (1 - i)*20; y = -1 + smoothstep(0.2, 0.6, abs(u))*3*noise(u*7, travel)"
 ```
 
 *Where is it seen from?*
