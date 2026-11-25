@@ -1,0 +1,67 @@
+{
+  "name": "Crosshatch",
+  "author": "Trance",
+  "description": "A pencil study of the sound: the music drawn as one line across the page, shaded in diagonal strokes wherever it is loud, and hatched across the other way on the beat, the drawing slowly rubbed out behind.",
+  "palette": "graphite",
+  "init": "ph = rand(6)",
+  "feedback": {
+    "decay": 0.95,
+    "blur": 0.06,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.14,
+    "tint": 0.3,
+    "spread": 0.15,
+    "speed": 0.1
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": "0.05*sin(time*0.13 + ph)",
+      "scale": 0.5,
+      "smooth": 0.55,
+      "thickness": 1.6,
+      "color": "palette(0.85)",
+      "alpha": 0.7
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 2000,
+      "rate": "150 + 500*min(vol_att, 2)",
+      "speed": 1.1,
+      "angle": 0.785,
+      "spread": 0.03,
+      "drag": 5,
+      "life": 0.7,
+      "size": 1.4,
+      "streak": 0.1,
+      "color": "palette(0.55 + 0.35*i)",
+      "alpha": 0.7
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 2000,
+      "rate": "1200*beat",
+      "speed": 1.1,
+      "angle": 2.356,
+      "spread": 0.03,
+      "drag": 5,
+      "life": 0.7,
+      "size": 1.4,
+      "streak": 0.1,
+      "color": "palette(0.5 + 0.35*i)",
+      "alpha": 0.6
+    }
+  ],
+  "post": {
+    "bloom": 0.15,
+    "bloomThreshold": 0.75,
+    "vignette": 0.5,
+    "grain": 0.08
+  }
+}

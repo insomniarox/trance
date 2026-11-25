@@ -40,6 +40,7 @@
         <file alias="presets/corona.json">presets/corona.json</file>
         <file alias="presets/corridor.json">presets/corridor.json</file>
         <file alias="presets/counterpoint.json">presets/counterpoint.json</file>
+        <file alias="presets/crosshatch.json">presets/crosshatch.json</file>
         <file alias="presets/crosswinds.json">presets/crosswinds.json</file>
         <file alias="presets/curtain.json">presets/curtain.json</file>
         <file alias="presets/deep-current.json">presets/deep-current.json</file>
@@ -117,7 +118,6 @@
         <file alias="presets/seismograph.json">presets/seismograph.json</file>
         <file alias="presets/shoal.json">presets/shoal.json</file>
         <file alias="presets/signal-garden.json">presets/signal-garden.json</file>
-        <file alias="presets/silverpoint.json">presets/silverpoint.json</file>
         <file alias="presets/skyline.json">presets/skyline.json</file>
         <file alias="presets/sonar.json">presets/sonar.json</file>
         <file alias="presets/spectrogram.json">presets/spectrogram.json</file>

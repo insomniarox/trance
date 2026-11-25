@@ -9,7 +9,7 @@
 #   editor-1..3.png     Louche in the editor, on the Motion tab, where its
 #                       warp is a formula of the bass
 #   settings-1..3.png   over Lodestone
-#   help-1..3.png       over Silverpoint
+#   help-1..3.png       over Crosshatch
 #   browser-1..3.png    the preset list, with a few favorites and a list,
 #                       over Wisteria
 #   glass-1..3.png      glass on over Plumage, so the desktop shows through
@@ -151,7 +151,7 @@ if want settings; then
   key "" S
 fi
 if want help; then
-  preset Silverpoint
+  preset Crosshatch
   question
   shoot help
   question
