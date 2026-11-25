@@ -64,6 +64,7 @@ ColumnLayout {
             font.pixelSize: Ui.body
             onTextChanged: if (activeFocus) apply.restart()
             onActiveFocusChanged: if (!activeFocus && apply.running) { apply.stop(); backend.setParam(block.path, text) }
+            Keys.onEscapePressed: focus = false
             Timer { id: apply; interval: 450; onTriggered: backend.setParam(block.path, edit.text) }
         }
     }

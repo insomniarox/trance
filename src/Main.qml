@@ -100,47 +100,47 @@ ApplicationWindow {
         }
     }
 
-    Shortcut { sequence: "?"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.toggleHelp() }
-    Shortcut { sequence: "A"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.toggleAbout() }
-    Shortcut { sequence: "Q"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.quit() }
-    Shortcut { sequence: "Space"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.next() }) }
-    Shortcut { sequence: "Backspace"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.previous() }) }
-    Shortcut { sequence: "R"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.guarded(function () { backend.random() }) }
-    Shortcut { sequence: "H"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: backend.toggleFavorite() }
+    Shortcut { sequence: "?"; enabled: !win.typing; onActivated: win.toggleHelp() }
+    Shortcut { sequence: "A"; enabled: !win.typing; onActivated: win.toggleAbout() }
+    Shortcut { sequence: "Q"; enabled: !win.typing; onActivated: win.quit() }
+    Shortcut { sequence: "Space"; enabled: !win.typing; onActivated: win.guarded(function () { backend.next() }) }
+    Shortcut { sequence: "Backspace"; enabled: !win.typing; onActivated: win.guarded(function () { backend.previous() }) }
+    Shortcut { sequence: "R"; enabled: !win.typing; onActivated: win.guarded(function () { backend.random() }) }
+    Shortcut { sequence: "H"; enabled: !win.typing; onActivated: backend.toggleFavorite() }
     Shortcut {
-        sequence: "L"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "L"; enabled: !win.typing
         onActivated: {
             backend.locked = !backend.locked
             win.toast(backend.locked ? qsTr("Holding this preset") : qsTr("Changing presets again"))
         }
     }
     Shortcut {
-        sequence: "P"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "P"; enabled: !win.typing
         onActivated: win.toggleBrowser()
     }
     Shortcut {
-        sequence: "/"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "/"; enabled: !win.typing
         onActivated: win.searchPresets()
     }
     Shortcut {
-        sequence: "X"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "X"; enabled: !win.typing
         onActivated: win.guarded(function () {
             if (!backend.mashup())
                 win.toast(qsTr("No mash-up came together. Try again."))
         })
     }
-    Shortcut { sequence: "E"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.toggleSide("editor") }
-    Shortcut { sequence: "S"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: win.toggleSide("settings") }
-    Shortcut { sequence: "Ctrl+,"; context: Qt.ApplicationShortcut; onActivated: win.toggleSide("settings") }
-    Shortcut { sequence: "D"; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: backend.debug = !backend.debug }
-    Shortcut { sequence: "Ctrl+Tab"; context: Qt.ApplicationShortcut; enabled: win.editorVisible; onActivated: win.editorTab = (win.editorTab + 1) % editor.item.tabNames.length }
-    Shortcut { sequence: "Ctrl+Shift+Tab"; context: Qt.ApplicationShortcut; enabled: win.editorVisible; onActivated: win.editorTab = (win.editorTab + editor.item.tabNames.length - 1) % editor.item.tabNames.length }
+    Shortcut { sequence: "E"; enabled: !win.typing; onActivated: win.toggleSide("editor") }
+    Shortcut { sequence: "S"; enabled: !win.typing; onActivated: win.toggleSide("settings") }
+    Shortcut { sequence: "Ctrl+,"; onActivated: win.toggleSide("settings") }
+    Shortcut { sequence: "D"; enabled: !win.typing; onActivated: backend.debug = !backend.debug }
+    Shortcut { sequence: "Ctrl+Tab"; enabled: win.editorVisible; onActivated: win.editorTab = (win.editorTab + 1) % editor.item.tabNames.length }
+    Shortcut { sequence: "Ctrl+Shift+Tab"; enabled: win.editorVisible; onActivated: win.editorTab = (win.editorTab + editor.item.tabNames.length - 1) % editor.item.tabNames.length }
     Shortcut {
-        sequences: ["F", "F11"]; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequences: ["F", "F11"]; enabled: !win.typing
         onActivated: win.toggleFullScreen()
     }
     Shortcut {
-        sequence: "T"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "T"; enabled: !win.typing
         onActivated: {
             const name = backend.cyclePalette()
             win.toast(name.length === 0 ? qsTr("Colors: each preset's own")
@@ -149,14 +149,14 @@ ApplicationWindow {
         }
     }
     Shortcut {
-        sequence: "G"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "G"; enabled: !win.typing
         onActivated: {
             backend.glass = !backend.glass
             win.toast(backend.glass ? qsTr("Glass on") : qsTr("Glass off"))
         }
     }
     Shortcut {
-        sequence: "N"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "N"; enabled: !win.typing
         onActivated: {
             const style = backend.cycleTitleStyle()
             win.toast(style === "corner" ? qsTr("Track titles in the corner")
@@ -164,37 +164,38 @@ ApplicationWindow {
         }
     }
     Shortcut {
-        sequence: "M"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "M"; enabled: !win.typing
         onActivated: {
             backend.source = backend.source === "microphone" ? "system" : "microphone"
             win.toast(backend.source === "system" ? qsTr("Listening to what's playing") : qsTr("Listening to the microphone"))
         }
     }
     Shortcut {
-        sequences: ["+", "="]; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequences: ["+", "="]; enabled: !win.typing
         onActivated: {
             backend.sensitivity = backend.sensitivity * 1.15
             win.toast(qsTr("Sensitivity %1%").arg(Math.round(backend.sensitivity * 100)))
         }
     }
     Shortcut {
-        sequence: "-"; context: Qt.ApplicationShortcut; enabled: !win.typing
+        sequence: "-"; enabled: !win.typing
         onActivated: {
             backend.sensitivity = backend.sensitivity / 1.15
             win.toast(qsTr("Sensitivity %1%").arg(Math.round(backend.sensitivity * 100)))
         }
     }
-    Shortcut { sequences: [StandardKey.Save]; context: Qt.ApplicationShortcut; onActivated: backend.save() }
-    Shortcut { sequence: "Ctrl+Shift+S"; context: Qt.ApplicationShortcut; onActivated: win.saveAs() }
-    Shortcut { sequence: "Ctrl+N"; context: Qt.ApplicationShortcut; onActivated: win.newPreset() }
-    Shortcut { sequences: [StandardKey.Undo]; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: backend.undo() }
-    Shortcut { sequences: ["Ctrl+Shift+Z", "Ctrl+Y"]; context: Qt.ApplicationShortcut; enabled: !win.typing; onActivated: backend.redo() }
+    Shortcut { sequences: [StandardKey.Save]; onActivated: backend.save() }
+    Shortcut { sequence: "Ctrl+Shift+S"; onActivated: win.saveAs() }
+    Shortcut { sequence: "Ctrl+N"; onActivated: win.newPreset() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: !win.typing; onActivated: backend.undo() }
+    Shortcut { sequences: ["Ctrl+Shift+Z", "Ctrl+Y"]; enabled: !win.typing; onActivated: backend.redo() }
     Shortcut {
-        sequence: "Esc"; context: Qt.ApplicationShortcut
+        // A text box takes Esc itself, and so does a menu, a list or a
+        // question that is up: Qt holds the window's shortcuts back while one
+        // is, which is why none of these is an application shortcut.
+        sequence: "Esc"; enabled: !win.typing
         onActivated: {
-            if (win.typing)
-                content.forceActiveFocus()
-            else if (win.helpVisible)
+            if (win.helpVisible)
                 win.helpVisible = false
             else if (win.aboutVisible)
                 win.aboutVisible = false

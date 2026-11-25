@@ -100,6 +100,9 @@ ComboBox {
         // Drawn in the window like everything else, whatever kind of popup
         // the style would pick, so it looks and closes the same everywhere.
         popupType: Popup.Item
+        // Takes the keys while it is open, so Esc closes the list and not
+        // the panel it is in.
+        focus: true
         x: picker.mirrored ? 0 : picker.width - width
         y: picker.height + 4
         width: Math.max(picker.width, 240)

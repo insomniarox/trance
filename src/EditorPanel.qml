@@ -375,6 +375,7 @@ SidePanel {
                             Component.onCompleted: text = current
                             onTextChanged: if (activeFocus) jsonApply.restart()
                             onActiveFocusChanged: if (!activeFocus) text = current
+                            Keys.onEscapePressed: focus = false
                             // Keep the cursor in view while typing.
                             onCursorRectangleChanged: {
                                 if (cursorRectangle.y < jsonView.contentY)

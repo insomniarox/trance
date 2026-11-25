@@ -23,6 +23,8 @@ Popup {
     popupType: Popup.Item
     width: 230
     padding: 4
+    // Takes the keys while it is up, so Esc closes it, not what is behind.
+    focus: true
     background: Rectangle {
         radius: Math.min(4, theme.radius)
         color: Ui.popup

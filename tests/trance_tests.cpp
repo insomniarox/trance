@@ -3167,6 +3167,33 @@ private slots:
                                    "win.confirm('Delete list', 'Sure?', 'Delete', function () {})",
                                    "win.askName('New list', '', function (name) {})"})
             run(script);
+
+        // Esc closes only what is on top, and no shortcut reaches past a
+        // question that is up.
+        const auto value = [&](const QString &script) {
+            QQmlExpression expression(qmlContext(window), window, script);
+            return expression.evaluate();
+        };
+        run("nameDialog.close(); confirmDialog.close(); win.sidePanel = 'settings'");
+        if (QTest::qWaitForWindowActive(window)) {
+            run("win.confirm('Delete list', 'Sure?', 'Delete', function () {})");
+            QTest::keyClick(window, Qt::Key_E);
+            QTest::keyClick(window, Qt::Key_Escape);
+            QTest::qWait(300);
+            QCOMPARE(value("confirmDialog.visible").toBool(), false);
+            QCOMPARE(value("win.sidePanel").toString(), QString("settings"));
+            run("win.askName('New list', '', function (name) {})");
+            QTest::keyClick(window, Qt::Key_A);
+            QTest::keyClick(window, Qt::Key_Escape);
+            QTest::qWait(300);
+            QCOMPARE(value("nameDialog.visible").toBool(), false);
+            QCOMPARE(value("win.aboutVisible").toBool(), false);
+            QTest::keyClick(window, Qt::Key_Escape);
+            QTest::qWait(150);
+            QCOMPARE(value("win.sidePanel").toString(), QString());
+        } else {
+            qWarning("The window never had the keyboard here, so its keys were not tried");
+        }
         QVERIFY2(said.isEmpty(), qPrintable(said.join('\n')));
     }
 
