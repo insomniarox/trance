@@ -1,0 +1,72 @@
+{
+  "name": "Plumage",
+  "author": "Trance",
+  "description": "A peacock's train, spread: the spectrum fans out as feathers from below, the same on both sides, and an arc of eyes on them swells and shimmers with the part of the sound that sits under each.",
+  "palette": "peacock",
+  "init": "ph = rand(6)",
+  "frame": "spread = 0.92 + 0.08*min(bass_att, 2)\nsheen = time*0.04 + ph",
+  "feedback": {
+    "decay": 0.84,
+    "zoom": "1.006 + 0.01*beat",
+    "cx": 0,
+    "cy": -0.85,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "background": {
+    "style": "rays",
+    "intensity": 0.1,
+    "tint": 0.3,
+    "spread": 0.4,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "radial",
+      "count": 96,
+      "y": -0.85,
+      "radius": 0.2,
+      "height": 2,
+      "gap": 0.35,
+      "fade": 0.3,
+      "peaks": false,
+      "angle": 0,
+      "color": "palette(2*t + sheen)",
+      "alpha": 0.9
+    },
+    {
+      "type": "shape",
+      "sides": 40,
+      "instances": 13,
+      "x": "1.05*spread*cos(0.35 + 2.44*t)",
+      "y": "-0.85 + 1.05*spread*sin(0.35 + 2.44*t)",
+      "radius": "0.075 + 0.05*min(v*2, 1)",
+      "color": "palette(0.6 + sheen)",
+      "alpha": 0.95,
+      "color2": "palette(0.0 + sheen)",
+      "alpha2": 0.9
+    },
+    {
+      "type": "shape",
+      "sides": 40,
+      "instances": 13,
+      "x": "1.05*spread*cos(0.35 + 2.44*t)",
+      "y": "-0.85 + 1.05*spread*sin(0.35 + 2.44*t)",
+      "radius": "0.032 + 0.025*min(v*2, 1)",
+      "color": "palette(0.7 + sheen)",
+      "alpha": 1,
+      "color2": "palette(0.4 + sheen)",
+      "alpha2": 1,
+      "border": "palette(0.95 + sheen)",
+      "borderAlpha": "0.4 + 0.6*beat",
+      "borderWidth": 2
+    }
+  ],
+  "post": {
+    "bloom": 0.6,
+    "bloomThreshold": 0.55,
+    "vignette": 0.45,
+    "mirror": "x"
+  }
+}

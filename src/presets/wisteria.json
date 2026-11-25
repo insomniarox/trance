@@ -1,0 +1,71 @@
+{
+  "name": "Wisteria",
+  "author": "Trance",
+  "description": "A pergola hung with wisteria: the spectrum hangs from the vine as racemes of lilac that sway in the breeze, and petals shaken loose by the beat fall and blur away below.",
+  "palette": "wisteria",
+  "init": "ph = rand(6)",
+  "feedback": {
+    "decay": 0.9,
+    "dy": -0.0025,
+    "warp": 0.25,
+    "warpScale": 1.5,
+    "warpSpeed": 0.3,
+    "blur": 0.35,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.1,
+    "tint": 0.2,
+    "spread": 0.2,
+    "speed": 0.1
+  },
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "top",
+      "count": 36,
+      "width": 1,
+      "x": "0.03*sin(time*0.6 + ph)",
+      "y": 0,
+      "height": "0.9 + 0.2*min(mid_att, 1.5)",
+      "gap": 0.55,
+      "fade": 0.15,
+      "peaks": false,
+      "symmetric": true,
+      "color": "palette(0.1 + 0.6*t + 0.05*sin(time*0.3))",
+      "alpha": 0.85
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 500,
+      "rate": "15 + 400*beat",
+      "speed": 0.08,
+      "gravity": 0.25,
+      "drag": 1.2,
+      "field": 0.5,
+      "fieldScale": 2,
+      "fieldSpeed": 0.4,
+      "life": 3,
+      "size": 3.5,
+      "color": "palette(0.15 + 0.6*i)",
+      "alpha": 0.8
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": 0.97,
+      "scale": 0.04,
+      "smooth": 0.8,
+      "thickness": 5,
+      "color": "palette(0.83)",
+      "alpha": 0.7
+    }
+  ],
+  "post": {
+    "bloom": 0.5,
+    "bloomThreshold": 0.6,
+    "vignette": 0.45
+  }
+}

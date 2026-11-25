@@ -278,6 +278,17 @@ const QHash<QString, QStringList> &palettes() {
                   "#fffbea"}},
         // Two colors only, as mono is, but a night violet into coral.
         {"duotone", {"#12062e", "#ff7a59"}},
+        // Violet, which the rest pass through but seldom stay in: two from
+        // black, heather into orchid and indigo into the glow of a black
+        // light, and wisteria's lilacs bright all the way, with a leaf.
+        {"orchid", {"#060208", "#22082a", "#4a1456", "#7d2a8c", "#b45cc4", "#e0a6ea", "#fbeefd"}},
+        {"ultraviolet", {"#020008", "#0e0330", "#2a0a6e", "#5418b8", "#8a3cff", "#c79bff", "#f4ecff"}},
+        {"wisteria", {"#7d6bc9", "#a48fe0", "#c9a7ec", "#e2c6f2", "#b58fd6", "#8fb573"}},
+        // Two more from black: pencil lead up to warm paper, nearly without
+        // color, and the green of absinthe up to its pale yellow when water
+        // clouds it.
+        {"graphite", {"#050505", "#17171a", "#2e2d30", "#4a4846", "#75716b", "#aaa59c", "#e8e3d8"}},
+        {"absinthe", {"#020502", "#0b2410", "#1b5a22", "#3f9a2e", "#8cd13f", "#d4f07a", "#fafde0"}},
         {"mono", {"#000000", "#ffffff"}},
     };
     return all;
@@ -860,7 +871,7 @@ QStringList paletteNames() {
             "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "cividis", "noir", "storm",
             "spectral", "reef", "hologram", "blacklight", "cyanotype", "sakura", "autumn", "riso", "turbo",
             "contour", "inkwell", "solstice", "lichen", "washi", "biolume", "vesper", "peacock", "mesa",
-            "topo", "duotone", "mono"};
+            "topo", "duotone", "orchid", "ultraviolet", "wisteria", "graphite", "absinthe", "mono"};
 }
 
 QStringList paletteStops(const QString &name) { return palettes().value(name); }

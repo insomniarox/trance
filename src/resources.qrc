@@ -65,6 +65,7 @@
         <file alias="presets/halo.json">presets/halo.json</file>
         <file alias="presets/hanami.json">presets/hanami.json</file>
         <file alias="presets/heartbeat.json">presets/heartbeat.json</file>
+        <file alias="presets/heath.json">presets/heath.json</file>
         <file alias="presets/horizon.json">presets/horizon.json</file>
         <file alias="presets/hyperdrive.json">presets/hyperdrive.json</file>
         <file alias="presets/ink-well.json">presets/ink-well.json</file>
@@ -74,7 +75,9 @@
         <file alias="presets/kelp.json">presets/kelp.json</file>
         <file alias="presets/lanterns.json">presets/lanterns.json</file>
         <file alias="presets/lava-lamp.json">presets/lava-lamp.json</file>
+        <file alias="presets/lodestone.json">presets/lodestone.json</file>
         <file alias="presets/loom.json">presets/loom.json</file>
+        <file alias="presets/louche.json">presets/louche.json</file>
         <file alias="presets/magnetosphere.json">presets/magnetosphere.json</file>
         <file alias="presets/mainframe.json">presets/mainframe.json</file>
         <file alias="presets/misprint.json">presets/misprint.json</file>
@@ -94,6 +97,7 @@
         <file alias="presets/pendulum.json">presets/pendulum.json</file>
         <file alias="presets/plankton.json">presets/plankton.json</file>
         <file alias="presets/plasma-globe.json">presets/plasma-globe.json</file>
+        <file alias="presets/plumage.json">presets/plumage.json</file>
         <file alias="presets/pollen-drift.json">presets/pollen-drift.json</file>
         <file alias="presets/prism.json">presets/prism.json</file>
         <file alias="presets/projection.json">presets/projection.json</file>
@@ -113,6 +117,7 @@
         <file alias="presets/seismograph.json">presets/seismograph.json</file>
         <file alias="presets/shoal.json">presets/shoal.json</file>
         <file alias="presets/signal-garden.json">presets/signal-garden.json</file>
+        <file alias="presets/silverpoint.json">presets/silverpoint.json</file>
         <file alias="presets/skyline.json">presets/skyline.json</file>
         <file alias="presets/sonar.json">presets/sonar.json</file>
         <file alias="presets/spectrogram.json">presets/spectrogram.json</file>
@@ -137,6 +142,7 @@
         <file alias="presets/whitecaps.json">presets/whitecaps.json</file>
         <file alias="presets/windfall.json">presets/windfall.json</file>
         <file alias="presets/windmap.json">presets/windmap.json</file>
+        <file alias="presets/wisteria.json">presets/wisteria.json</file>
         <file alias="visitors/bubbles.json">visitors/bubbles.json</file>
         <file alias="visitors/comet.json">visitors/comet.json</file>
         <file alias="visitors/constellation.json">visitors/constellation.json</file>

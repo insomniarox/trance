@@ -1,0 +1,72 @@
+{
+  "name": "Silverpoint",
+  "author": "Trance",
+  "description": "A drawing in metal point on dark paper: the sound's last seconds as a sheet of fine lines, seen from a new angle on every beat, each pose left behind as a fainter sketch under the next, cross-hatched by a second sheet across it.",
+  "palette": "graphite",
+  "init": "ph = rand(6)",
+  "frame": "pose = ph + 0.35*sin(beats*1.7) + 0.05*sin(time*0.1)",
+  "feedback": {
+    "decay": 0.9,
+    "blur": 0.12,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.16,
+    "tint": 0.35,
+    "spread": 0.15,
+    "speed": 0.1
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "style": "lines",
+      "bins": 72,
+      "rows": 40,
+      "speed": 14,
+      "low": 60,
+      "high": 6000,
+      "smooth": 0.5,
+      "fade": 0.8,
+      "height": 0.8,
+      "width": 1.3,
+      "depth": 1.1,
+      "yaw": "pose",
+      "pitch": "0.45 + 0.1*sin(beats*0.9)",
+      "distance": 3.8,
+      "y": -0.05,
+      "thickness": 1,
+      "fog": 0.5,
+      "color": "palette(0.45 + 0.45*min(v, 1))",
+      "alpha": "0.3 + 0.25*beat"
+    },
+    {
+      "type": "wireframe",
+      "style": "strands",
+      "bins": 40,
+      "rows": 24,
+      "speed": 10,
+      "low": 60,
+      "high": 6000,
+      "smooth": 0.6,
+      "fade": 1.2,
+      "height": 0.6,
+      "width": 1.3,
+      "depth": 1.1,
+      "yaw": "pose + 1.571",
+      "pitch": "0.45 + 0.1*sin(beats*0.9)",
+      "distance": 3.8,
+      "y": -0.05,
+      "thickness": 0.8,
+      "fog": 0.6,
+      "color": "palette(0.45 + 0.4*min(v, 1))",
+      "alpha": 0.2
+    }
+  ],
+  "post": {
+    "bloom": 0.15,
+    "bloomThreshold": 0.7,
+    "vignette": 0.55,
+    "grain": 0.07
+  }
+}

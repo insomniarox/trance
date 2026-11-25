@@ -252,7 +252,8 @@ A color is text, one of:
 `citrus`, `opal`, `cividis`, `noir`, `storm`, `spectral`, `reef`, `hologram`,
 `blacklight`, `cyanotype`, `sakura`, `autumn`, `riso`, `turbo`, `contour`,
 `inkwell`, `solstice`, `lichen`, `washi`, `biolume`, `vesper`, `peacock`,
-`mesa`, `topo`, `duotone`, `mono`) or a list of colors: `["#000000", "accent", "#ffffff"]`.
+`mesa`, `topo`, `duotone`, `orchid`, `ultraviolet`, `wisteria`, `graphite`,
+`absinthe`, `mono`) or a list of colors: `["#000000", "accent", "#ffffff"]`.
 `theme` and `accent` are built from the desktop theme. Presets that color
 everything with `palette(...)` look right under any palette the user picks
 with the T key.

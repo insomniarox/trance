@@ -81,8 +81,11 @@ fi
 if [ -n "$ALL" ]; then
   echo "Rendering every preset."
 else
-  git -C "$ROOT" diff --name-only --diff-filter=AM "$SINCE" -- src/presets |
-    sed -n 's|^src/presets/\(.*\)\.json$|\1|p' >"$WORK/changed"
+  # diff sees only files git tracks, so a new preset not yet added is
+  # asked for as well.
+  { git -C "$ROOT" diff --name-only --diff-filter=AM "$SINCE" -- src/presets
+    git -C "$ROOT" ls-files --others --exclude-standard -- src/presets; } |
+    sed -n 's|^src/presets/\(.*\)\.json$|\1|p' | sort -u >"$WORK/changed"
   if [ ! -s "$WORK/changed" ]; then
     echo "No preset added or changed since $SINCE; --since REV or --all to render more."
     exit 0

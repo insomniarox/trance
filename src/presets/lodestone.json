@@ -1,0 +1,74 @@
+{
+  "name": "Lodestone",
+  "author": "Trance",
+  "description": "Iron filings round the two poles of a magnet under black light: the flow runs out of one pole and into the other, the filings show it, and sparks trace its lines. The bass makes the magnet stronger; the beat flares the poles.",
+  "palette": "ultraviolet",
+  "init": "ph = rand(6)",
+  "frame": "px = 0.55 + 0.12*sin(time*0.07 + ph)\npy = 0.1*sin(time*0.05)\nk = 0.004*(0.6 + 0.6*min(bass_att, 2))",
+  "feedback": {
+    "decay": 0.86,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "pixel": "ax = x - px; ay = y - py; bx = x + px; by = y + py\nd1 = ax*ax + ay*ay + 0.04; d2 = bx*bx + by*by + 0.04\ndx = k*(ay/d1 - by/d2)\ndy = k*(bx/d2 - ax/d1)",
+  "background": {
+    "style": "nebula",
+    "intensity": 0.12,
+    "tint": 0.35,
+    "spread": 0.3,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 1600,
+      "rate": "250 + 600*beat",
+      "speed": 0,
+      "flow": 1,
+      "life": 2.5,
+      "size": 1.6,
+      "streak": 0.12,
+      "color": "palette(0.55 + 0.35*i)",
+      "alpha": 0.55
+    },
+    {
+      "type": "vectors",
+      "cols": 48,
+      "rows": 27,
+      "length": 2.5,
+      "thickness": 1.2,
+      "color": "palette(0.45 + 0.45*min(v*4, 1))",
+      "alpha": "0.35 + 0.2*min(mid_att, 1.5)"
+    },
+    {
+      "type": "shape",
+      "sides": 48,
+      "x": "px",
+      "y": "py",
+      "radius": "0.05 + 0.05*beat",
+      "color": "palette(0.95)",
+      "alpha": 0.9,
+      "color2": "palette(0.7)",
+      "alpha2": 0,
+      "blend": "add"
+    },
+    {
+      "type": "shape",
+      "sides": 48,
+      "x": "-px",
+      "y": "-py",
+      "radius": "0.05 + 0.05*beat",
+      "color": "palette(0.95)",
+      "alpha": 0.9,
+      "color2": "palette(0.7)",
+      "alpha2": 0,
+      "blend": "add"
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "bloomThreshold": 0.5,
+    "vignette": 0.5
+  }
+}

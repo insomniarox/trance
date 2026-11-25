@@ -1,0 +1,58 @@
+{
+  "name": "Heath",
+  "author": "Trance",
+  "description": "Moorland in heather at dusk: hills that the bass heaves up roll in from the horizon, and moths drift low over them on a wind of their own, thicker on the beat.",
+  "palette": "orchid",
+  "init": "ph = rand(6)",
+  "feedback": {
+    "decay": 0.7,
+    "blur": 0.3,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.2,
+    "tint": 0.3,
+    "spread": 0.35,
+    "speed": 0.15
+  },
+  "layers": [
+    {
+      "type": "terrain",
+      "style": "mesh",
+      "rows": 44,
+      "cols": 84,
+      "speed": "10 + 6*min(bass_att, 2)",
+      "height": "0.3 + 0.2*min(bass_att, 2)",
+      "width": 3.2,
+      "y": -1.05,
+      "horizon": 0.22,
+      "depth": 4,
+      "thickness": 1.4,
+      "color": "palette(0.3 + 0.55*min(v, 1) + 0.08*sin(t*7 + time*0.2 + ph))",
+      "alpha": 0.9
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 220,
+      "rate": "20 + 220*beat",
+      "speed": 0.05,
+      "drag": 0.6,
+      "field": 0.7,
+      "fieldScale": 1.4,
+      "fieldSpeed": 0.3,
+      "edge": "wrap",
+      "life": 5,
+      "size": 4,
+      "color": "palette(0.85 + 0.15*i)",
+      "alpha": "0.75 + 0.25*min(treb_att, 1)"
+    }
+  ],
+  "post": {
+    "bloom": 0.7,
+    "bloomThreshold": 0.5,
+    "vignette": 0.5,
+    "grain": 0.03
+  }
+}
