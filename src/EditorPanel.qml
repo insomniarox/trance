@@ -115,7 +115,7 @@ SidePanel {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 6
-                TextButton { text: qsTr("Save"); primary: true; enabled: backend.dirty; onClicked: backend.save() }
+                TextButton { text: qsTr("Save"); primary: true; enabled: backend.dirty; onClicked: win.save() }
                 TextButton { text: qsTr("Save as"); onClicked: win.saveAs() }
                 Item { Layout.fillWidth: true }
                 TextButton { text: qsTr("Revert"); enabled: backend.dirty; onClicked: backend.revert() }
@@ -374,7 +374,17 @@ SidePanel {
                             onCurrentChanged: if (!activeFocus) text = current
                             Component.onCompleted: text = current
                             onTextChanged: if (activeFocus) jsonApply.restart()
-                            onActiveFocusChanged: if (!activeFocus) text = current
+                            // Leaving the box applies what was typed, as the
+                            // code boxes do, before it shows the preset again.
+                            onActiveFocusChanged: {
+                                if (activeFocus)
+                                    return
+                                if (jsonApply.running) {
+                                    jsonApply.stop()
+                                    backend.setPresetText(text)
+                                }
+                                text = current
+                            }
                             Keys.onEscapePressed: focus = false
                             // Keep the cursor in view while typing.
                             onCursorRectangleChanged: {

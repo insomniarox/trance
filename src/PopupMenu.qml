@@ -9,12 +9,13 @@ Popup {
     id: menu
     property var entries: []
 
-    // Opens at (x, y) in that item, kept inside the window.
+    // Opens at (x, y) in that item. Qt keeps it inside the window, by its
+    // margins, once its entries are laid out and its height is known.
     function show(item, x, y, list) {
         entries = list
         const at = item.mapToItem(parent, x, y)
-        menu.x = Math.max(8, Math.min(at.x, parent.width - width - 8))
-        menu.y = Math.max(8, Math.min(at.y, parent.height - implicitHeight - 8))
+        menu.x = at.x
+        menu.y = at.y
         open()
     }
 
@@ -23,6 +24,7 @@ Popup {
     popupType: Popup.Item
     width: 230
     padding: 4
+    margins: 8
     // Takes the keys while it is up, so Esc closes it, not what is behind.
     focus: true
     background: Rectangle {

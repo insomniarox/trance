@@ -78,6 +78,12 @@ ApplicationWindow {
         nameDialog.open()
         nameField.take()
     }
+    // A box that still has the cursor gives up what was typed in it first,
+    // so that it is saved too.
+    function save() {
+        content.forceActiveFocus()
+        return backend.save()
+    }
     function saveAs() {
         askName(qsTr("Save as"), backend.currentName, function (name) { backend.saveAs(name) })
     }
@@ -184,7 +190,7 @@ ApplicationWindow {
             win.toast(qsTr("Sensitivity %1%").arg(Math.round(backend.sensitivity * 100)))
         }
     }
-    Shortcut { sequences: [StandardKey.Save]; onActivated: backend.save() }
+    Shortcut { sequences: [StandardKey.Save]; onActivated: win.save() }
     Shortcut { sequence: "Ctrl+Shift+S"; onActivated: win.saveAs() }
     Shortcut { sequence: "Ctrl+N"; onActivated: win.newPreset() }
     Shortcut { sequences: [StandardKey.Undo]; enabled: !win.typing; onActivated: backend.undo() }
@@ -481,7 +487,7 @@ ApplicationWindow {
                 primary: true
                 onClicked: {
                     discardDialog.close()
-                    if (backend.save() && win.pendingAction)
+                    if (win.save() && win.pendingAction)
                         win.pendingAction()
                     win.pendingAction = null
                 }

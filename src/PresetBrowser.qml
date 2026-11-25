@@ -333,9 +333,16 @@ SidePanel {
                 width: parent.width - 32
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
+                // The list picked, if nothing has been put in it yet, rather
+                // than everything in it filtered out.
+                readonly property var emptyList: backend.presetLists.find(function (list) {
+                    return list.name === backend.filterList && list.count === 0
+                }) || null
                 text: search.text.trim().length > 0 ? qsTr("No preset by that name here")
-                    : backend.filterList.length > 0 && backend.matchCount === 0
-                      ? qsTr("Nothing in %1 yet: star a preset, or put it in a list with the button beside the star").arg(backend.filterList)
+                    : emptyList && emptyList.name === backend.presetLists[0].name
+                      ? qsTr("Nothing in %1 yet: star a preset to put it here").arg(emptyList.name)
+                    : emptyList
+                      ? qsTr("Nothing in %1 yet: put a preset in it with the button beside its star").arg(emptyList.name)
                     : qsTr("No preset has all of these")
                 font.pixelSize: Ui.small
                 color: Ui.textFaint
