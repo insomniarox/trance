@@ -1,10 +1,10 @@
 name: Windows
 
+# Tags don't start this: a release is made by release.yml, from what this
+# built and tested for the tagged commit on master.
 on:
   push:
     branches: [master]
-    # A tag such as v0.2.0 is a release: what is built is published as one.
-    tags: ['v*']
   workflow_dispatch:
 
 # Reading the code is all the run needs to do with the repository.
@@ -25,15 +25,6 @@ jobs:
       # commit a version stood at, so that what runs here can't be changed
       # under it.
       - uses: actions/checkout@v7
-
-      # A release has to be the version the program and installer say.
-      - name: The tag matches the version
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          . bin\msvc.ps1
-          if ("v$(Get-TranceVersion)" -ne $env:GITHUB_REF_NAME) {
-            throw "The tag is $env:GITHUB_REF_NAME, but trance.pro gives VERSION = $(Get-TranceVersion)."
-          }
 
       - uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
         with:
@@ -168,6 +159,7 @@ jobs:
           if (Test-Path $menu) { throw "The Start menu entry is still there." }
           if (Test-Path $paths) { throw "Windows is still told where trance.exe was." }
 
+      # release.yml publishes this artifact, by this name, for a tag.
       - uses: actions/upload-artifact@v7
         with:
           name: trance-release
@@ -184,34 +176,3 @@ jobs:
             dist/trance
             render.png
           if-no-files-found: ignore
-
-  # Only for a tag, and only once everything above has passed: the zip and
-  # the installer become a release on GitHub, with notes made from the commits
-  # since the release before. This is the one job that may write to the
-  # repository, and it runs nothing but GitHub's own tools.
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: trance-release
-
-      - name: Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" trance-*-windows-x64.zip trance-*-setup.exe \
-            --repo "$GITHUB_REPOSITORY" --title "Trance ${GITHUB_REF_NAME#v}" --generate-notes
-
-  # Once the release is out, the website is rebuilt, since it reads what it
-  # says about Trance from the newest release; see site.yml.
-  site:
-    needs: release
-    uses: ./.github/workflows/site.yml
-    secrets:
-      SITE_DEPLOY_URL: ${{ secrets.SITE_DEPLOY_URL }}
-      SITE_DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}

@@ -2,7 +2,7 @@ name: Website
 
 # Rebuilds the website, whose download links, version and counts of presets,
 # visitors and palettes are read from Trance's newest release when it is
-# built. The Windows workflow calls this once a release is out; it can also
+# built. The release workflow calls this once a release is out; it can also
 # be started by hand (gh workflow run site.yml). Coolify's deploy API does
 # it; force skips its build cache, without which nothing on the site's side
 # has changed and the old page would be kept. Only the two secrets are used:

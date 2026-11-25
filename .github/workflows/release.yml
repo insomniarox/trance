@@ -1,0 +1,80 @@
+name: Release
+
+# A tag such as v0.3.0 is a release. Nothing is built or tested here: the
+# Linux and Windows workflows do that for every push to master, and what the
+# Windows one built for the tagged commit is what is published, once both
+# have passed on it. Master and the tag can be pushed together; this waits
+# for them.
+on:
+  push:
+    tags: ['v*']
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Most of it is waiting for the Windows run, which takes about 13 minutes.
+    timeout-minutes: 45
+    permissions:
+      contents: write   # to publish the release
+      actions: read     # to find the runs and take their artifact
+    steps:
+      - uses: actions/checkout@v7
+
+      # A release has to be the version the program and installer say.
+      - name: The tag matches the version
+        run: |
+          version=$(sed -n 's/^VERSION[[:space:]]*=[[:space:]]*//p' trance.pro | head -1)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error title=Wrong tag::The tag is $GITHUB_REF_NAME, but trance.pro gives VERSION = $version."
+            exit 1
+          fi
+
+      - name: The tests passed on this commit
+        id: tested
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for workflow in linux.yml windows.yml; do
+            waited=0
+            while :; do
+              read -r id status conclusion < <(gh run list --repo "$GITHUB_REPOSITORY" \
+                --workflow "$workflow" --commit "$GITHUB_SHA" --event push --branch master --limit 1 \
+                --json databaseId,status,conclusion --jq '.[] | "\(.databaseId) \(.status) \(.conclusion)"') || true
+              if [ -z "$id" ] && [ "$waited" -ge 600 ]; then
+                echo "::error title=Not tested::$workflow has not run for $GITHUB_SHA on master. Push master with that commit, then delete and push the tag again."
+                exit 1
+              fi
+              if [ "$status" = completed ]; then
+                if [ "$conclusion" != success ]; then
+                  echo "::error title=Tests failed::$workflow ended '$conclusion' on this commit: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"
+                  exit 1
+                fi
+                echo "$workflow passed: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"
+                [ "$workflow" = windows.yml ] && echo "windows=$id" >> "$GITHUB_OUTPUT"
+                break
+              fi
+              sleep 30
+              waited=$((waited + 30))
+            done
+          done
+
+      # The zip and the installer, as the Windows run built and tried them, with
+      # notes made from the commits since the release before.
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ steps.tested.outputs.windows }}" --repo "$GITHUB_REPOSITORY" -n trance-release
+          gh release create "$GITHUB_REF_NAME" trance-*-windows-x64.zip trance-*-setup.exe \
+            --repo "$GITHUB_REPOSITORY" --title "Trance ${GITHUB_REF_NAME#v}" --generate-notes
+
+  # Once the release is out, the website is rebuilt, since it reads what it
+  # says about Trance from the newest release; see site.yml.
+  site:
+    needs: release
+    uses: ./.github/workflows/site.yml
+    secrets:
+      SITE_DEPLOY_URL: ${{ secrets.SITE_DEPLOY_URL }}
+      SITE_DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
