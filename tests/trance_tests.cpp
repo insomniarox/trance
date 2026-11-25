@@ -576,6 +576,11 @@ private slots:
         // Misspelled settings are warnings: the preset would still run.
         QCOMPARE(byPath.value("layers.0.thicknes").error, false);
         QCOMPARE(byPath.value("glitter").error, false);
+        // So is a palette that isn't there (perhaps since dropped): the
+        // preset runs in the theme's colors.
+        QCOMPARE(byPath.value("palette").error, false);
+        QVERIFY(presets::compile(fixture("{ 'name': 'Gone', 'palette': 'lichen', 'layers': [ { 'type': 'wave' } ] }"))
+                    .ok());
     }
 
     // Outside a shape's copies, t, i and v reach only the color and the

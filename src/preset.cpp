@@ -1190,8 +1190,12 @@ CompiledPreset compile(const QJsonObject &json) {
         const QString name = palette.isUndefined() ? QString("theme") : palette.toString();
         stops = paletteStops(name);
         if (stops.isEmpty()) {
-            compiler.problem("palette", QString("Unknown palette '%1'. Use one of: %2, or a list of colors")
-                                            .arg(name, paletteNames().join(", ")));
+            // A warning, not an error: a preset naming a palette that has
+            // since been dropped still runs, in the theme's colors.
+            compiler.problem("palette",
+                             QString("Unknown palette '%1', so the theme's colors are used. Use one of: %2, or a list "
+                                     "of colors").arg(name, paletteNames().join(", ")),
+                             false);
             stops = paletteStops("theme");
         }
     }
