@@ -1,0 +1,51 @@
+{
+  "name": "Geode",
+  "author": "Trance",
+  "description": "A stone cracked open. Rings of light sink into the middle and are colored in bands by how bright they still are, so the trail lays down an agate's layers, and the whole is mirrored into a crystal's facets. The cymbals glint on the crystal faces; the bass sends a new ring in.",
+  "palette": "agate",
+  "frame": "tw = tw + dt*(0.05 + 0.15*min(mid_att, 2))",
+  "feedback": {
+    "decay": 0.985,
+    "zoom": "0.982 - 0.008*min(bass_att, 2)",
+    "rot": "0.004*sin(tw)",
+    "blur": 0.1,
+    "edge": "black"
+  },
+  "pixel": "zoom = zoom + 0.004*sin(ang*3 + tw*2)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.75 + 0.08*min(bass_att, 2)",
+      "scale": 0.12,
+      "smooth": 0.6,
+      "thickness": 3,
+      "color": "white",
+      "alpha": "0.55 + 0.45*min(bass, 1)",
+      "blend": "max"
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": 0,
+      "width": 0.5,
+      "scale": 0.2,
+      "angle": "tw*3",
+      "thickness": 2,
+      "color": "white",
+      "alpha": 0.5,
+      "blend": "max"
+    }
+  ],
+  "shade": "s = smoothstep(0.78, 1, noise(x*26 + time*0.15, y*26))*min(lum*2, 1)*(0.3 + 0.7*min(air_att, 1.5))\nr = r + 0.5*s\ng = g + 0.5*s\nb = b + 0.5*s",
+  "post": {
+    "colorize": 1,
+    "colorCurve": 0.8,
+    "colorShift": "0.03*sin(time*0.05)",
+    "kaleido": 6,
+    "kaleidoAngle": "tw*0.5",
+    "bloom": 0.4,
+    "bloomThreshold": 0.7,
+    "vignette": 0.4
+  }
+}

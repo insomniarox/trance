@@ -1,0 +1,76 @@
+{
+  "name": "Moth",
+  "author": "Trance",
+  "description": "Moths come in from every side of the dark and wheel round a lamp. Its light falls out in rays; the voices and leads turn their circling tighter, and a beat scatters them before the lamp draws them back.",
+  "palette": "amethyst",
+  "frame": "spin = 0.6 + 1.6*min(highmid_att, 2)",
+  "feedback": {
+    "decay": 0.86,
+    "warp": 0.15,
+    "warpScale": 2,
+    "warpSpeed": 0.3,
+    "blur": 0.3,
+    "edge": "black"
+  },
+  "background": {
+    "style": "rays",
+    "intensity": "0.22 + 0.1*min(bass_att, 2)",
+    "tint": 0.7,
+    "spread": 0.25,
+    "scale": 1.2,
+    "speed": 0.4
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 48,
+      "y": 0.05,
+      "radius": "0.05 + 0.015*min(bass_att, 2)",
+      "color": "palette(0.95)",
+      "alpha": 0.9,
+      "color2": "palette(0.7)",
+      "alpha2": 0.3,
+      "blend": "add"
+    },
+    {
+      "type": "particles",
+      "emit": "edges",
+      "x": 0,
+      "y": 0.05,
+      "count": 1200,
+      "rate": 160,
+      "speed": 0.4,
+      "drag": 0.3,
+      "pull": "3 - 6*beat",
+      "swirl": "spin*0.5",
+      "field": 0.5,
+      "fieldScale": 3,
+      "life": 7,
+      "size": 3.4,
+      "streak": 0.06,
+      "color": "palette(0.5 + 0.45*i)",
+      "alpha": 1
+    },
+    {
+      "type": "particles",
+      "emit": "point",
+      "x": 0,
+      "y": 0.05,
+      "area": 0.05,
+      "count": 300,
+      "rate": "20 + 200*beat",
+      "speed": 0.15,
+      "drag": 1.5,
+      "swirl": "spin*0.5",
+      "life": 1.2,
+      "size": 1.4,
+      "color": "palette(0.85 + 0.15*i)",
+      "alpha": 0.7
+    }
+  ],
+  "post": {
+    "bloom": 0.8,
+    "bloomThreshold": 0.5,
+    "vignette": 0.55
+  }
+}

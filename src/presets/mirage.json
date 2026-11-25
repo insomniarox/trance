@@ -1,0 +1,74 @@
+{
+  "name": "Mirage",
+  "author": "Trance",
+  "description": "Heat over a desert floor. The sound lies along the horizon with its reflection hanging upside down beneath it, the air shivers over the ground, and motes of heat lift off the line and rise. The bass thickens the shimmer.",
+  "palette": "mesa",
+  "feedback": {
+    "decay": 0.9,
+    "dy": 0.0015,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "pixel": "dx = dx + 0.0025*sin(y*70 + time*4)*(0.4 + 0.6*min(bass_att, 2))*smoothstep(0.3, -0.4, y)",
+  "background": {
+    "style": "grid",
+    "intensity": 0.3,
+    "tint": 0.15,
+    "spread": 0.5,
+    "speed": 0.6
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "y": 0.32,
+      "radius": "0.16 + 0.02*min(bass_att, 2)",
+      "color": "palette(0.15)",
+      "alpha": 0.8,
+      "color2": "palette(0.3)",
+      "alpha2": 0.4,
+      "blend": "add"
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": 0.05,
+      "scale": "0.12 + 0.08*min(mid_att, 2)",
+      "smooth": 0.5,
+      "thickness": 3,
+      "mirror": "y",
+      "color": "palette(0.2 + 0.35*t)",
+      "alpha": 0.9
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.25,
+      "scale": 0.05,
+      "smooth": 0.8,
+      "thickness": 1.5,
+      "color": "palette(0.55 + 0.3*t)",
+      "alpha": 0.45
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 800,
+      "rate": "60 + 400*beat",
+      "speed": 0.05,
+      "gravity": -0.25,
+      "drag": 1,
+      "field": 0.3,
+      "life": 2.5,
+      "size": 1.6,
+      "color": "palette(0.1 + 0.3*i)",
+      "alpha": 0.6
+    }
+  ],
+  "post": {
+    "bloom": 0.65,
+    "bloomThreshold": 0.55,
+    "saturation": 1.1,
+    "vignette": 0.5
+  }
+}

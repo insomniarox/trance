@@ -14,9 +14,9 @@
       "sides": 64,
       "y": 0.3,
       "radius": "0.34 + 0.03*bass_att",
-      "color": "#ffd60a",
+      "color": "palette(5/6)",
       "alpha": 0.9,
-      "color2": "#f72585",
+      "color2": "palette(0.5)",
       "alpha2": 0.75
     },
     {

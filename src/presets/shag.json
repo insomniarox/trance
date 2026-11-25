@@ -1,0 +1,58 @@
+{
+  "name": "Shag",
+  "author": "Trance",
+  "description": "Seventies wallpaper on the move: rows of nested circles in orange, mustard and teal, sliding past as if the room were turning. The bass swells every circle, and the beat flips which colors sit inside which.",
+  "palette": "retro",
+  "frame": "slide = slide + dt*(0.05 + 0.1*min(vol_att, 2))\nflip = flip + beat*0.2",
+  "feedback": {
+    "decay": 0.6,
+    "dx": 0.001,
+    "edge": "wrap"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 48,
+      "instances": 45,
+      "x": "aspect*(-1 + 2*(fract((n % 9)/9 + slide*0.1)) + 0.11)",
+      "y": "-1 + 2*(floor(n/9) + 0.5)/5 + 0.03*sin(slide*3 + n)",
+      "radius": "0.18*(0.9 + 0.2*min(bass_att, 2))",
+      "color": "palette(floor(n/9)*0.14 + floor(flip)*0.29)",
+      "alpha": 0.9,
+      "color2": "palette(floor(n/9)*0.14 + floor(flip)*0.29)",
+      "alpha2": 0.9,
+      "blend": "over"
+    },
+    {
+      "type": "shape",
+      "sides": 48,
+      "instances": 45,
+      "x": "aspect*(-1 + 2*(fract((n % 9)/9 + slide*0.1)) + 0.11)",
+      "y": "-1 + 2*(floor(n/9) + 0.5)/5 + 0.03*sin(slide*3 + n)",
+      "radius": "0.11*(0.9 + 0.2*min(bass_att, 2))",
+      "color": "palette(floor(n/9)*0.14 + floor(flip)*0.29 + 0.43)",
+      "alpha": 0.9,
+      "color2": "palette(floor(n/9)*0.14 + floor(flip)*0.29 + 0.43)",
+      "alpha2": 0.9,
+      "blend": "over"
+    },
+    {
+      "type": "shape",
+      "sides": 48,
+      "instances": 45,
+      "x": "aspect*(-1 + 2*(fract((n % 9)/9 + slide*0.1)) + 0.11)",
+      "y": "-1 + 2*(floor(n/9) + 0.5)/5 + 0.03*sin(slide*3 + n)",
+      "radius": "0.045*(0.8 + 0.5*min(v*2, 1.5))",
+      "color": "palette(floor(n/9)*0.14 + floor(flip)*0.29 + 0.71)",
+      "alpha": 0.95,
+      "blend": "over"
+    }
+  ],
+  "post": {
+    "mirror": "x",
+    "bloom": 0.2,
+    "bloomThreshold": 0.8,
+    "grain": 0.06,
+    "vignette": 0.4
+  }
+}

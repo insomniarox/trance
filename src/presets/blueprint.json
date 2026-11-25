@@ -2,7 +2,7 @@
   "name": "Blueprint",
   "author": "Trance",
   "description": "A part being drafted in white on blue paper: the spectrum's last few seconds as a wireframe turning on its stand, folding from a tube into a ball and back, over the paper's dot grid, with its spectrum ruled along the foot like a scale.",
-  "palette": "cyanotype",
+  "palette": "ocean",
   "init": "ph = rand(6)",
   "feedback": {
     "decay": 0.55,

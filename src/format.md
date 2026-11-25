@@ -245,13 +245,13 @@ A color is text, one of:
 
 `palette` at the top of the preset is a name (`theme`, `accent`, `fire`,
 `ocean`, `neon`, `sunset`, `aurora`, `vapor`, `acid`, `ice`, `gold`,
-`rainbow`, `magma`, `inferno`, `viridis`, `lagoon`, `forest`, `dusk`,
+`rainbow`, `magma`, `viridis`, `lagoon`, `forest`, `dusk`,
 `arctic`, `amethyst`, `copper`, `cyber`, `phosphor`, `candy`, `sepia`,
-`steel`, `rose`, `abyss`, `tropic`, `twilight`, `thermal`, `nova`, `jade`,
+`steel`, `rose`, `abyss`, `tropic`, `twilight`, `nova`, `jade`,
 `retro`, `carnival`, `phase`, `crimson`, `sulfur`, `cobalt`, `bauhaus`,
 `citrus`, `opal`, `cividis`, `noir`, `storm`, `spectral`, `reef`, `hologram`,
-`blacklight`, `cyanotype`, `sakura`, `autumn`, `riso`, `turbo`, `contour`,
-`inkwell`, `solstice`, `lichen`, `washi`, `biolume`, `vesper`, `peacock`,
+`blacklight`, `sakura`, `autumn`, `riso`, `turbo`, `contour`,
+`inkwell`, `agate`, `washi`, `biolume`, `vesper`, `peacock`,
 `mesa`, `topo`, `duotone`, `orchid`, `ultraviolet`, `wisteria`, `graphite`,
 `absinthe`, `mono`) or a list of colors: `["#000000", "accent", "#ffffff"]`.
 `theme` and `accent` are built from the desktop theme. Presets that color

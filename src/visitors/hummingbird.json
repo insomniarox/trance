@@ -1,0 +1,23 @@
+{
+  "name": "Hummingbird",
+  "init": "hx = (rand(2) - 1)*0.6\nhy = (rand(2) - 1)*0.4\nseed = rand(50)",
+  "frame": "tx = (noise(beats*0.71 + seed)*2 - 1)*0.8*aspect\nty = (noise(beats*0.53 + seed + 9)*2 - 1)*0.6\nhx = hx + (tx - hx)*min(1, dt*6)\nhy = hy + (ty - hy)*min(1, dt*6) + 0.004*sin(time*40)",
+  "layers": [
+    {
+      "type": "particles",
+      "emit": "point",
+      "x": "hx",
+      "y": "hy",
+      "area": 0.01,
+      "count": 400,
+      "rate": "80 + 400*min(air_att, 2)",
+      "speed": 0.12,
+      "drag": 2,
+      "life": 0.6,
+      "size": 2.4,
+      "streak": 0.05,
+      "color": "palette(0.5 + 0.4*i + time*0.05)",
+      "alpha": 0.9
+    }
+  ]
+}

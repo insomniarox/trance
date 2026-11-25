@@ -162,10 +162,9 @@ const QHash<QString, QStringList> &palettes() {
         {"ice", {"#000000", "#0b132b", "#1c2541", "#3a506b", "#5bc0be", "#c9f9ff", "#ffffff"}},
         {"gold", {"#000000", "#3d2b00", "#b8860b", "#ffd60a", "#fff7cc"}},
         {"rainbow", {"#ff0040", "#ff8a00", "#ffe600", "#3dff00", "#00e5ff", "#2a5cff", "#b400ff"}},
-        // Three from the plotting world, where a color map has to read
+        // Two from the plotting world, where a color map has to read
         // evenly from dark to bright: they suit colorize.
         {"magma", {"#000004", "#3b0f70", "#8c2981", "#de4968", "#fe9f6d", "#fcfdbf"}},
-        {"inferno", {"#000004", "#420a68", "#932667", "#dd513a", "#fca50a", "#fcffa4"}},
         {"viridis", {"#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"}},
         {"lagoon", {"#00141a", "#004e64", "#00a5cf", "#25a18e", "#7ae582", "#eafff5"}},
         {"forest", {"#06140a", "#1b4332", "#2d6a4f", "#52b788", "#b7e4c7", "#ffd166"}},
@@ -184,9 +183,8 @@ const QHash<QString, QStringList> &palettes() {
         {"rose", {"#050003", "#2a0718", "#661537", "#b02d5c", "#e86d8e", "#ffb3c4", "#fff0f3"}},
         {"abyss", {"#000206", "#03122b", "#073d5c", "#00808a", "#1fc9b0", "#9effd8", "#ff7ad9"}},
         {"tropic", {"#ff5e5b", "#ff9f43", "#ffd166", "#06d6a0", "#00b4d8", "#3a86ff", "#c86bfa"}},
-        // Three more from black: a thermal camera's ironbow, a plasma that
-        // starts in deep indigo rather than black, and jade.
-        {"thermal", {"#000000", "#1a0a4a", "#5a0f7a", "#a51e6b", "#e04a2a", "#f79a1a", "#ffe066", "#ffffff"}},
+        // Two more: a plasma that starts in deep indigo rather than black,
+        // and jade from black.
         {"nova", {"#0d0887", "#4c02a1", "#7e03a8", "#a92395", "#cc4778", "#e66c5c", "#f89540", "#fdc527",
                   "#f0f921"}},
         {"jade", {"#000503", "#01261a", "#045c3d", "#0f9465", "#4cc994", "#a8f0cc", "#f2fff8"}},
@@ -229,12 +227,10 @@ const QHash<QString, QStringList> &palettes() {
         // cyan, periwinkle, violet, pink, peach, lemon and mint, whose ends
         // meet, so a palette that keeps turning has no seam.
         {"hologram", {"#7ff3ff", "#8fa8ff", "#c77dff", "#ff7ad9", "#ffb38a", "#f5f08a", "#a6ffcf"}},
-        // Three more from black: ultraviolet up to the green of a
-        // highlighter under it, a cyanotype's Prussian blue up to the paper,
-        // and the bark of a cherry tree up through blossom to petal white,
+        // Two more from black: ultraviolet up to the green of a
+        // highlighter under it, and the bark of a cherry tree up through blossom to petal white,
         // with the green of young leaves where it is brightest.
         {"blacklight", {"#000000", "#0c0221", "#2a0a5e", "#5b14b8", "#8f2cff", "#c86bff", "#39ff14", "#eaffd0"}},
-        {"cyanotype", {"#02060d", "#061a33", "#0b3263", "#12508f", "#2f74a8", "#6d9fc2", "#b6cfdf", "#f4f1e6"}},
         {"sakura", {"#0a0507", "#2b1420", "#6b2f48", "#c25d82", "#f29bb8", "#ffd9e5", "#fff6f8", "#b9e08f"}},
         // Two bright ones: autumn leaves, from burgundy through rust,
         // pumpkin and mustard to moss and chestnut; and a risograph's
@@ -255,12 +251,10 @@ const QHash<QString, QStringList> &palettes() {
         {"contour", {"#03040b", "#16306b", "#8fc9ff", "#0a1633", "#2f7fd0", "#f4fbff", "#1a2a55", "#ffd27a",
                      "#fffaf0"}},
         {"inkwell", {"#010205", "#0b2238", "#5fb3b3", "#071521", "#d9efe8", "#0e2a2f", "#f7f1df"}},
-        // Midsummer light all the way round: coral, marigold, leaf, sky,
-        // violet and rose, each about as bright as the next.
-        {"solstice", {"#ff7a45", "#ffd166", "#7bd389", "#3aa7d8", "#7b5cd6", "#e0559a"}},
-        // Lichen on stone, from the dark of the rock through moss to the
-        // pale green of new growth.
-        {"lichen", {"#050805", "#122515", "#25502a", "#4f8a3c", "#94c265", "#d7ecb0", "#fbfde9"}},
+        // Banded too, in violet: an agate's slice, plum and lilac in turn,
+        // with a rose band and milk white at the end.
+        {"agate", {"#05020a", "#3a1460", "#c9a2f0", "#12051f", "#8a4fd0", "#f6ecff", "#2a0d3a", "#e58fc4",
+                   "#fff6fb"}},
         // Three more from black: washi paper over indigo ink with a
         // vermilion seal where it is brightest; the deep sea up to the cyan
         // and green of things that glow in it; and candlelight, from the
@@ -865,12 +859,12 @@ QStringList transitionStyles() {
 
 QStringList paletteNames() {
     return {"theme",   "accent", "fire",   "ocean",    "neon",   "sunset", "aurora", "vapor",    "acid",
-            "ice",     "gold",   "rainbow", "magma",   "inferno", "viridis", "lagoon", "forest",   "dusk",
+            "ice",     "gold",   "rainbow", "magma",   "viridis", "lagoon", "forest",   "dusk",
             "arctic",  "amethyst", "copper", "cyber",  "phosphor", "candy",  "sepia",    "steel",  "rose",
-            "abyss",   "tropic", "twilight", "thermal", "nova", "jade",    "retro",  "carnival", "phase",
+            "abyss",   "tropic", "twilight", "nova", "jade",    "retro",  "carnival", "phase",
             "crimson", "sulfur", "cobalt", "bauhaus", "citrus", "opal", "cividis", "noir", "storm",
-            "spectral", "reef", "hologram", "blacklight", "cyanotype", "sakura", "autumn", "riso", "turbo",
-            "contour", "inkwell", "solstice", "lichen", "washi", "biolume", "vesper", "peacock", "mesa",
+            "spectral", "reef", "hologram", "blacklight", "sakura", "autumn", "riso", "turbo",
+            "contour", "inkwell", "agate", "washi", "biolume", "vesper", "peacock", "mesa",
             "topo", "duotone", "orchid", "ultraviolet", "wisteria", "graphite", "absinthe", "mono"};
 }
 

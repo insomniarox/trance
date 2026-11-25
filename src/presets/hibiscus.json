@@ -1,0 +1,56 @@
+{
+  "name": "Hibiscus",
+  "author": "Trance",
+  "description": "A tropical flower opening and closing on the mid range: five petals and a crown of stamens, mirrored round into a full bloom that slowly drifts outward. The voices open it, the bass sets it pulsing.",
+  "palette": "tropic",
+  "init": "ph = rand(6)",
+  "frame": "op = op + (min(mid_att, 2) - op)*0.05\nturn = turn + dt*0.06",
+  "feedback": {
+    "decay": 0.82,
+    "zoom": "1.006 + 0.01*min(bass_att, 2)",
+    "rot": 0.002,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 40,
+      "instances": 5,
+      "x": "(0.16 + 0.12*op)*cos(n*tau/5 + turn)",
+      "y": "(0.16 + 0.12*op)*sin(n*tau/5 + turn)",
+      "radius": "0.15 + 0.07*op",
+      "color": "palette(0.3 + 0.05*t + 0.04*sin(ph))",
+      "alpha": 0.2,
+      "color2": "palette(0.02 + 0.1*t + 0.04*sin(ph))",
+      "alpha2": 0.32,
+      "blend": "add"
+    },
+    {
+      "type": "shape",
+      "sides": 12,
+      "instances": 14,
+      "x": "(0.05 + 0.05*op)*cos(n*tau/14 - turn*2)",
+      "y": "(0.05 + 0.05*op)*sin(n*tau/14 - turn*2)",
+      "radius": "0.012 + 0.02*min(v*2, 1)",
+      "color": "palette(0.3)",
+      "alpha": 0.9,
+      "blend": "add"
+    },
+    {
+      "type": "wave",
+      "shape": "circle",
+      "radius": "0.04 + 0.02*min(bass_att, 2)",
+      "scale": 0.1,
+      "thickness": 2,
+      "color": "palette(0.5 + 0.3*t)",
+      "alpha": 0.8
+    }
+  ],
+  "post": {
+    "kaleido": 10,
+    "kaleidoAngle": "turn*0.5",
+    "bloom": 0.4,
+    "bloomThreshold": 0.65,
+    "vignette": 0.45
+  }
+}

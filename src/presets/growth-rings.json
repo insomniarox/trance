@@ -2,7 +2,7 @@
   "name": "Growth Rings",
   "author": "Trance",
   "description": "Twelve rings, one inside the other, each a stretch of the spectrum from the rumble in the middle to the cymbals at the rim. They swell outward and leave their past selves behind, and because each keeps the brighter of itself and what is under it, a long fade builds up as color, never as white.",
-  "palette": "solstice",
+  "palette": "reef",
   "feedback": {
     "decay": 0.982,
     "zoom": "1.004 + 0.004*bass_att",

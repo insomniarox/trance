@@ -1,0 +1,21 @@
+{
+  "name": "Music Box",
+  "init": "fx = 0.08 + rand(0.07)\nph = rand(6)",
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "bottom",
+      "count": 14,
+      "x": "aspect*0.55*sin(time*fx + ph)",
+      "y": "0.45 + 0.35*cos(time*fx*0.7 + ph)",
+      "width": 0.18,
+      "height": 0.14,
+      "gap": 0.3,
+      "fade": 0.4,
+      "peaks": true,
+      "color": "palette(0.2 + 0.6*t)",
+      "alpha": "clamp(0.45 + 0.4*treb_att, 0, 0.95)",
+      "blend": "add"
+    }
+  ]
+}

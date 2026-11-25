@@ -1,0 +1,98 @@
+{
+  "name": "Escapement",
+  "author": "Trance",
+  "description": "A watch movement drawn in pencil. The balance swings and its hairspring breathes, and every swing lets the escape wheel slip one tooth: the voices and the bite of the snares set the pace. Behind it, faint, the same movement under the watchmaker's loupe.",
+  "palette": "graphite",
+  "frame": "ph = ph + dt*(1.2 + 2.5*min(presence_att, 2))\ntooth = floor(ph)\nswing = sin(ph*pi)\nesc = -(tooth + smoothstep(0, 0.2, fract(ph)))*tau/15",
+  "feedback": {
+    "decay": 0.8,
+    "blur": 0.15,
+    "edge": "black"
+  },
+  "background": {
+    "style": "gradient",
+    "intensity": 0.18,
+    "tint": 0.6,
+    "spread": 0.2,
+    "speed": 0.2
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": 2.5,
+      "color": "palette(0.8)",
+      "alpha": 0.9,
+      "point": "th = t*tau\nrr = 0.26 + 0.055*fract(t*15)\nx = 0.42*aspect + rr*cos(th + esc)\ny = rr*sin(th + esc)"
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "x": "-0.32*aspect",
+      "radius": 0.36,
+      "angle": "0.9*swing",
+      "color": "black",
+      "alpha": 0,
+      "border": "palette(0.75)",
+      "borderAlpha": 0.9,
+      "borderWidth": 3,
+      "blend": "add"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 300,
+      "thickness": 2,
+      "color": "palette(0.7)",
+      "alpha": 0.85,
+      "point": "k = floor(t*3)\nu = fract(t*3)*2 - 1\nan = 0.9*swing + k*pi/3\nx = -0.32*aspect + 0.36*u*cos(an)\ny = 0.36*u*sin(an)\na = step(0.03, fract(t*3))*step(fract(t*3), 0.97)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 400,
+      "thickness": 1.5,
+      "color": "palette(0.9)",
+      "alpha": "0.6 + 0.3*min(presence_att, 1)",
+      "point": "rr = (0.015 + 0.13*t)*(1 + 0.12*swing*t)\nth = t*tau*7 + 0.9*swing\nx = -0.32*aspect + rr*cos(th)\ny = rr*sin(th)"
+    },
+    {
+      "type": "shape",
+      "sides": 3,
+      "x": "0.06*aspect",
+      "y": 0.02,
+      "radius": 0.09,
+      "angle": "-1.5708 + 0.25*swing",
+      "color": "palette(0.6)",
+      "alpha": 0.25,
+      "border": "palette(0.85)",
+      "borderAlpha": 0.9,
+      "borderWidth": 2,
+      "blend": "add"
+    },
+    {
+      "type": "particles",
+      "emit": "point",
+      "x": "0.42*aspect - 0.31",
+      "y": 0,
+      "count": 300,
+      "rate": "8 + 900*beat",
+      "speed": 0.5,
+      "gravity": 0.8,
+      "life": 0.5,
+      "size": 1.6,
+      "streak": 0.02,
+      "color": "palette(0.9 + 0.1*i)",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "echoAlpha": 0.16,
+    "echoZoom": 2.2,
+    "bloom": 0.35,
+    "bloomThreshold": 0.65,
+    "grain": 0.09,
+    "vignette": 0.55
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "name": "Gas Giant",
+  "author": "Trance",
+  "description": "A banded planet with its rings: the sphere's lines are the spectrum's last few seconds, a looser shell of points around it is its weather, and the rings are threads of the same sound laid flat. The rumble swells the planet, the snares ruffle the rings.",
+  "palette": "dusk",
+  "init": "ph = rand(6)\ndir = rand() < 0.5 ? -1 : 1",
+  "feedback": {
+    "decay": 0.55,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "background": {
+    "style": "stars",
+    "intensity": 0.35,
+    "tint": 0.2,
+    "spread": 0.4,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "sphere",
+      "style": "mesh",
+      "bins": 40,
+      "rows": 24,
+      "speed": 10,
+      "fade": 0.5,
+      "radius": "0.42 + 0.03*min(sub_att, 2)",
+      "height": 0.12,
+      "yaw": "ph + dir*time*0.15",
+      "pitch": 0.25,
+      "roll": 0.35,
+      "distance": 3,
+      "thickness": 1.2,
+      "fog": 0.8,
+      "color": "palette(0.2 + 0.55*i + 0.25*min(v, 1))",
+      "alpha": 0.7
+    },
+    {
+      "type": "wireframe",
+      "form": "sphere",
+      "style": "dots",
+      "bins": 48,
+      "rows": 20,
+      "speed": 14,
+      "fade": 0.4,
+      "radius": 0.5,
+      "height": "0.15 + 0.1*min(mid_att, 2)",
+      "yaw": "ph - dir*time*0.08",
+      "pitch": 0.25,
+      "roll": 0.35,
+      "distance": 3,
+      "thickness": 1.8,
+      "fog": 0.9,
+      "color": "palette(0.65 + 0.3*min(v, 1))",
+      "alpha": 0.45
+    },
+    {
+      "type": "wireframe",
+      "form": "ring",
+      "style": "strands",
+      "bins": 64,
+      "rows": 10,
+      "speed": 18,
+      "fade": 0.3,
+      "radius": 0.85,
+      "height": "0.015 + 0.03*min(presence_att, 2)",
+      "yaw": "ph + dir*time*0.05",
+      "pitch": 0.3,
+      "roll": 0.35,
+      "distance": 3,
+      "thickness": 1.2,
+      "fog": 0.5,
+      "color": "palette(0.45 + 0.5*t)",
+      "alpha": 0.7
+    }
+  ],
+  "post": {
+    "bloom": 0.6,
+    "bloomThreshold": 0.55,
+    "vignette": 0.5
+  }
+}

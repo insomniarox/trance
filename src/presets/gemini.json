@@ -1,0 +1,70 @@
+{
+  "name": "Gemini",
+  "author": "Trance",
+  "description": "The two channels face each other: the left one standing on the left, the right one mirrored on the right, and between them the one drawn against the other, so a wide mix opens into a figure and a narrow one folds into a line. Sparks leave the lines on the voices, and the mids push the picture outward.",
+  "palette": "steel",
+  "init": "ph = rand(6)",
+  "feedback": {
+    "decay": 0.9,
+    "zoom": "1.008 + 0.012*min(mid_att, 2)",
+    "rot": "0.002*sin(time*0.13 + ph)",
+    "blur": 0.25,
+    "edge": "clamp"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "source": "left",
+      "shape": "line",
+      "x": "-0.62*aspect",
+      "angle": 1.5708,
+      "width": 0.95,
+      "scale": "0.25 + 0.12*min(mid_att, 2)",
+      "smooth": 0.5,
+      "thickness": 3.5,
+      "color": "palette(0.55 + 0.35*t)",
+      "alpha": 1
+    },
+    {
+      "type": "wave",
+      "source": "right",
+      "shape": "line",
+      "x": "0.62*aspect",
+      "angle": -1.5708,
+      "width": 0.95,
+      "scale": "0.25 + 0.12*min(mid_att, 2)",
+      "smooth": 0.5,
+      "thickness": 3.5,
+      "color": "palette(0.55 + 0.35*t)",
+      "alpha": 1
+    },
+    {
+      "type": "wave",
+      "shape": "xy",
+      "scale": "0.55 + 0.15*min(bass_att, 2)",
+      "angle": "time*0.15 + ph",
+      "smooth": 0.2,
+      "thickness": 3,
+      "color": "palette(0.75 + 0.2*t)",
+      "alpha": 0.85
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 900,
+      "rate": "30 + 500*max(0, highmid - 0.9)",
+      "speed": 0.12,
+      "drag": 1.2,
+      "flow": 1,
+      "life": 1.6,
+      "size": 1.8,
+      "color": "palette(0.7 + 0.3*i)",
+      "alpha": 0.8
+    }
+  ],
+  "post": {
+    "bloom": 0.9,
+    "bloomThreshold": 0.45,
+    "vignette": 0.4
+  }
+}

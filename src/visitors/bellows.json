@@ -1,0 +1,22 @@
+{
+  "name": "Bellows",
+  "init": "fx = 0.07 + rand(0.06)\nph = rand(6)",
+  "layers": [
+    {
+      "type": "bars",
+      "layout": "center",
+      "count": 22,
+      "x": "aspect*0.6*cos(time*fx + ph)",
+      "y": "0.5*sin(time*fx*1.3 + ph)",
+      "width": 0.2,
+      "height": "0.1 + 0.12*min(lowmid_att, 2)",
+      "gap": 0.35,
+      "fade": 0.5,
+      "peaks": false,
+      "symmetric": true,
+      "color": "palette(0.5 + 0.4*t + time*0.02)",
+      "alpha": 0.8,
+      "blend": "add"
+    }
+  ]
+}

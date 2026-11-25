@@ -1,0 +1,17 @@
+{
+  "name": "Cricket",
+  "init": "cx = (rand(2) - 1)*0.7\ncy = (rand(2) - 1)*0.5\nph = rand(6)",
+  "frame": "chirp = max(chirp*0.85, min(highmid, 2.5) - 0.8)",
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 128,
+      "thickness": 1.6,
+      "color": "palette(0.6 + 0.3*t + time*0.02)",
+      "alpha": "clamp(0.3 + 0.6*chirp, 0, 1)",
+      "blend": "add",
+      "point": "x = (cx + 0.04*sin(time*0.2 + ph))*aspect + 0.36*(t - 0.5)\ny = cy + 0.05*sin(time*0.25) + (0.01 + 0.07*chirp)*(2*fract(t*8 + 0.25) > 1 ? 1 : -1)*sin(t*pi)"
+    }
+  ]
+}
