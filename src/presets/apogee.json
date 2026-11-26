@@ -36,6 +36,18 @@
       "blend": "max"
     },
     {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.03,
+      "scale": 0,
+      "thickness": "2 + 4*beat",
+      "color": "palette(0.95)",
+      "alpha": "0.5 + 0.5*beat",
+      "blend": "add",
+      "width": "0.6/aspect",
+      "point": "a = a*smoothstep(0, 0.6, 1 - abs(t*2 - 1))"
+    },
+    {
       "type": "wireframe",
       "form": "sphere",
       "style": "lines",
@@ -70,17 +82,6 @@
       "size": 1.6,
       "color": "palette(0.9 + 0.1*i)",
       "alpha": 0.8
-    },
-    {
-      "type": "wave",
-      "shape": "line",
-      "y": -0.03,
-      "scale": 0.04,
-      "smooth": 0.7,
-      "thickness": "2 + 4*beat",
-      "color": "palette(0.95)",
-      "alpha": "0.5 + 0.5*beat",
-      "blend": "add"
     },
     {
       "type": "wireframe",

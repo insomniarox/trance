@@ -12,7 +12,6 @@
     "blur": 0.1,
     "edge": "black"
   },
-  "shade": "sy = y - sunY\ninside = step(length(x, sy), sunR + 0.004)*step(sy, 0.08)*step(0.03, y)\nk = (0.08 - sy)/sunR\ngap = step(fract(k*5 - time*0.12), 0.1 + 0.55*k)\nm = 1 - inside*gap\nr = r*m\ng = g*m\nb = b*m",
   "layers": [
     {
       "type": "shape",
@@ -38,6 +37,18 @@
       "blend": "max"
     },
     {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.05,
+      "scale": 0,
+      "thickness": "3 + 5*beat",
+      "color": "palette(0.25)",
+      "alpha": "0.6 + 0.4*beat",
+      "blend": "add",
+      "width": "0.55/aspect",
+      "point": "a = a*smoothstep(0, 0.6, 1 - abs(t*2 - 1))"
+    },
+    {
       "type": "shape",
       "sides": 64,
       "y": "sunY",
@@ -47,6 +58,24 @@
       "color2": "palette(0.02)",
       "alpha2": 0.85,
       "blend": "max"
+    },
+    {
+      "type": "wireframe",
+      "form": "sheet",
+      "style": "strands",
+      "bins": 96,
+      "rows": 40,
+      "speed": 0,
+      "pitch": 0,
+      "yaw": 0,
+      "distance": 2,
+      "size": 1,
+      "fog": 0,
+      "thickness": 5,
+      "color": "#000000",
+      "alpha": 1,
+      "blend": "over",
+      "point": "row = floor(i*40 + 0.5)\nstripe = floor((row - 1)/4)\ncorner = row - 1 - 4*stripe\nslide = fract(time*0.12) + stripe - 1\ndown = max(0, if(below(corner, 2), slide/5, (slide + 0.1)/4.45))\nx = (t*2 - 1)*(sunR - 0.003)\nhalf = sqrt(max(0, sunR*sunR - x*x))\ny = if(below(row, 0.5), -0.05, sunY + clamp(0.08 - down*sunR, -half, half))\nz = 0\na = a*above(row, 0.5)*below(row, 32.5)*above(corner, 0.5)*below(corner, 2.5)"
     },
     {
       "type": "bars",
@@ -62,17 +91,6 @@
       "peaks": false,
       "blend": "max",
       "point": "c = abs(t*2 - 1)\ntall = (0.2 + 0.8*noise(i*0.9 + seed))*(0.6 + 0.4*step(0.55, noise(i*2.3 + seed)))*smoothstep(1, 0.4, c)*(0.12 + 0.88*smoothstep(0.1, 0.32, c))\nv = tall*1.6 + 0.12*v*min(mid_att, 2)\na = a*(0.55 + 0.45*tall)"
-    },
-    {
-      "type": "wave",
-      "shape": "line",
-      "y": -0.05,
-      "scale": 0.05,
-      "smooth": 0.7,
-      "thickness": "3 + 5*beat",
-      "color": "palette(0.25)",
-      "alpha": "0.6 + 0.4*beat",
-      "blend": "add"
     },
     {
       "type": "wireframe",

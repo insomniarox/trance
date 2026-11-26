@@ -37,6 +37,18 @@
       "blend": "max"
     },
     {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.06,
+      "scale": 0,
+      "thickness": "2 + 4*beat",
+      "color": "palette(0.75)",
+      "alpha": "0.55 + 0.45*beat",
+      "blend": "add",
+      "width": "0.6/aspect",
+      "point": "a = a*smoothstep(0, 0.6, 1 - abs(t*2 - 1))"
+    },
+    {
       "type": "shape",
       "sides": 64,
       "y": "sunY",
@@ -73,17 +85,6 @@
       "alpha": 0.95,
       "blend": "max",
       "point": "u = t*2 - 1\nx = u*14\nz = 18 + i*6\nhill = smoothstep(0.12, 0.6, abs(u))*(0.3 + 0.7*noise(u*5 + 3.7))*(1 - 0.6*i)\ny = -0.8 + 3.4*hill + 0.12*v\na = a*smoothstep(0.03, 0.12, hill)"
-    },
-    {
-      "type": "wave",
-      "shape": "line",
-      "y": -0.06,
-      "scale": 0.05,
-      "smooth": 0.7,
-      "thickness": "2 + 4*beat",
-      "color": "palette(0.75)",
-      "alpha": "0.55 + 0.45*beat",
-      "blend": "add"
     },
     {
       "type": "particles",
