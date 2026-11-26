@@ -28,12 +28,13 @@
       "type": "wave",
       "shape": "line",
       "y": -0.03,
-      "scale": 0.01,
-      "smooth": 0.9,
+      "scale": 0,
       "thickness": 36,
       "color": "palette(0.8)",
       "alpha": 0.35,
-      "blend": "max"
+      "blend": "max",
+      "width": "0.6/aspect",
+      "point": "a = a*smoothstep(0, 0.6, 1 - abs(t*2 - 1))"
     },
     {
       "type": "wave",
