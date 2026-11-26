@@ -3,7 +3,7 @@
   "author": "Trance",
   "description": "A vector-display night in pencil grays: a wire moon turns high over a grid running out between two ranges of hills, and the ground streams toward you. The floor down the middle is the music, rolling in from the horizon; the hills lean in a little on the bass, the moon's surface stirs with the voices and throws sparks on the beat, and the kick drives you faster.",
   "palette": "graphite",
-  "frame": "spd = 9 + 5*min(bass_att, 2)",
+  "frame": "drive = 0.28 + 0.16*min(bass_att, 2)",
   "pixel": "zoom = 1 + (0.005 + 0.006*min(bass_att, 2))*smoothstep(-0.03, -0.38, y)",
   "feedback": {
     "decay": 0.86,
@@ -89,7 +89,7 @@
       "style": "mesh",
       "bins": 64,
       "rows": 32,
-      "speed": "spd",
+      "speed": "count*drive",
       "height": 1,
       "fade": 0.4,
       "pitch": 0,

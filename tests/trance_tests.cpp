@@ -1535,6 +1535,44 @@ private slots:
         QVERIFY(gone);
     }
 
+    // Ground on a sheet moves at speed/count lengths of the sheet a second,
+    // so a speed of count*drive keeps its pace whatever the samples kept,
+    // and travel carries on where it was when that number changes, rather
+    // than every hill drawn from it jumping somewhere else.
+    void wireframeGroundKeepsItsPaceAcrossRows()
+    {
+        QSurfaceFormat format;
+        format.setVersion(3, 3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+        QOpenGLContext context;
+        context.setFormat(format);
+        QOffscreenSurface surface;
+        if (!context.create())
+            QSKIP("No OpenGL context here");
+        surface.setFormat(context.format());
+        surface.create();
+        if (!context.makeCurrent(&surface))
+            QSKIP("No OpenGL context here");
+
+        QOpenGLFramebufferObject target(64, 64);
+        Engine engine;
+        engine.setPreset(presets::compile(fixture(
+            "{ 'name': 'Pace', 'frame': 'front = -1', 'layers': [ { 'type': 'wireframe', 'bins': 8, "
+            "'rows': 'if(below(time, 1), 16, 48)', 'speed': 'count*0.5', 'point': 'front = max(front, travel)' } ] }")),
+            0);
+        const double step = 0.5 / 60;
+        double before = -1;
+        for (int frame = 0; frame < 150; ++frame) {
+            engine.render(AudioFrame(), 1.0 / 60, target.handle(), 64, 64);
+            const double front = engine.variable("front");
+            if (before >= 0)
+                QVERIFY2(std::abs(front - before - step) < 1e-6,
+                         qPrintable(QString("Moved %1 at frame %2, not %3").arg(front - before).arg(frame).arg(step)));
+            before = front;
+        }
+        QVERIFY2(engine.error().isEmpty(), qPrintable(engine.error()));
+    }
+
     // noise() is the same field on the CPU as in a shader, so particles and
     // motion vectors, which work the flow out on the CPU, follow the picture
     // when pixel code uses it.

@@ -1770,6 +1770,10 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
     const int form = int(formNames.indexOf(layer.choice("form")));
     const int form2 = int(formNames.indexOf(layer.choice("form2")));
     const int across = countFrom(layer.num("bins", V), 8, 128), rows = countFrom(layer.num("rows", V), 4, 64);
+    // The rest of its settings and its code can read how many samples it
+    // keeps, so a speed of count*drive moves ground drawn on a sheet of a
+    // set length at the same pace however many samples it keeps.
+    V[m_s.count] = rows;
     const QString style = layer.choice("style");
     const float morph = form == form2 ? 0.f : clampTo(float(layer.num("morph", V)), 0.f, 1.f);
     const float height = float(layer.num("height", V)), width = float(layer.num("width", V));
@@ -1789,6 +1793,10 @@ void Engine::drawWireframe(const Block &layer, LayerState &state) {
     const bool folded = form != Sheet || form2 != Sheet;
     const int bins = folded ? across / 2 + 1 : across;
     if (state.rows != rows || state.cols != bins) {
+        // The front of the sheet stays where it was on the ground, so hills
+        // drawn from travel stay put when the number of samples changes.
+        if (state.rows > 0)
+            state.taken = (state.taken + state.phase) * rows / state.rows;
         state.rows = rows;
         state.cols = bins;
         state.history.assign(size_t(rows) * size_t(bins), 0.f);

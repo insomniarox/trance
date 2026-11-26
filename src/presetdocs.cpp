@@ -181,7 +181,8 @@ const QHash<QString, Entry> &entries() {
                                     "bins of equal width, each the average of everything that falls in it."}},
         {"wireframe.rows", {"Samples kept", "How many moments of the past the sheet holds, newest first."}},
         {"wireframe.speed", {"Samples a second", "How often a new sample is taken, and so how fast the sheet moves "
-                                                 "along."}},
+                                                 "along: speed divided by the samples kept is lengths of the sheet "
+                                                 "a second. count*0.3 keeps one pace whatever is kept."}},
         {"wireframe.low", {"Lowest pitch", "Where its stretch of the sound begins, in Hz. Raise it to leave the kick "
                                            "out."}},
         {"wireframe.high", {"Highest pitch", "Where its stretch of the sound ends, in Hz. A short stretch spreads a "

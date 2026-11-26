@@ -4,7 +4,7 @@
   "description": "Driving at night toward a city on the horizon, under a striped sun in red and yellow. The towers stand still but for a stir of the mids; the blue road grid rolls in from the skyline with the spectrum on it and streams past you, the kick puts your foot down, and sparks fly off the horizon on the beat.",
   "palette": "bauhaus",
   "init": "seed = rand(50)",
-  "frame": "spd = 10 + 6*min(bass_att, 2)\nsunY = 0.3\nsunR = 0.3 + 0.015*min(low_att, 2)",
+  "frame": "drive = 0.31 + 0.19*min(bass_att, 2)\nsunY = 0.3\nsunR = 0.3 + 0.015*min(low_att, 2)",
   "pixel": "zoom = 1 + (0.005 + 0.006*min(bass_att, 2))*smoothstep(-0.05, -0.39999999999999997, y)",
   "feedback": {
     "decay": 0.86,
@@ -98,7 +98,7 @@
       "style": "mesh",
       "bins": 64,
       "rows": 32,
-      "speed": "spd",
+      "speed": "count*drive",
       "height": 1,
       "fade": 0.4,
       "pitch": 0,

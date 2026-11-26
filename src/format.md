@@ -198,7 +198,10 @@ tube's length), `radius` (tube, ring, sphere), `height`. The camera: `yaw`
 and `r g b a`. `travel` is where the sample lies on the ground, in lengths of
 the sheet: it keeps its value while the sample moves back, whatever the
 `speed` or `rows`, so scenery drawn from it, `noise(u*6, travel)`, moves with
-the rows.
+the rows. Every setting and the code can read `count`, the `rows` kept: the
+sheet is the same length whatever the `rows`, so ground on it moves at
+`speed/count` lengths a second, and `"speed": "count*0.3"` keeps that pace
+whatever the `rows`.
 When either form closes on itself (all but `sheet`), pitch runs up one half
 of the sheet and back down the other, so the edges meet without a step.
 

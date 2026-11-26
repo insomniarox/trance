@@ -51,7 +51,9 @@ trance render "Night Drive" -o look.png --sheet 6 --seconds 8
   one with `point` code, and `trance show Borehole` puts the camera inside.
 - For ground running to a horizon, set `pitch` to 0 and lay the sheet out
   in `point` code (`z = (1 - i)*20` brings the rows toward you). Draw hills
-  from `travel`, not `time`, or the ground slides under them: `trance show
+  from `travel`, not `time`, or the ground slides under them, and give it
+  `"speed": "count*drive"` (`drive` in lengths of the sheet a second) so
+  changing `rows` changes how fine the ground is, not how fast: `trance show
   Apogee`.
 - To give each range of the sound a wireframe of its own, set its `low` and
   `high` to the range's Hz (sub 20-60, low 60-200, lowmid 200-600, highmid

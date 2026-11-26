@@ -392,7 +392,7 @@ spark. Those are what make one layer a rainbow rather than one color:
 | `i` | the point's number | the bar's number | the copy's number | distance, 0 front to 1 | age, 0 newest to 1 | a random number kept for life | 0 to 1 up |
 | `v` | the sound there | the bar's height | the spectrum at `t` | the height there | the height there | speed | how fast the picture moves there |
 | `v2` | the other channel | | the waveform at `t` | | | | |
-| `n` `count` | | | the copy's number, and how many | | | | |
+| `n` `count` | | | the copy's number, and how many | | `count`: how many samples it keeps, in its other settings too | | |
 | `travel` | | | | | where the sample lies on the ground, in lengths of the sheet | | |
 
 Only the color and the `point` code are worked out point by point. Every
@@ -586,10 +586,13 @@ the middle. Hills have to move with the rows, or the ground slides under
 them, so draw them from `travel`: where the sample lies on the ground, in
 lengths of the sheet. It keeps its value from the moment a sample is taken
 until it leaves the far end, so `speed` can be any formula and `rows` any
-number:
+number. The sheet is the same length however many samples it keeps, so the
+ground moves at `speed` divided by `rows` lengths of the sheet a second. Give
+the speed as `count` (the `rows`) times the pace you want, and *Samples
+kept* then only changes how fine the ground is:
 
 ```json
-"speed": "9 + 4*min(bass_att, 2)",
+"speed": "count*(0.28 + 0.12*min(bass_att, 2))",
 "point": "u = t*2 - 1; x = u*13; z = (1 - i)*20; y = -1 + smoothstep(0.2, 0.6, abs(u))*3*noise(u*7, travel)"
 ```
 
