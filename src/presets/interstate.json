@@ -63,8 +63,8 @@
       "type": "wireframe",
       "form": "sheet",
       "style": "strands",
-      "bins": 96,
-      "rows": 40,
+      "bins": 128,
+      "rows": 33,
       "speed": 0,
       "pitch": 0,
       "yaw": 0,
@@ -75,7 +75,7 @@
       "color": "#000000",
       "alpha": 1,
       "blend": "over",
-      "point": "row = floor(i*40 + 0.5)\nstripe = floor((row - 1)/4)\ncorner = row - 1 - 4*stripe\nslide = fract(time*0.12) + stripe - 1\ndown = max(0, if(below(corner, 2), slide/5, (slide + 0.1)/4.45))\nx = (t*2 - 1)*(sunR - 0.003)\nhalf = sqrt(max(0, sunR*sunR - x*x))\ny = if(below(row, 0.5), -0.05, sunY + clamp(0.08 - down*sunR, -half, half))\nz = 0\na = a*above(row, 0.5)*below(row, 32.5)*above(corner, 0.5)*below(corner, 2.5)"
+      "point": "row = floor(i*33 + 0.5)\nstripe = floor((row - 1)/4)\ncorner = row - 1 - 4*stripe\nslide = fract(time*0.12) + stripe - 1\ndown = max(0, if(below(corner, 2), slide/5, (slide + 0.1)/4.45))\nx = (t*2 - 1)*(sunR - 0.003)\nhalf = sqrt(max(0, sunR*sunR - x*x))\ny = if(below(row, 0.5), -0.05, sunY + clamp(0.08 - down*sunR, -half, half))\nz = 0\na = a*above(row, 0.5)*below(row, 32.5)*above(corner, 0.5)*below(corner, 2.5)"
     },
     {
       "type": "bars",
