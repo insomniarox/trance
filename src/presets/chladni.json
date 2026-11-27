@@ -4,22 +4,13 @@
   "description": "Sand on a round metal plate that a bow sets ringing. The grains are thrown on from the edges and run to where the plate holds still, drawing its figure in light: spokes and rings, turning slowly with the mids. The rim rings out on every beat, the cymbals shake the plate and blur the lines, the beat throws on more sand, and every sixteen beats the note changes and the sand runs off to a new figure.",
   "palette": "agate",
   "frame": "md = mod(floor(beats/16), 6)\nm = 2 + mod(md, 3)*2\nkk = (3 + mod(md*5, 4))*pi/0.95\nsp = sp + dt*0.04*(1 + min(mid_att, 2))\nk = (0.05 + 0.08*min(treb_att, 2))/kk",
-  "pixel": "in = step(rad, 0.95)\nc = cos(m*(ang - sp))\ns = sin(m*(ang - sp))\nA = c*sin(kk*rad)\nar = c*kk*cos(kk*rad)\nat = -m*s*sin(kk*rad)/max(rad, 0.05)\ngx = ar*cos(ang) - at*sin(ang)\ngy = ar*sin(ang) + at*cos(ang)\ndx = -k*A*gx*in*0.1\ndy = -k*A*gy*in*0.1",
+  "pixel": "ir = 1/max(rad, 0.05)\nc = cos(m*(ang - sp))\nsk = sin(kk*rad)\nar = c*kk*cos(kk*rad)\nat = -m*sin(m*(ang - sp))*sk*ir\nf = -0.1*k*c*sk*step(rad, 0.95)*ir\ndx = f*(ar*x - at*y)\ndy = f*(ar*y + at*x)",
   "feedback": {
-    "decay": 0.84,
+    "decay": 0.88,
     "blur": 0.15,
     "edge": "black"
   },
   "layers": [
-    {
-      "type": "vectors",
-      "cols": 40,
-      "rows": 22,
-      "length": 8,
-      "thickness": 1,
-      "color": "palette(0.2 + 0.3*v)",
-      "alpha": 0.12
-    },
     {
       "type": "shape",
       "sides": 64,
@@ -37,7 +28,7 @@
       "emit": "edges",
       "x": 0,
       "y": 0,
-      "count": 4000,
+      "count": 2000,
       "rate": "250 + 1200*beat",
       "speed": 5,
       "spread": 0.5,
@@ -48,7 +39,7 @@
       "fieldSpeed": 3,
       "edge": "bounce",
       "life": 12,
-      "size": 2.6,
+      "size": 3.1,
       "blend": "max",
       "color": "palette(0.25 + 0.3*i)",
       "alpha": 1
