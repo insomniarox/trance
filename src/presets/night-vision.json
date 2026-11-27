@@ -1,0 +1,51 @@
+{
+  "name": "Night Vision",
+  "author": "Trance",
+  "description": "Through a pair of night-vision goggles: hills of the spectrum come on out of the dark in green points, the bass lifting them, and a few moths cross in front. The tube's grain hisses with the cymbals.",
+  "palette": "phosphor",
+  "feedback": {
+    "decay": 0.72,
+    "blur": 0.3,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "terrain",
+      "style": "dots",
+      "rows": 34,
+      "cols": 88,
+      "speed": 9,
+      "height": "0.45 + 0.2*min(bass_att, 2)",
+      "width": 1.9,
+      "y": -1,
+      "horizon": 0.15,
+      "depth": 2.5,
+      "thickness": 2.8,
+      "color": "white",
+      "alpha": 1
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 40,
+      "rate": 6,
+      "speed": 0.15,
+      "field": 1.2,
+      "fieldScale": 1.5,
+      "life": 6,
+      "size": 4.5,
+      "color": "white",
+      "alpha": 0.8
+    }
+  ],
+  "shade": "e = max(smoothstep(0.74, 0.66, length(x - 0.5, y)), smoothstep(0.74, 0.66, length(x + 0.5, y)))\nr = r*e + 0.01*e\ng = g*e + 0.035*e\nb = b*e + 0.01*e",
+  "post": {
+    "colorize": 1,
+    "colorCurve": 0.9,
+    "bloom": 0.9,
+    "bloomThreshold": 0.4,
+    "grain": "0.1 + 0.08*min(treb_att, 2)",
+    "scanlines": 0.2,
+    "vignette": 0.3
+  }
+}

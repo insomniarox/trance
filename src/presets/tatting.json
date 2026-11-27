@@ -1,0 +1,58 @@
+{
+  "name": "Tatting",
+  "author": "Trance",
+  "description": "Lace knotted by hand: the left channel drawn against the right makes the thread, folded six ways into a doily. Old rows of it fade slowly and drift along the palette as they go; the voices and leads widen the loops and the cymbals turn the pattern.",
+  "palette": "amethyst",
+  "frame": "turn = turn + dt*0.08*min(treb_att, 2)",
+  "feedback": {
+    "decay": 0.93,
+    "blur": 0.12,
+    "hueshift": 0.004,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "shape": "xy",
+      "scale": "0.35 + 0.15*min(mid_att, 2)",
+      "angle": "turn",
+      "smooth": 0.35,
+      "x": 0.25,
+      "y": 0.1,
+      "thickness": 1.6,
+      "color": "palette(0.45 + 0.38*t)",
+      "alpha": 0.8
+    },
+    {
+      "type": "wave",
+      "shape": "xy",
+      "scale": "0.2 + 0.1*min(mid_att, 2)",
+      "angle": "-turn*1.5",
+      "smooth": 0.5,
+      "x": 0.55,
+      "y": 0.0,
+      "thickness": 1.2,
+      "color": "palette(0.65 + 0.18*t)",
+      "alpha": 0.6
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 500,
+      "rate": "20 + 200*beat",
+      "speed": 0.02,
+      "drag": 2,
+      "life": 2,
+      "size": 2.2,
+      "color": "palette(0.75 + 0.08*i)",
+      "alpha": 0.8
+    }
+  ],
+  "post": {
+    "kaleido": 6,
+    "kaleidoAngle": "turn*0.5",
+    "bloom": 0.6,
+    "bloomThreshold": 0.55,
+    "vignette": 0.5
+  }
+}

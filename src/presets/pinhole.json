@@ -1,0 +1,66 @@
+{
+  "name": "Pinhole",
+  "author": "Trance",
+  "description": "A camera obscura: a dark room with one small hole, and outside it the two channels of the music as two rings of points, the left one turning one way and the right the other. Their light comes through the hole and lands upside down on the far wall, larger and softer, falling off toward the corners as a lens would. The voices and leads ruffle the rings.",
+  "palette": "mono",
+  "feedback": {
+    "decay": 0.9,
+    "blur": 0.35,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wave",
+      "source": "left",
+      "shape": "circle",
+      "x": "-0.45*aspect",
+      "y": 0.5,
+      "radius": 0.24,
+      "samples": 128,
+      "scale": "0.25 + 0.15*min(mid_att, 2)",
+      "smooth": 0.5,
+      "angle": "time*0.1",
+      "dots": true,
+      "thickness": 6,
+      "color": "palette(0.5)",
+      "alpha": 1
+    },
+    {
+      "type": "wave",
+      "source": "right",
+      "shape": "circle",
+      "x": "0.45*aspect",
+      "y": 0.5,
+      "radius": 0.24,
+      "samples": 128,
+      "scale": "0.25 + 0.15*min(mid_att, 2)",
+      "smooth": 0.5,
+      "angle": "-time*0.1",
+      "dots": true,
+      "thickness": 6,
+      "color": "palette(0.4)",
+      "alpha": 1
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "y": 0.04,
+      "radius": "0.012 + 0.006*min(vol_att, 2)",
+      "color": "white",
+      "alpha": 0.9,
+      "color2": "white",
+      "alpha2": 0,
+      "blend": "add"
+    }
+  ],
+  "shade": "k = 1 - 0.6*smoothstep(0.35, 1.6, rad)\nr = r*k\ng = g*k\nb = b*k",
+  "post": {
+    "echoAlpha": 0.45,
+    "echoZoom": 1.25,
+    "echoFlip": "y",
+    "bloom": 1,
+    "bloomThreshold": 0.35,
+    "grain": 0.1,
+    "vignette": 0.6
+  }
+}

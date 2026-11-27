@@ -18,7 +18,7 @@ Every preset can be changed while it runs. See them move on
 
 ![Sixteen presets built on the wireframe layer](docs/gallery-wireframes.jpg)
 
-- **132 presets** built in, changing on the beat. A change is not a cut: for
+- **144 presets** built in, changing on the beat. A change is not a cut: for
   a few seconds both presets run on the one picture, and the wave of one
   reshapes itself into the wave of the next. Search them, filter them by
   color or by what they are made of, gather them into lists of your own,
@@ -30,7 +30,7 @@ Every preset can be changed while it runs. See them move on
   of lines, laid flat like a sea, rolled into a tube, spread into a ring or
   wrapped round a ball, folding from one form into another while a camera
   turns round it, or shaped by its own code into hills and a road running
-  to the horizon. Twenty-eight presets are built on it.
+  to the horizon. Thirty presets are built on it.
 - **Everything works on everything else.** Flow fields bend the picture,
   waves and bars throw particles, the particles ride the flow, and one
   palette colors all of it.

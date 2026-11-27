@@ -1,0 +1,59 @@
+{
+  "name": "Chladni",
+  "author": "Trance",
+  "description": "Sand on a metal plate that a bow sets ringing. The grains are thrown on from the edges and run to where the plate holds still, drawing its figure; the cymbals shake it harder, and every sixteen beats the note changes and the sand runs off to a new figure. The shaking itself is drawn faintly underneath.",
+  "palette": "agate",
+  "frame": "md = mod(floor(beats/16), 5)\nm1 = 1 + mod(md, 3)\nm2 = m1 + 2 + mod(md, 2)*2\nk = 0.0004 + 0.0006*min(treb_att, 2)",
+  "pixel": "u = x/0.92*pi\nw = y/0.92*pi\nin = step(abs(x), 0.92)*step(abs(y), 0.92)\nA = cos(m1*u)*cos(m2*w) - cos(m2*u)*cos(m1*w)\nax = -m1*sin(m1*u)*cos(m2*w) + m2*sin(m2*u)*cos(m1*w)\nay = -m2*cos(m1*u)*sin(m2*w) + m1*cos(m2*u)*sin(m1*w)\ndx = -k*A*ax*in\ndy = -k*A*ay*in",
+  "feedback": {
+    "decay": 0.75,
+    "blur": 0.1,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "vectors",
+      "cols": 36,
+      "rows": 20,
+      "length": 12,
+      "thickness": 1.2,
+      "color": "palette(0.3 + 0.4*v)",
+      "alpha": 0.25
+    },
+    {
+      "type": "shape",
+      "sides": 4,
+      "radius": 1.3,
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.5)",
+      "borderAlpha": 0.6,
+      "borderWidth": 2,
+      "blend": "add"
+    },
+    {
+      "type": "particles",
+      "emit": "edges",
+      "x": 0,
+      "y": 0,
+      "count": 4000,
+      "rate": "300 + 600*beat",
+      "speed": 3,
+      "spread": 0.6,
+      "drag": 3,
+      "flow": 1,
+      "edge": "bounce",
+      "life": 12,
+      "size": 3,
+      "blend": "max",
+      "color": "palette(0.5 + 0.08*i)",
+      "alpha": 1
+    }
+  ],
+  "post": {
+    "bloom": 1,
+    "bloomThreshold": 0.35,
+    "vignette": 0.45
+  }
+}

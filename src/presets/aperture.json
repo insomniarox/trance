@@ -1,0 +1,65 @@
+{
+  "name": "Aperture",
+  "author": "Trance",
+  "description": "A camera's iris, and through its hole the picture again, with its own iris and its own hole, down and down. The loudness opens the blades and closes them, the cymbals catch light along their edges, and the whole stack turns slowly as it falls away.",
+  "palette": "graphite",
+  "frame": "turn = turn + dt*(0.05 + 0.1*min(mid_att, 2))\nopen = 0.28 + 0.14*min(vol_att, 2)",
+  "feedback": {
+    "decay": 0.88,
+    "zoom": 0.996,
+    "zoomexp": 1.4,
+    "rot": 0.0015,
+    "blur": 0.1,
+    "edge": "clamp"
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "textured": true,
+      "texZoom": 1.3,
+      "texAngle": "0.3 + 0.1*sin(time*0.13)",
+      "radius": "open + 0.02",
+      "color": "white",
+      "alpha": 0.94,
+      "color2": "white",
+      "alpha2": 0.94,
+      "border": "palette(0.86)",
+      "borderAlpha": "0.3 + 0.5*min(treb_att, 1.5)",
+      "borderWidth": 1.6
+    },
+    {
+      "type": "shape",
+      "sides": 4,
+      "instances": 9,
+      "code": "a = n*tau/count + turn\nd = open + 0.42\nx = d*cos(a)\ny = d*sin(a)\nangle = a + 0.75",
+      "radius": 0.5,
+      "color": "palette(0.1)",
+      "alpha": 1,
+      "color2": "palette(0.3)",
+      "alpha2": 1,
+      "border": "palette(0.85)",
+      "borderAlpha": "0.5 + 0.5*min(treb_att, 1.5)",
+      "borderWidth": 1.8,
+      "blend": "over"
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "radius": 0.97,
+      "color": "black",
+      "alpha": 0,
+      "alpha2": 0,
+      "border": "palette(0.75)",
+      "borderAlpha": 0.7,
+      "borderWidth": 3,
+      "blend": "add"
+    }
+  ],
+  "post": {
+    "bloom": 0.6,
+    "bloomThreshold": 0.5,
+    "vignette": 0.55,
+    "grain": 0.05
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "Mitosis",
+  "author": "Trance",
+  "description": "A cell dividing under the microscope, over and over: the chromosomes line up across the middle, are drawn to either side, and the cell pinches into two, each time along a new axis. The cytoplasm streams round in slow currents, drawn faintly; the mids wobble the membrane and the cymbals make the chromosomes shiver.",
+  "palette": "forest",
+  "frame": "cyc = beats/8\np = fract(cyc)\nth = noise(floor(cyc)*3.7)*tau*2\nsep = smoothstep(0.25, 0.85, p)\nwob = 0.015*min(mid_att, 2)",
+  "pixel": "rot = 0.004*sin(rad*4 - time*0.4)",
+  "feedback": {
+    "decay": 0.84,
+    "zoom": 0.999,
+    "cx": "0.05*sin(time*0.07)",
+    "sx": "1 + 0.003*abs(cos(th))",
+    "sy": "1 + 0.003*abs(sin(th))",
+    "blur": 0.3,
+    "edge": "clamp"
+  },
+  "layers": [
+    {
+      "type": "vectors",
+      "cols": 30,
+      "rows": 17,
+      "length": 3,
+      "thickness": 1,
+      "color": "palette(0.35 + 0.3*v)",
+      "alpha": 0.2
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "instances": 2,
+      "code": "s = (n*2 - 1)*sep*0.3\nx = s*cos(th)\ny = s*sin(th)\nradius = 0.42 - 0.1*sep + wob*sin(time*3 + n*2)",
+      "color": "palette(0.3)",
+      "alpha": 0.25,
+      "color2": "palette(0.55)",
+      "alpha2": 0.6,
+      "border": "palette(0.75)",
+      "borderAlpha": 0.6,
+      "borderWidth": 2,
+      "blend": "max"
+    },
+    {
+      "type": "shape",
+      "sides": 6,
+      "instances": 16,
+      "code": "side = n < count/2 ? -1 : 1\nk = mod(n, count/2)/(count/2 - 1) - 0.5\nd = side*(0.02 + 0.22*sep)\nl = k*0.4*(1 - 0.4*sep)\nx = d*cos(th) - l*sin(th) + 0.004*sin(time*60 + n)*treb_att\ny = d*sin(th) + l*cos(th)\nangle = th + n",
+      "radius": 0.018,
+      "color": "palette(0.83)",
+      "alpha": 0.9,
+      "color2": "palette(0.8)",
+      "alpha2": 0.5,
+      "blend": "add"
+    }
+  ],
+  "post": {
+    "bloom": 0.5,
+    "bloomThreshold": 0.6,
+    "vignette": 0.6
+  }
+}

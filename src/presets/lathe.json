@@ -1,0 +1,82 @@
+{
+  "name": "Lathe",
+  "author": "Trance",
+  "description": "Wood turning on a lathe, seen from the side: the piece is the last few seconds of the music, its profile the spectrum, the grain running along it and the cut rings round it, while shavings fly off the newest part of the cut, more of them with the voices and leads.",
+  "palette": "copper",
+  "feedback": {
+    "decay": 0.7,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "layers": [
+    {
+      "type": "wireframe",
+      "form": "tube",
+      "style": "strands",
+      "bins": 36,
+      "rows": 48,
+      "speed": 12,
+      "low": 50,
+      "high": 5000,
+      "fade": 0.4,
+      "smooth": 0.3,
+      "radius": "0.3 + 0.04*min(bass_att, 2)",
+      "depth": 2.2,
+      "height": 0.25,
+      "yaw": 1.5708,
+      "pitch": 0.45,
+      "roll": 0,
+      "distance": 3.5,
+      "size": 0.85,
+      "thickness": 1.2,
+      "fog": 0.5,
+      "color": "palette(0.25 + 0.4*min(v, 1))",
+      "alpha": 0.65
+    },
+    {
+      "type": "wireframe",
+      "form": "tube",
+      "style": "lines",
+      "bins": 36,
+      "rows": 24,
+      "speed": 12,
+      "low": 50,
+      "high": 5000,
+      "fade": 0.4,
+      "smooth": 0.3,
+      "radius": "0.31 + 0.04*min(bass_att, 2)",
+      "depth": 2.2,
+      "height": 0.25,
+      "yaw": 1.5708,
+      "pitch": 0.45,
+      "roll": 0,
+      "distance": 3.5,
+      "size": 0.85,
+      "thickness": 1.4,
+      "fog": 0.5,
+      "color": "palette(0.45 + 0.2*min(v, 1))",
+      "alpha": 0.5
+    },
+    {
+      "type": "particles",
+      "emit": "wave",
+      "count": 900,
+      "rate": "40 + 220*min(mid_att, 2)",
+      "speed": 0.7,
+      "angle": 1.3,
+      "spread": 0.9,
+      "gravity": 1.2,
+      "drag": 0.6,
+      "life": 1.6,
+      "size": 2.2,
+      "streak": 0.05,
+      "color": "palette(0.5 + 0.15*i)",
+      "alpha": 0.9
+    }
+  ],
+  "post": {
+    "bloom": 0.55,
+    "bloomThreshold": 0.55,
+    "vignette": 0.5
+  }
+}

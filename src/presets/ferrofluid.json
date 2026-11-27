@@ -1,0 +1,70 @@
+{
+  "name": "Ferrofluid",
+  "author": "Trance",
+  "description": "A pool of black liquid metal over a magnet, seen from above. The bass stands it up in spikes, the cymbals sharpen them, the mids turn the crown, and a dull sheen of the room moves across the surface, with one red light caught in it.",
+  "palette": "noir",
+  "frame": "spin = spin + dt*(0.1 + 0.3*min(mid_att, 2))\nh = 0.04 + 0.12*min(bass_att, 2.5)\nsh = 6 + 10*min(treb_att, 2)",
+  "feedback": {
+    "decay": 0.55,
+    "blur": 0.2,
+    "edge": "black"
+  },
+  "background": {
+    "style": "plasma",
+    "intensity": 0.18,
+    "tint": 0.25,
+    "spread": 0.45,
+    "scale": 0.7,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "radius": "0.36 + 0.02*min(bass_att, 2)",
+      "color": "palette(0.02)",
+      "alpha": 1,
+      "color2": "palette(0.22)",
+      "alpha2": 1,
+      "blend": "max"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": 4,
+      "blend": "max",
+      "color": "palette(0.4 + 0.3*min(s*3, 1))",
+      "alpha": 1,
+      "point": "a = t*tau + spin\ns = pow(abs(sin(t*pi*18)), sh)\nrr = 0.36 + h*s*(0.6 + 0.4*noise(t*40, time))\nx = rr*cos(a)\ny = rr*sin(a)"
+    },
+    {
+      "type": "wave",
+      "shape": "custom",
+      "samples": 512,
+      "thickness": 2,
+      "blend": "max",
+      "color": "palette(0.3)",
+      "alpha": 1,
+      "point": "a = t*tau - spin*0.7 + 0.08\ns = pow(abs(sin(t*pi*12)), sh*0.7)\nrr = 0.36 + 0.55*h*s\nx = rr*cos(a)\ny = rr*sin(a)"
+    },
+    {
+      "type": "shape",
+      "sides": 24,
+      "x": -0.09,
+      "y": 0.11,
+      "radius": 0.05,
+      "color": "palette(0.857)",
+      "alpha": "0.5 + 0.4*beat",
+      "color2": "palette(0.857)",
+      "alpha2": 0,
+      "blend": "add"
+    }
+  ],
+  "post": {
+    "bloom": 0.45,
+    "bloomThreshold": 0.65,
+    "contrast": 1.1,
+    "vignette": 0.5
+  }
+}
