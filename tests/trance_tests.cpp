@@ -852,6 +852,36 @@ private slots:
     // mash-up's parts, nor a filter kept to, Favorites' included. Picked by
     // hand it still shows; kept to Skipped, the changes are among those;
     // with everything skipped, everything comes back rather than nothing.
+    // The secret preset is as clean as a built-in, but no list has it, and
+    // showing it never puts it in one: it can't be saved, so it never
+    // becomes a file of the user's.
+    void secretPresetStaysSecret()
+    {
+        QString error;
+        const QJsonObject json = Library::readFile(":/secret/night-drive.json", &error);
+        QVERIFY2(!json.isEmpty(), qPrintable(error));
+        const CompiledPreset compiled = presets::compile(json);
+        for (const auto &problem : compiled.problems)
+            QFAIL(qPrintable(problem.path + ": " + problem.message));
+        QVERIFY(!json.value("description").toString().isEmpty());
+
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const QString name = json.value("name").toString();
+        QCOMPARE(backend.library().indexOf(name), -1);
+        backend.showSecret();
+        QCOMPARE(backend.currentName(), name);
+        QVERIFY(!backend.save());
+        QVERIFY(!backend.saveAs("Mine now"));
+        QCOMPARE(backend.currentName(), name);
+        QVERIFY(QDir(backend.library().userDirectory()).entryList({"*.json"}, QDir::Files).isEmpty());
+        QCOMPARE(backend.library().indexOf(name), -1);
+        QCOMPARE(backend.library().indexOf("Mine now"), -1);
+        // Gone on to another, saving works again.
+        QVERIFY(backend.newPreset("After"));
+        QVERIFY(backend.save());
+    }
+
     void skippedPresetsNeverComeByThemselves()
     {
         QTemporaryDir dir;
@@ -3357,14 +3387,25 @@ private slots:
             QCOMPARE(value("confirmDialog.visible").toBool(), false);
             QCOMPARE(value("win.sidePanel").toString(), QString("settings"));
             run("win.askName('New list', '', function (name) {})");
-            QTest::keyClick(window, Qt::Key_A);
+            QTest::keyClick(window, '?');
             QTest::keyClick(window, Qt::Key_Escape);
             QTest::qWait(300);
             QCOMPARE(value("nameDialog.visible").toBool(), false);
-            QCOMPARE(value("win.aboutVisible").toBool(), false);
+            QCOMPARE(value("win.helpVisible").toBool(), false);
             QTest::keyClick(window, Qt::Key_Escape);
             QTest::qWait(150);
             QCOMPARE(value("win.sidePanel").toString(), QString());
+
+            // The Konami code on the picture shows the secret preset, and a
+            // wrong key on the way starts it over.
+            for (const Qt::Key key : {Qt::Key_Up, Qt::Key_Up, Qt::Key_Down, Qt::Key_Left})
+                QTest::keyClick(window, key);
+            for (const Qt::Key key : {Qt::Key_Up, Qt::Key_Up, Qt::Key_Up, Qt::Key_Down, Qt::Key_Down, Qt::Key_Left,
+                                      Qt::Key_Right, Qt::Key_Left, Qt::Key_Right, Qt::Key_B, Qt::Key_A})
+                QTest::keyClick(window, key);
+            QTest::qWait(150);
+            QCOMPARE(value("backend.currentName").toString(), QString("Night Drive"));
+            QCOMPARE(value("win.aboutVisible").toBool(), false);
         } else {
             qWarning("The window never had the keyboard here, so its keys were not tried");
         }

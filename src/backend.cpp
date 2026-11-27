@@ -465,6 +465,7 @@ void Backend::adopt(const QJsonObject &json, const QString &name, bool saved, do
     m_saved = saved ? json : QJsonObject();
     m_currentName = name;
     m_mashupParts.clear();
+    m_secret = false;
     m_rotation.shown(name);
     m_undo.clear();
     m_redo.clear();
@@ -514,6 +515,19 @@ bool Backend::select(const QString &name) {
         return false;
     load(index, quickBlend());
     return true;
+}
+
+void Backend::showSecret() {
+    QString error;
+    const QJsonObject json = Library::readFile(":/secret/night-drive.json", &error);
+    if (json.isEmpty()) {
+        emit notice(error);
+        return;
+    }
+    // Not remembered as the last preset, so a restart never opens on it.
+    adopt(json, json.value("name").toString(), true, quickBlend(), false);
+    m_secret = true;
+    emit notice(m_currentName);
 }
 
 void Backend::advance(bool automatic) {
@@ -941,6 +955,10 @@ bool Backend::saveAs(const QString &name) {
     const QString wanted = name.trimmed();
     if (wanted.isEmpty())
         return false;
+    if (m_secret) {
+        emit notice(tr("%1 can't be saved").arg(m_currentName));
+        return false;
+    }
     if (takenByAnother(wanted)) {
         emit notice(tr("There is already a preset called %1").arg(wanted));
         return false;
@@ -962,6 +980,12 @@ bool Backend::takenByAnother(const QString &name) const {
 }
 
 bool Backend::write(bool rename) {
+    // Saved, the secret preset would be one of the user's: listed, and
+    // in the changes.
+    if (m_secret) {
+        emit notice(tr("%1 can't be saved").arg(m_currentName));
+        return false;
+    }
     const QString name = m_json.value("name").toString().trimmed();
     if (name.isEmpty()) {
         emit notice(tr("Give the preset a name first"));

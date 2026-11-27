@@ -191,6 +191,10 @@ public:
     Q_INVOKABLE void previous();
     Q_INVOKABLE void random();
     Q_INVOKABLE bool select(const QString &name);
+    // The one preset no list shows, kept apart from the library under
+    // :/secret (the window shows it for the Konami code). It plays like any
+    // other, but it can't be saved, so it never joins the library.
+    Q_INVOKABLE void showSecret();
     // A new preset put together from parts of others: one's motion, another's
     // layers, a third's colors and finish. False if nothing workable came up.
     Q_INVOKABLE bool mashup();
@@ -350,6 +354,8 @@ private:
     // Where the mash-up showing took each part from: motion, layers, look
     // and background. Empty for anything else.
     QStringList m_mashupParts;
+    // The preset showing is the secret one, so saving is refused.
+    bool m_secret = false;
     QString m_driftPalette; // null until the drift first moves
     QElapsedTimer m_sinceDrift, m_sinceSources;
     double m_driftAfter = 30;

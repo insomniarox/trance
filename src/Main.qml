@@ -55,6 +55,23 @@ ApplicationWindow {
         aboutVisible = !aboutVisible
         helpVisible = false
     }
+    // Up Up Down Down Left Right Left Right B A, on the picture: the one
+    // preset no list shows. Holding a key or a modifier doesn't break it.
+    readonly property var konamiCode: [Qt.Key_Up, Qt.Key_Up, Qt.Key_Down, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right,
+                                       Qt.Key_Left, Qt.Key_Right, Qt.Key_B, Qt.Key_A]
+    property int konamiAt: 0
+    function konami(key) {
+        if (key === Qt.Key_Shift || key === Qt.Key_Control || key === Qt.Key_Alt || key === Qt.Key_Meta)
+            return
+        if (key === konamiCode[konamiAt])
+            konamiAt++
+        else
+            konamiAt = key !== Qt.Key_Up ? 0 : konamiAt === 2 ? 2 : 1
+        if (konamiAt === konamiCode.length) {
+            konamiAt = 0
+            guarded(function () { backend.showSecret() })
+        }
+    }
     function toggleFullScreen() { visibility = fullScreen ? Window.Windowed : Window.FullScreen }
 
     // Runs the action now, or after asking what to do with unsaved changes.
@@ -107,7 +124,6 @@ ApplicationWindow {
     }
 
     Shortcut { sequence: "?"; enabled: !win.typing; onActivated: win.toggleHelp() }
-    Shortcut { sequence: "A"; enabled: !win.typing; onActivated: win.toggleAbout() }
     Shortcut { sequence: "Q"; enabled: !win.typing; onActivated: win.quit() }
     Shortcut { sequence: "Space"; enabled: !win.typing; onActivated: win.guarded(function () { backend.next() }) }
     Shortcut { sequence: "Backspace"; enabled: !win.typing; onActivated: win.guarded(function () { backend.previous() }) }
@@ -240,6 +256,8 @@ ApplicationWindow {
         id: content
         anchors.fill: parent
         focus: true
+        // Keys no shortcut takes come here when nothing else has the keyboard.
+        Keys.onPressed: (event) => win.konami(event.key)
 
         PresetBrowser {
             id: browser

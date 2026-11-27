@@ -170,6 +170,7 @@
         <file alias="presets/windfall.json">presets/windfall.json</file>
         <file alias="presets/windmap.json">presets/windmap.json</file>
         <file alias="presets/wisteria.json">presets/wisteria.json</file>
+        <file alias="secret/night-drive.json">secret/night-drive.json</file>
         <file alias="visitors/bellows.json">visitors/bellows.json</file>
         <file alias="visitors/bubbles.json">visitors/bubbles.json</file>
         <file alias="visitors/comet.json">visitors/comet.json</file>
