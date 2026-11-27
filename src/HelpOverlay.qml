@@ -18,6 +18,7 @@ Rectangle {
             [["X"], qsTr("Mash up a new preset from parts of others")],
             [["L"], qsTr("Hold this preset, or let it change again")],
             [["H"], qsTr("Put this preset in Favorites, or take it out")],
+            [["K"], qsTr("Skip this preset and move on, or let it back in")],
             [["P"], qsTr("Browse presets")],
             [["/"], qsTr("Search presets by name")]
         ] },

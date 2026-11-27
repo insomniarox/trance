@@ -201,6 +201,9 @@ public:
     // A preset in Favorites or out of it again; the one showing when none
     // is named, which says which it was.
     Q_INVOKABLE bool toggleFavorite(const QString &preset = {});
+    // The one showing in Skipped or out of it again, which says which it
+    // was; true when it is skipped now, for the window to move on.
+    Q_INVOKABLE bool toggleSkipped();
     // A new list, with the preset in it when one is named.
     Q_INVOKABLE bool newList(const QString &name, const QString &preset = {});
     Q_INVOKABLE bool renameList(const QString &from, const QString &to);
@@ -294,6 +297,8 @@ signals:
 
 private:
     void load(int index, double blend);
+    // The one showing in the list or out of it, saying which.
+    bool toggleCurrentIn(const QString &list);
     void adopt(const QJsonObject &json, const QString &name, bool saved, double blend, bool remember = true);
     void advance(bool automatic);
     bool mashup(double blend);

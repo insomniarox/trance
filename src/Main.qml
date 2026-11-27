@@ -113,6 +113,11 @@ ApplicationWindow {
     Shortcut { sequence: "Backspace"; enabled: !win.typing; onActivated: win.guarded(function () { backend.previous() }) }
     Shortcut { sequence: "R"; enabled: !win.typing; onActivated: win.guarded(function () { backend.random() }) }
     Shortcut { sequence: "H"; enabled: !win.typing; onActivated: backend.toggleFavorite() }
+    // Skipped, it goes, as on Space; let back in, it stays.
+    Shortcut {
+        sequence: "K"; enabled: !win.typing
+        onActivated: if (backend.toggleSkipped()) win.guarded(function () { backend.next() })
+    }
     Shortcut {
         sequence: "L"; enabled: !win.typing
         onActivated: {

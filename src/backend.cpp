@@ -361,15 +361,22 @@ bool Backend::toggleInList(const QString &list, const QString &preset) {
 bool Backend::toggleFavorite(const QString &preset) {
     if (!preset.isEmpty())
         return toggleInList(Rotation::favorites(), preset);
+    return toggleCurrentIn(Rotation::favorites());
+}
+
+bool Backend::toggleSkipped() {
+    return toggleCurrentIn(Rotation::skipped()) && m_rotation.contains(Rotation::skipped(), m_currentName);
+}
+
+bool Backend::toggleCurrentIn(const QString &list) {
     if (m_library.indexOf(m_currentName) < 0) {
         emit notice(tr("Save %1 first to put it in a list").arg(m_currentName));
         return false;
     }
-    if (!toggleInList(Rotation::favorites(), m_currentName))
+    if (!toggleInList(list, m_currentName))
         return false;
-    emit notice(m_rotation.contains(Rotation::favorites(), m_currentName)
-                    ? tr("Added %1 to %2").arg(m_currentName, Rotation::favorites())
-                    : tr("Took %1 out of %2").arg(m_currentName, Rotation::favorites()));
+    emit notice(m_rotation.contains(list, m_currentName) ? tr("Added %1 to %2").arg(m_currentName, list)
+                                                         : tr("Took %1 out of %2").arg(m_currentName, list));
     return true;
 }
 

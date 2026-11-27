@@ -866,6 +866,19 @@ private slots:
         QVERIFY(backend.presets().at(0).toMap().value("skipped").toBool());
         QVERIFY(!backend.presets().at(1).toMap().value("skipped").toBool());
 
+        // K on the one showing: true when it is skipped now, so the window
+        // moves on; false when let back in, or when it isn't saved.
+        QSignalSpy notices(&backend, &Backend::notice);
+        QVERIFY(backend.select(all[1].name));
+        QVERIFY(backend.toggleSkipped());
+        QCOMPARE(notices.last().first().toString(), QString("Added %1 to Skipped").arg(all[1].name));
+        QVERIFY(!backend.toggleSkipped());
+        QCOMPARE(notices.last().first().toString(), QString("Took %1 out of Skipped").arg(all[1].name));
+        QVERIFY(!backend.presets().at(1).toMap().value("skipped").toBool());
+        QVERIFY(backend.newPreset("Unsaved"));
+        QVERIFY(!backend.toggleSkipped());
+        QCOMPARE(notices.last().first().toString(), QString("Save Unsaved first to put it in a list"));
+
         QVERIFY(backend.select(all[0].name));
         QCOMPARE(backend.currentName(), all[0].name);
         for (int i = 0; i < all.size(); ++i) {

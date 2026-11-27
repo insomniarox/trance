@@ -188,6 +188,7 @@ PowerShell or the Command Prompt: `trance.exe next`, `trance.exe sources`,
 | `X` | Mash up a new preset from parts of others |
 | `L` | Hold this preset, or let it change again |
 | `H` | Put this preset in Favorites, or take it out |
+| `K` | Skip this preset and move on, or let it back in |
 | `P` | Browse presets |
 | `/` | Search presets by name |
 | `E` | Edit this preset: its motion, layers and look |
@@ -242,7 +243,8 @@ an empty one. A preset stays in its lists when you rename it. The lists are
 kept in `lists.json`, beside the settings.
 
 **Skipped** is always there too, for presets you'd rather not see: the
-button beside the star puts one in or takes it out. A skipped preset never
+button beside the star puts one in or takes it out, and `K` skips the one
+showing and moves on, or lets it back in. A skipped preset never
 comes by itself, by `Space`, `Backspace`, `R` or the timer, and no mash-up
 borrows from it, even from a list the changes are kept to; picked from the list, it
 still shows. Cycling through Skipped itself is the one way to have them
