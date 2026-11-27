@@ -1287,18 +1287,21 @@ private slots:
 
         const Library library(QDir::tempPath() + "/trance-tests-no-such-folder");
         Analyzer analyzer;
-        std::vector<float> chunk(800 * 2);
+        std::vector<float> chunk(1600 * 2);
         qint64 position = 0;
         QOpenGLFramebufferObject target(320, 200);
         Engine engine;
         engine.setTheme(presets::defaultThemeColors());
+        // A second and a half of each at 30 fps, which the engine allows
+        // for: at 60 the Windows runner's software GL took four minutes for
+        // 132 presets, close to Qt Test's five.
         for (const auto &info : library.presets()) {
             engine.setPreset(presets::compile(library.load(library.indexOf(info.name))), 0.5);
-            for (int frame = 0; frame < 90; ++frame) {
-                synthesize(chunk.data(), 800, position, 48000);
-                position += 800;
-                analyzer.push(chunk.data(), 800);
-                engine.render(analyzer.analyze(1.0 / 60), 1.0 / 60, target.handle(), 320, 200);
+            for (int frame = 0; frame < 45; ++frame) {
+                synthesize(chunk.data(), 1600, position, 48000);
+                position += 1600;
+                analyzer.push(chunk.data(), 1600);
+                engine.render(analyzer.analyze(1.0 / 30), 1.0 / 30, target.handle(), 320, 200);
             }
             QVERIFY2(engine.error().isEmpty(), qPrintable(info.name + ": " + engine.error()));
             // Every preset puts something on the screen within a second and a half.
