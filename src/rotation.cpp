@@ -36,14 +36,19 @@ Rotation::Rotation(const Library &library, const QString &listsFile)
             m_lists << list;
         }
     }
-    const int favorite = indexOfList(favorites());
-    if (favorite < 0)
-        m_lists.prepend(List{favorites(), {}});
-    else
-        m_lists.move(favorite, 0);
+    // Favorites first and Skipped second, whatever the file had.
+    const QStringList fixed{favorites(), skipped()};
+    for (int place = 0; place < fixed.size(); ++place) {
+        const int found = indexOfList(fixed[place]);
+        if (found < 0)
+            m_lists.insert(place, List{fixed[place], {}});
+        else
+            m_lists.move(found, place);
+    }
 }
 
 QString Rotation::favorites() { return QStringLiteral("Favorites"); }
+QString Rotation::skipped() { return QStringLiteral("Skipped"); }
 
 int Rotation::indexOfList(const QString &name) const {
     for (int i = 0; i < m_lists.size(); ++i)
@@ -98,8 +103,8 @@ bool Rotation::renameList(const QString &from, const QString &to, QString *error
     QString problem;
     if (index < 0)
         problem = QString("There is no list called %1").arg(from);
-    else if (index == 0)
-        problem = QString("%1 keeps its name").arg(favorites());
+    else if (index <= 1)
+        problem = QString("%1 keeps its name").arg(m_lists[index].name);
     else if (wanted.isEmpty())
         problem = QString("A list needs a name");
     else if (indexOfList(wanted) >= 0 && indexOfList(wanted) != index)
@@ -117,10 +122,10 @@ bool Rotation::renameList(const QString &from, const QString &to, QString *error
 
 bool Rotation::removeList(const QString &name, QString *error) {
     const int index = indexOfList(name);
-    if (index <= 0) {
+    if (index <= 1) {
         if (error)
             *error = index < 0 ? QString("There is no list called %1").arg(name)
-                               : QString("%1 is always there").arg(favorites());
+                               : QString("%1 is always there").arg(m_lists[index].name);
         return false;
     }
     if (same(m_list, m_lists[index].name))
@@ -223,14 +228,23 @@ int Rotation::matchCount() const {
     return int(std::count_if(all.begin(), all.end(), [this](const PresetInfo &preset) { return matches(preset); }));
 }
 
+// Kept to Skipped itself, the skipped are what the changes are for.
+bool Rotation::skipping(const PresetInfo &preset) const {
+    return !(m_keep && same(m_list, skipped())) && contains(skipped(), preset.name);
+}
+
 QList<int> Rotation::pool() const {
-    QList<int> all, kept;
+    QList<int> all, left, kept;
     for (int i = 0; i < m_library.presets().size(); ++i) {
+        const PresetInfo &preset = m_library.presets()[i];
         all << i;
-        if (m_keep && filtering() && matches(m_library.presets()[i]))
+        if (skipping(preset))
+            continue;
+        left << i;
+        if (m_keep && filtering() && matches(preset))
             kept << i;
     }
-    return kept.isEmpty() ? all : kept;
+    return !kept.isEmpty() ? kept : !left.isEmpty() ? left : all;
 }
 
 // From wherever the one named is in the whole list, so leaving the pool

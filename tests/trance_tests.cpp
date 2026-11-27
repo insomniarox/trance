@@ -773,8 +773,9 @@ private slots:
         {
             Backend backend(dir.path(), false);
             QSignalSpy notices(&backend, &Backend::notice);
-            QCOMPARE(backend.presetLists().size(), 1);
+            QCOMPARE(backend.presetLists().size(), 2);
             QCOMPARE(backend.presetLists().first().toMap().value("name").toString(), QString("Favorites"));
+            QCOMPARE(backend.presetLists().at(1).toMap().value("name").toString(), QString("Skipped"));
 
             QVERIFY(backend.select("Aurora"));
             QVERIFY(backend.toggleFavorite());
@@ -805,11 +806,11 @@ private slots:
             QVERIFY(backend.toggleInList("Late night", "Glow"));
             backend.setParam("name", "Glow Two");
             QVERIFY(backend.save());
-            QCOMPARE(backend.presetLists().at(1).toMap().value("count").toInt(), 3);
+            QCOMPARE(backend.presetLists().at(2).toMap().value("count").toInt(), 3);
             QVERIFY(backend.presets().at(backend.library().indexOf("Glow Two")).toMap().value("lists").toStringList()
                         .contains("Late night"));
             QVERIFY(backend.deletePreset("Glow Two"));
-            QCOMPARE(backend.presetLists().at(1).toMap().value("count").toInt(), 2);
+            QCOMPARE(backend.presetLists().at(2).toMap().value("count").toInt(), 2);
 
             // Neither a mash-up nor Favorites' own name and place can be had.
             // (A mash-up kept to two presets has too few to draw from.)
@@ -820,6 +821,8 @@ private slots:
             QCOMPARE(notices.last().first().toString(), QString("Save %1 first to put it in a list").arg(backend.currentName()));
             QVERIFY(!backend.deleteList("Favorites"));
             QVERIFY(!backend.renameList("Favorites", "Best"));
+            QVERIFY(!backend.deleteList("Skipped"));
+            QVERIFY(!backend.renameList("Skipped", "Never"));
             QVERIFY(backend.renameList("Late night", "Late"));
             QCOMPARE(backend.filterList(), QString("Late"));
         }
@@ -831,7 +834,7 @@ private slots:
             QVERIFY(backend.presets().at(backend.library().indexOf("Skyline")).toMap().value("favorite").toBool());
             QVERIFY(backend.deleteList("Late"));
             QCOMPARE(backend.filterList(), QString());
-            QCOMPARE(backend.presetLists().size(), 1);
+            QCOMPARE(backend.presetLists().size(), 2);
         }
         // A file of lists that can't be read is left as it is, never
         // written over.
@@ -843,6 +846,73 @@ private slots:
         QFile file(dir.path() + "/lists.json");
         QVERIFY(file.open(QIODevice::ReadOnly));
         QCOMPARE(file.readAll(), QByteArray("{ broken"));
+    }
+
+    // A skipped preset never comes by itself: not by Space, Backspace, R, a
+    // mash-up's parts, nor a filter kept to, Favorites' included. Picked by
+    // hand it still shows; kept to Skipped, the changes are among those;
+    // with everything skipped, everything comes back rather than nothing.
+    void skippedPresetsNeverComeByThemselves()
+    {
+        QTemporaryDir dir;
+        Backend backend(dir.path(), false);
+        const auto &all = backend.library().presets();
+        QVERIFY(all.size() >= 8);
+        QStringList skipped;
+        for (int i = 0; i < all.size(); i += 2) {
+            QVERIFY(backend.toggleInList("Skipped", all[i].name));
+            skipped << all[i].name;
+        }
+        QVERIFY(backend.presets().at(0).toMap().value("skipped").toBool());
+        QVERIFY(!backend.presets().at(1).toMap().value("skipped").toBool());
+
+        QVERIFY(backend.select(all[0].name));
+        QCOMPARE(backend.currentName(), all[0].name);
+        for (int i = 0; i < all.size(); ++i) {
+            backend.next();
+            QVERIFY2(!skipped.contains(backend.currentName()), qPrintable(backend.currentName()));
+        }
+        for (int i = 0; i < all.size(); ++i) {
+            backend.previous();
+            QVERIFY2(!skipped.contains(backend.currentName()), qPrintable(backend.currentName()));
+        }
+        for (int i = 0; i < 3 * all.size(); ++i) {
+            backend.random();
+            QVERIFY2(!skipped.contains(backend.currentName()), qPrintable(backend.currentName()));
+        }
+        for (int i = 0; i < 10; ++i) {
+            QVERIFY(backend.mashup());
+            for (const QString &part : backend.stats().value("parts").toStringList())
+                QVERIFY2(!skipped.contains(part), qPrintable(part));
+        }
+
+        // A favorite that is skipped stays out, even kept to Favorites.
+        QVERIFY(backend.toggleFavorite(all[0].name));
+        QVERIFY(backend.toggleFavorite(all[1].name));
+        QVERIFY(backend.toggleFavorite(all[3].name));
+        backend.setFilterList("Favorites");
+        backend.setKeepToFilter(true);
+        QVERIFY(backend.select(all[1].name));
+        for (int i = 0; i < 4; ++i) {
+            backend.next();
+            QVERIFY(backend.currentName() == all[1].name || backend.currentName() == all[3].name);
+        }
+
+        // Kept to Skipped itself, the changes are among the skipped.
+        backend.setFilterList("Skipped");
+        for (int i = 0; i < 6; ++i) {
+            backend.next();
+            QVERIFY2(skipped.contains(backend.currentName()), qPrintable(backend.currentName()));
+        }
+
+        // Everything skipped: the changes go on among all of them.
+        backend.setKeepToFilter(false);
+        backend.setFilterList("");
+        for (int i = 1; i < all.size(); i += 2)
+            QVERIFY(backend.toggleInList("Skipped", all[i].name));
+        QVERIFY(backend.select(all[0].name));
+        backend.next();
+        QCOMPARE(backend.currentName(), all[1].name);
     }
 
     void backendKeepsToTheFilter()

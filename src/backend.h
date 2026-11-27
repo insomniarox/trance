@@ -71,7 +71,7 @@ class Backend : public QObject {
     Q_PROPERTY(QStringList filterFeatures READ filterFeatures WRITE setFilterFeatures NOTIFY presetsChanged)
     // One of the user's lists of presets, which a preset must be in.
     Q_PROPERTY(QString filterList READ filterList WRITE setFilterList NOTIFY presetsChanged)
-    // The lists, Favorites first: each one's name and how many presets of
+    // The lists, Favorites and Skipped first: each one's name and how many presets of
     // the library are in it.
     Q_PROPERTY(QVariantList presetLists READ presetLists NOTIFY presetsChanged)
     Q_PROPERTY(bool keepToFilter READ keepToFilter WRITE setKeepToFilter NOTIFY presetsChanged)

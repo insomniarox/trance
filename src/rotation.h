@@ -39,7 +39,8 @@ public:
     int matchCount() const;
 
     // Where the changes come from: the presets that match when the filters
-    // are kept to and any do, otherwise all of them. In library order.
+    // are kept to and any do, otherwise all of them; either way leaving out
+    // the skipped, unless that would leave none. In library order.
     QList<int> pool() const;
     // The next or the previous preset in the pool from the one named, which
     // may be outside it; -1 when there is none.
@@ -51,10 +52,13 @@ public:
     // counts it as shown.
     void shown(const QString &name);
 
-    // The lists, Favorites first, which is always there. Changes to them
-    // are written at once; false with a message when that, or the change,
-    // can't be done.
+    // The lists, Favorites and Skipped first, which are always there.
+    // Changes to them are written at once; false with a message when that,
+    // or the change, can't be done.
     static QString favorites();
+    // The presets in it never come by themselves: not on a change, nor in a
+    // mash-up, unless the changes are kept to Skipped itself.
+    static QString skipped();
     const QList<List> &lists() const { return m_lists; }
     // The lists a preset is in.
     QStringList listsOf(const QString &preset) const;
@@ -71,6 +75,7 @@ public:
 
 private:
     int indexOfList(const QString &name) const;
+    bool skipping(const PresetInfo &preset) const;
     bool write(QString *error);
 
     const Library &m_library;

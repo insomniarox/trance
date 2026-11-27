@@ -221,6 +221,7 @@ QVariantList Backend::presets() const {
                             {"shadowsBuiltin", preset.shadowsBuiltin}, {"family", preset.family},
                             {"features", preset.features}, {"matches", m_rotation.matches(preset)},
                             {"favorite", m_rotation.contains(Rotation::favorites(), preset.name)},
+                            {"skipped", m_rotation.contains(Rotation::skipped(), preset.name)},
                             {"lists", m_rotation.listsOf(preset.name)}};
     return list;
 }

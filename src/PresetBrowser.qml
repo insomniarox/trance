@@ -119,7 +119,7 @@ SidePanel {
     }
 
     // One of the user's lists, picked like a filter. Right-click to rename
-    // or delete it; Favorites is always there.
+    // or delete it; Favorites and Skipped are always there.
     component ListChip: AbstractButton {
         id: listChip
         required property var modelData
@@ -164,7 +164,7 @@ SidePanel {
         }
         TapHandler {
             acceptedButtons: Qt.RightButton
-            enabled: listChip.index > 0
+            enabled: listChip.index > 1
             onTapped: function (point) {
                 const name = listChip.modelData.name
                 menu.show(listChip, point.position.x, point.position.y, [
@@ -341,6 +341,8 @@ SidePanel {
                 text: search.text.trim().length > 0 ? qsTr("No preset by that name here")
                     : emptyList && emptyList.name === backend.presetLists[0].name
                       ? qsTr("Nothing in %1 yet: star a preset to put it here").arg(emptyList.name)
+                    : emptyList && emptyList.name === backend.presetLists[1].name
+                      ? qsTr("Nothing in %1: the button beside a preset's star keeps it out of the changes").arg(emptyList.name)
                     : emptyList
                       ? qsTr("Nothing in %1 yet: put a preset in it with the button beside its star").arg(emptyList.name)
                     : qsTr("No preset has all of these")
@@ -355,9 +357,10 @@ SidePanel {
                 height: list.rowHeight
                 readonly property bool current: modelData.name === backend.currentName
                 readonly property bool flashing: browser.flashPreset === modelData.name
-                // The lists it is in besides Favorites, which the star shows.
+                // The lists it is in besides Favorites and Skipped, which have
+                // buttons of their own.
                 readonly property var inLists: modelData.lists.filter(function (name) {
-                    return name !== backend.presetLists[0].name
+                    return name !== backend.presetLists[0].name && name !== backend.presetLists[1].name
                 })
                 Rectangle {
                     anchors.fill: parent
@@ -392,7 +395,7 @@ SidePanel {
                         text: entry.modelData.name
                         elide: Text.ElideRight
                         font.pixelSize: Ui.body
-                        color: entry.current || hover.hovered ? Ui.text : Ui.textDim
+                        color: entry.current || hover.hovered ? Ui.text : entry.modelData.skipped ? Ui.textFaint : Ui.textDim
                         font.weight: entry.current ? Font.DemiBold : Font.Normal
                     }
                     Label {
@@ -400,6 +403,28 @@ SidePanel {
                         text: entry.modelData.shadowsBuiltin ? qsTr("your copy") : qsTr("yours")
                         font.pixelSize: Ui.tiny
                         color: theme.accent
+                    }
+                    // Skipped, or not, which shows while pointed at.
+                    AbstractButton {
+                        id: skip
+                        implicitWidth: 20
+                        implicitHeight: 20
+                        focusPolicy: Qt.NoFocus
+                        hoverEnabled: true
+                        opacity: entry.modelData.skipped || hover.hovered ? 1 : 0
+                        onClicked: {
+                            if (backend.toggleInList(backend.presetLists[1].name, entry.modelData.name))
+                                browser.flash(backend.presetLists[1].name, entry.modelData.name)
+                        }
+                        contentItem: Glyph {
+                            name: "skip"
+                            size: 14
+                            color: entry.modelData.skipped ? theme.accent : skip.hovered ? Ui.text : Ui.textFaint
+                        }
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 600
+                        ToolTip.text: entry.modelData.skipped ? qsTr("Let it come by itself again")
+                                                              : qsTr("Skip: never comes by itself")
                     }
                     // In other lists, and how many; shows while pointed at
                     // when in none. Opens the same menu as a right-click.

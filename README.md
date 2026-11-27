@@ -241,6 +241,13 @@ or in a new one, and right-click a list to rename or delete it; `+` starts
 an empty one. A preset stays in its lists when you rename it. The lists are
 kept in `lists.json`, beside the settings.
 
+**Skipped** is always there too, for presets you'd rather not see: the
+button beside the star puts one in or takes it out. A skipped preset never
+comes by itself, by `Space`, `Backspace`, `R` or the timer, and no mash-up
+borrows from it, even from a list the changes are kept to; picked from the list, it
+still shows. Cycling through Skipped itself is the one way to have them
+come round. Skip everything and everything comes back, rather than nothing.
+
 **Cycle through these only** keeps every change among the presets that
 match, a list's included: the ones that come by themselves, `Space`, `Backspace`, `R` and
 mash-ups, and with **Colors drift** on, the colors stay in the chosen
