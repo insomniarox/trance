@@ -460,12 +460,13 @@ void Backend::load(int index, double blend) {
     adopt(json, info.name, true, blend);
 }
 
-void Backend::adopt(const QJsonObject &json, const QString &name, bool saved, double blend, bool remember) {
+void Backend::adopt(const QJsonObject &json, const QString &name, bool saved, double blend, bool remember,
+                    bool secret) {
     m_json = json;
     m_saved = saved ? json : QJsonObject();
     m_currentName = name;
     m_mashupParts.clear();
-    m_secret = false;
+    m_secret = secret;
     m_rotation.shown(name);
     m_undo.clear();
     m_redo.clear();
@@ -525,8 +526,7 @@ void Backend::showSecret() {
         return;
     }
     // Not remembered as the last preset, so a restart never opens on it.
-    adopt(json, json.value("name").toString(), true, quickBlend(), false);
-    m_secret = true;
+    adopt(json, json.value("name").toString(), true, quickBlend(), false, true);
     emit notice(m_currentName);
 }
 

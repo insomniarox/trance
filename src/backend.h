@@ -266,7 +266,10 @@ public:
     // has got to, or else the user's pick. None while the preset is being
     // edited, so its own palette shows as it is changed.
     QString effectivePalette() const {
-        return m_editing ? QString() : m_colorDrift && !m_driftPalette.isNull() ? m_driftPalette : m_paletteOverride;
+        // The secret preset keeps its own colors: its look is the point.
+        if (m_editing || m_secret)
+            return QString();
+        return m_colorDrift && !m_driftPalette.isNull() ? m_driftPalette : m_paletteOverride;
     }
     int transitionIndex() const { return qMax(0, int(presets::transitionStyles().indexOf(m_transition))); }
     const QList<CompiledPreset> &visitorPool() const { return m_visitorPool; }
@@ -303,7 +306,8 @@ private:
     void load(int index, double blend);
     // The one showing in the list or out of it, saying which.
     bool toggleCurrentIn(const QString &list);
-    void adopt(const QJsonObject &json, const QString &name, bool saved, double blend, bool remember = true);
+    void adopt(const QJsonObject &json, const QString &name, bool saved, double blend, bool remember = true,
+               bool secret = false);
     void advance(bool automatic);
     bool mashup(double blend);
     double quickBlend() const { return qMin(m_blendSeconds, 1.2); }
@@ -354,7 +358,8 @@ private:
     // Where the mash-up showing took each part from: motion, layers, look
     // and background. Empty for anything else.
     QStringList m_mashupParts;
-    // The preset showing is the secret one, so saving is refused.
+    // The preset showing is the secret one: saving is refused, and it keeps
+    // its own colors whatever the palette setting or the drift.
     bool m_secret = false;
     QString m_driftPalette; // null until the drift first moves
     QElapsedTimer m_sinceDrift, m_sinceSources;

@@ -869,8 +869,11 @@ private slots:
         Backend backend(dir.path(), false);
         const QString name = json.value("name").toString();
         QCOMPARE(backend.library().indexOf(name), -1);
+        backend.setPaletteOverride("fire");
         backend.showSecret();
         QCOMPARE(backend.currentName(), name);
+        // Its colors are its own, whatever T or the drift has picked.
+        QCOMPARE(backend.effectivePalette(), QString());
         QVERIFY(!backend.save());
         QVERIFY(!backend.saveAs("Mine now"));
         QCOMPARE(backend.currentName(), name);
@@ -880,6 +883,7 @@ private slots:
         // Gone on to another, saving works again.
         QVERIFY(backend.newPreset("After"));
         QVERIFY(backend.save());
+        QCOMPARE(backend.effectivePalette(), QString("fire"));
     }
 
     void skippedPresetsNeverComeByThemselves()
