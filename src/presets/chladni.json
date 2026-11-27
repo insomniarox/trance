@@ -1,7 +1,7 @@
 {
   "name": "Chladni",
   "author": "Trance",
-  "description": "Sand on a round metal plate that a bow sets ringing. The grains are thrown on from the edges and run to where the plate holds still, drawing its figure in light: spokes and rings, turning slowly with the mids. The cymbals shake the plate and blur the lines, the beat throws on more sand, and every sixteen beats the note changes and the sand runs off to a new figure.",
+  "description": "Sand on a round metal plate that a bow sets ringing. The grains are thrown on from the edges and run to where the plate holds still, drawing its figure in light: spokes and rings, turning slowly with the mids. The rim rings out on every beat, the cymbals shake the plate and blur the lines, the beat throws on more sand, and every sixteen beats the note changes and the sand runs off to a new figure.",
   "palette": "agate",
   "frame": "md = mod(floor(beats/16), 6)\nm = 2 + mod(md, 3)*2\nkk = (3 + mod(md*5, 4))*pi/0.95\nsp = sp + dt*0.04*(1 + min(mid_att, 2))\nk = (0.05 + 0.08*min(treb_att, 2))/kk",
   "pixel": "in = step(rad, 0.95)\nc = cos(m*(ang - sp))\ns = sin(m*(ang - sp))\nA = c*sin(kk*rad)\nar = c*kk*cos(kk*rad)\nat = -m*s*sin(kk*rad)/max(rad, 0.05)\ngx = ar*cos(ang) - at*sin(ang)\ngy = ar*sin(ang) + at*cos(ang)\ndx = -k*A*gx*in*0.1\ndy = -k*A*gy*in*0.1",
@@ -23,13 +23,13 @@
     {
       "type": "shape",
       "sides": 64,
-      "radius": 0.97,
+      "radius": "0.97 + 0.025*beat",
       "color": "black",
       "alpha": 0,
       "alpha2": 0,
-      "border": "palette(0.25)",
-      "borderAlpha": "0.25 + 0.3*min(bass_att, 2)",
-      "borderWidth": 2.5,
+      "border": "palette(0.25 + 0.3*beat)",
+      "borderAlpha": "0.2 + 0.15*min(bass_att, 2) + 0.65*beat",
+      "borderWidth": "2.5 + 5*beat",
       "blend": "add"
     },
     {
