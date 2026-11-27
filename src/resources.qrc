@@ -57,6 +57,7 @@
         <file alias="presets/dunes.json">presets/dunes.json</file>
         <file alias="presets/ember-drift.json">presets/ember-drift.json</file>
         <file alias="presets/equalizer.json">presets/equalizer.json</file>
+        <file alias="presets/equinox.json">presets/equinox.json</file>
         <file alias="presets/event-horizon.json">presets/event-horizon.json</file>
         <file alias="presets/ferrofluid.json">presets/ferrofluid.json</file>
         <file alias="presets/fireworks.json">presets/fireworks.json</file>
@@ -150,7 +151,6 @@
         <file alias="presets/starwake.json">presets/starwake.json</file>
         <file alias="presets/strata.json">presets/strata.json</file>
         <file alias="presets/sunburst.json">presets/sunburst.json</file>
-        <file alias="presets/sundial.json">presets/sundial.json</file>
         <file alias="presets/synth-road.json">presets/synth-road.json</file>
         <file alias="presets/taffy.json">presets/taffy.json</file>
         <file alias="presets/tatting.json">presets/tatting.json</file>

@@ -1,59 +1,53 @@
 {
   "name": "Mitosis",
   "author": "Trance",
-  "description": "A cell dividing under the microscope, over and over: the chromosomes line up across the middle, are drawn to either side, and the cell pinches into two, each time along a new axis. The cytoplasm streams round in slow currents, drawn faintly; the mids wobble the membrane and the cymbals make the chromosomes shiver.",
+  "description": "A culture under the microscope: a few dozen cells drifting in the slow streaming of the cytoplasm, each dividing in its own time, every eight beats, along an axis of its own. The bass swells them, the mids make their walls quiver and the cymbals light the nuclei; the streaming itself is drawn faintly underneath.",
   "palette": "forest",
-  "frame": "cyc = beats/8\np = fract(cyc)\nth = noise(floor(cyc)*3.7)*tau*2\nsep = smoothstep(0.25, 0.85, p)\nwob = 0.015*min(mid_att, 2)",
-  "pixel": "rot = 0.004*sin(rad*4 - time*0.4)",
+  "pixel": "dx = 0.0022*sin(y*3 + time*0.3)\ndy = 0.0022*cos(x*2.5 - time*0.25)\nrot = 0.0015*sin(rad*3 - time*0.2)",
   "feedback": {
-    "decay": 0.84,
-    "zoom": 0.999,
-    "cx": "0.05*sin(time*0.07)",
-    "sx": "1 + 0.003*abs(cos(th))",
-    "sy": "1 + 0.003*abs(sin(th))",
-    "blur": 0.3,
+    "decay": 0.9,
+    "cx": "0.1*sin(time*0.05)",
+    "sx": "1 + 0.002*sin(time*0.11)",
+    "sy": "1 + 0.002*cos(time*0.13)",
+    "blur": 0.35,
     "edge": "clamp"
   },
   "layers": [
     {
       "type": "vectors",
-      "cols": 30,
-      "rows": 17,
-      "length": 3,
+      "cols": 32,
+      "rows": 18,
+      "length": 4,
       "thickness": 1,
       "color": "palette(0.35 + 0.3*v)",
-      "alpha": 0.2
+      "alpha": 0.15
     },
     {
       "type": "shape",
-      "sides": 64,
-      "instances": 2,
-      "code": "s = (n*2 - 1)*sep*0.3\nx = s*cos(th)\ny = s*sin(th)\nradius = 0.42 - 0.1*sep + wob*sin(time*3 + n*2)",
+      "sides": 48,
+      "instances": 32,
+      "code": "c = floor(n/2)\nside = mod(n, 2)*2 - 1\nq = beats/8 + c*0.37\np = fract(q)\nth = noise(c*3.1, floor(q))*tau*2\nsep = smoothstep(0.35, 0.9, p)\nr0 = 0.09 + 0.05*noise(c*1.7, 4)\npx = (noise(c*2.3, time*0.03) - 0.5)*3.4\npy = (noise(c*4.1 + 9, time*0.03) - 0.5)*2\nx = px + side*sep*r0*0.85*cos(th)\ny = py + side*sep*r0*0.85*sin(th)\nf = smoothstep(0, 0.08, p)*(1 - smoothstep(0.92, 1, p))\nradius = r0*(1 - 0.25*sep) + 0.012*min(bass_att, 2) + 0.005*sin(time*3 + n)*min(mid_att, 2)\na = 0.3*f\na2 = 0.8*f",
       "color": "palette(0.3)",
-      "alpha": 0.25,
-      "color2": "palette(0.55)",
-      "alpha2": 0.6,
-      "border": "palette(0.75)",
-      "borderAlpha": 0.6,
-      "borderWidth": 2,
+      "alpha": 0.3,
+      "color2": "palette(0.6)",
+      "alpha2": 0.8,
       "blend": "max"
     },
     {
       "type": "shape",
-      "sides": 6,
-      "instances": 16,
-      "code": "side = n < count/2 ? -1 : 1\nk = mod(n, count/2)/(count/2 - 1) - 0.5\nd = side*(0.02 + 0.22*sep)\nl = k*0.4*(1 - 0.4*sep)\nx = d*cos(th) - l*sin(th) + 0.004*sin(time*60 + n)*treb_att\ny = d*sin(th) + l*cos(th)\nangle = th + n",
-      "radius": 0.018,
+      "sides": 24,
+      "instances": 32,
+      "code": "c = floor(n/2)\nside = mod(n, 2)*2 - 1\nq = beats/8 + c*0.37\np = fract(q)\nth = noise(c*3.1, floor(q))*tau*2\nsep = smoothstep(0.35, 0.9, p)\nr0 = 0.09 + 0.05*noise(c*1.7, 4)\npx = (noise(c*2.3, time*0.03) - 0.5)*3.4\npy = (noise(c*4.1 + 9, time*0.03) - 0.5)*2\nx = px + side*sep*r0*0.85*cos(th)\ny = py + side*sep*r0*0.85*sin(th)\nf = smoothstep(0, 0.08, p)*(1 - smoothstep(0.92, 1, p))\nradius = r0*0.28\na = f*(0.5 + 0.5*min(treb_att, 1.5)/1.5)\na2 = 0",
       "color": "palette(0.83)",
       "alpha": 0.9,
-      "color2": "palette(0.8)",
-      "alpha2": 0.5,
+      "color2": "palette(0.75)",
+      "alpha2": 0,
       "blend": "add"
     }
   ],
   "post": {
-    "bloom": 0.5,
-    "bloomThreshold": 0.6,
+    "bloom": 0.7,
+    "bloomThreshold": 0.45,
     "vignette": 0.6
   }
 }

@@ -1,12 +1,13 @@
 {
   "name": "Planetarium",
   "author": "Trance",
-  "description": "Lying back under the dome of a planetarium: the dome's ribs are the last few seconds of the music, swelling with the bass, and a sky of points turns across them, quicker and brighter with the cymbals.",
+  "description": "Lying back under the dome of a planetarium: the dome's ribs are the last few seconds of the music, heaving with the bass and brightening where it is loud, and every beat kicks the dome round and lets the light swell. A sky of points turns across it, quicker and brighter with the cymbals, and now and then a shooting star crosses on the beat.",
   "palette": "twilight",
   "init": "ph = rand(6)",
-  "frame": "sky = sky + dt*(0.04 + 0.12*min(treb_att, 2))",
+  "frame": "spin = spin + dt*(0.02 + 0.06*min(bass_att, 2)) + 0.004*beat\nsky = sky + dt*(0.05 + 0.3*min(treb_att, 2))",
   "feedback": {
-    "decay": 0.6,
+    "decay": 0.68,
+    "zoom": "1 + 0.012*beat",
     "blur": 0.2,
     "edge": "black"
   },
@@ -17,21 +18,21 @@
       "style": "mesh",
       "bins": 40,
       "rows": 24,
-      "speed": 10,
+      "speed": 14,
       "low": 40,
       "high": 3000,
-      "fade": 0.5,
-      "smooth": 0.3,
+      "fade": 0.25,
+      "smooth": 0.15,
       "radius": 1,
-      "height": "0.12 + 0.06*min(bass_att, 2)",
-      "yaw": "ph + time*0.02",
-      "pitch": 1.25,
+      "height": "0.15 + 0.3*min(bass_att, 2)",
+      "yaw": "ph + spin",
+      "pitch": "1.25 + 0.06*sin(time*0.2)",
       "roll": 0,
       "distance": 0.35,
       "size": 1,
       "thickness": 1.5,
       "fog": 0.4,
-      "color": "palette(0.25 + 0.2*min(v, 1))",
+      "color": "palette(0.2 + 0.3*min(v, 1))",
       "alpha": 0.9
     },
     {
@@ -43,7 +44,7 @@
       "speed": 6,
       "low": 2000,
       "high": 14000,
-      "fade": 0.8,
+      "fade": 0.5,
       "smooth": 0.1,
       "tilt": 0.6,
       "radius": 0.9,
@@ -56,13 +57,27 @@
       "thickness": 3,
       "fog": 0.2,
       "color": "palette(0.02 + 0.12*min(v, 1))",
-      "alpha": 1
+      "alpha": "0.45 + 0.55*min(treb_att, 1.5)/1.5"
+    },
+    {
+      "type": "particles",
+      "emit": "screen",
+      "count": 60,
+      "rate": "0.5 + 30*beat",
+      "speed": 1.6,
+      "angle": -0.6,
+      "spread": 0.3,
+      "life": 0.6,
+      "size": 2.5,
+      "streak": 0.1,
+      "color": "palette(0.04)",
+      "alpha": 0.9
     }
   ],
   "post": {
     "bloom": 1,
     "bloomThreshold": 0.4,
-    "brightness": 1.3,
+    "brightness": "1.2 + 0.3*beat",
     "vignette": 0.5
   }
 }

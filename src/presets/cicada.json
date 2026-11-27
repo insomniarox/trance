@@ -1,66 +1,72 @@
 {
   "name": "Cicada",
   "author": "Trance",
-  "description": "A cicada on a summer evening, seen from above. Its wings are the spectrum fanned out from the body, veined and clear, with the bass next to the body and the highs at the tips; it buzzes on the hats and cymbals, and its wings tremble with them.",
+  "description": "A field at dusk, loud with cicadas. Their song lies along the ground as a band of the spectrum, mirrored, buzzing with the hats and the voices, and the heat carries it up off the field in wavering plumes. Fireflies lift off it on the beat.",
   "palette": "sulfur",
   "feedback": {
-    "decay": 0.6,
-    "blur": 0.25,
+    "decay": 0.91,
+    "zoom": 1.003,
+    "dy": 0.004,
+    "warp": 0.35,
+    "warpScale": 2,
+    "warpSpeed": 0.6,
+    "blur": 0.3,
     "edge": "black"
   },
   "background": {
     "style": "gradient",
-    "intensity": 0.15,
-    "tint": 0.1,
-    "spread": 0.25,
+    "intensity": 0.12,
+    "tint": 0.05,
+    "spread": 0.3,
     "speed": 0.2
   },
   "layers": [
     {
       "type": "bars",
       "layout": "center",
-      "count": 26,
-      "x": "-0.47*aspect + 0.004*sin(time*80)*min(highmid_att, 2)",
-      "y": 0.12,
-      "width": 0.34,
-      "gap": 0.3,
-      "height": 0.55,
-      "fade": 0.6,
+      "count": 40,
+      "x": "-0.5*aspect",
+      "y": -0.4,
+      "width": 0.5,
+      "gap": 0.4,
+      "height": "0.22 + 0.1*min(bass_att, 2)",
+      "fade": 0.8,
       "peaks": false,
-      "color": "palette(0.5 + 0.35*(1 - t))",
-      "alpha": 0.4,
-      "point": "v = (0.12 + 0.6*v)*(0.35 + 0.65*t)\na = mod(i, 4) == 0 ? 0.85 : 0.35"
-    },
-    {
-      "type": "shape",
-      "sides": 32,
-      "instances": 3,
-      "code": "y = 0.4 - n*0.22\nradius = 0.06 + n*0.025",
-      "color": "palette(0.2)",
-      "alpha": 1,
-      "color2": "palette(0.4)",
-      "alpha2": 1,
-      "border": "palette(0.8)",
-      "borderAlpha": "0.4 + 0.4*min(treb_att, 1.5)",
-      "borderWidth": 1.5
-    },
-    {
-      "type": "shape",
-      "sides": 24,
-      "x": -0.07,
-      "y": 0.43,
-      "radius": 0.025,
-      "color": "palette(0.85)",
+      "color": "palette(0.55 + 0.3*t)",
       "alpha": 0.9,
-      "color2": "palette(0.7)",
-      "alpha2": 0.6,
-      "blend": "add"
+      "point": "v = v*(0.55 + 0.45*abs(sin(time*47 + i*2.3)))*(0.7 + 0.3*min(highmid_att, 2))\na = 0.4 + 0.6*min(v*2, 1)"
+    },
+    {
+      "type": "wave",
+      "shape": "line",
+      "y": -0.4,
+      "scale": 0.04,
+      "smooth": 0.7,
+      "thickness": 1.5,
+      "color": "palette(0.4)",
+      "alpha": 0.5
+    },
+    {
+      "type": "particles",
+      "emit": "bars",
+      "count": 300,
+      "rate": "8 + 150*beat",
+      "speed": 0.15,
+      "gravity": -0.06,
+      "drag": 0.8,
+      "flow": 1,
+      "field": 0.6,
+      "fieldScale": 2,
+      "life": 4,
+      "size": 3,
+      "color": "palette(0.84)",
+      "alpha": 0.9
     }
   ],
   "post": {
     "mirror": "x",
-    "bloom": 0.5,
-    "bloomThreshold": 0.6,
+    "bloom": 0.8,
+    "bloomThreshold": 0.45,
     "vignette": 0.5
   }
 }

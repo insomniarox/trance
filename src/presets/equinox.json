@@ -1,0 +1,93 @@
+{
+  "name": "Equinox",
+  "author": "Trance",
+  "description": "The equinox sun coming up through a ring of standing stones on a desert floor. Its rays swell with the bass; each stone, black against the light, glows round its edges with its own stretch of the spectrum; and their long shadows run out across the ground toward you, longer with the voices and leads.",
+  "palette": "mesa",
+  "frame": "sy = 0.0 + 0.05*sin(time*0.05)\nlen = 0.3 + 0.3*min(mid_att, 2)",
+  "feedback": {
+    "decay": 0.6,
+    "blur": 0.15,
+    "edge": "black"
+  },
+  "background": {
+    "style": "rays",
+    "intensity": "0.3 + 0.25*min(bass_att, 2)",
+    "tint": 0.25,
+    "spread": 0.55,
+    "scale": 1,
+    "speed": 0.3
+  },
+  "layers": [
+    {
+      "type": "shape",
+      "sides": 64,
+      "y": "sy",
+      "radius": "0.09 + 0.02*min(bass_att, 2)",
+      "color": "palette(0.33)",
+      "alpha": 1,
+      "color2": "palette(0.25)",
+      "alpha2": 1,
+      "blend": "add"
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "y": -60,
+      "radius": 60,
+      "color": "palette(0.0)",
+      "alpha": 0.2,
+      "color2": "palette(0.0)",
+      "alpha2": 0.2,
+      "blend": "over"
+    },
+    {
+      "type": "shape",
+      "sides": 64,
+      "y": "sy",
+      "radius": 1.5,
+      "color": "palette(0.3)",
+      "alpha": "0.3 + 0.15*min(bass_att, 2)",
+      "color2": "palette(0.1)",
+      "alpha2": 0,
+      "blend": "add"
+    },
+    {
+      "type": "shape",
+      "sides": 24,
+      "instances": 180,
+      "code": "k = floor(n/15)\na0 = k/12*tau + 0.2 + 0.3*noise(k*1.9)\ndp = 0.55 + 0.45*(0.5 - 0.5*sin(a0))\nbx = 1.35*cos(a0)\nby = -0.5 + 0.27*sin(a0)\ns = 0.075*dp*(0.8 + 0.4*noise(k*3.3))\nj = mod(n, 15)\nu = j/14\nddx = bx\nddy = by - sy\nl = max(length(ddx, ddy), 0.05)\nx = bx + ddx/l*len*dp*u\ny = by + ddy/l*len*dp*u*0.5\nradius = s*0.6*(1 - 0.5*u)",
+      "color": "black",
+      "alpha": 0.5,
+      "color2": "black",
+      "alpha2": 0.2,
+      "blend": "over"
+    },
+    {
+      "type": "shape",
+      "sides": 32,
+      "instances": 12,
+      "code": "k = floor(n/1)\na0 = k/12*tau + 0.2 + 0.3*noise(k*1.9)\ndp = 0.55 + 0.45*(0.5 - 0.5*sin(a0))\nbx = 1.35*cos(a0)\nby = -0.5 + 0.27*sin(a0)\ns = 0.075*dp*(0.8 + 0.4*noise(k*3.3))\nx = bx\ny = by + s*2.2\nradius = s*3.2\na = 0.7*min(v*1.5, 1)",
+      "color": "palette(0.3)",
+      "alpha": 0.7,
+      "color2": "palette(0.15)",
+      "alpha2": 0,
+      "blend": "add"
+    },
+    {
+      "type": "shape",
+      "sides": 4,
+      "instances": 36,
+      "code": "k = floor(n/3)\na0 = k/12*tau + 0.2 + 0.3*noise(k*1.9)\ndp = 0.55 + 0.45*(0.5 - 0.5*sin(a0))\nbx = 1.35*cos(a0)\nby = -0.5 + 0.27*sin(a0)\ns = 0.075*dp*(0.8 + 0.4*noise(k*3.3))\npart = mod(n, 3)\nx = bx\ny = by + s*(0.7 + 1.3*part)\nradius = s*(1 - 0.12*part)",
+      "color": "black",
+      "alpha": 1,
+      "color2": "black",
+      "alpha2": 1,
+      "blend": "over"
+    }
+  ],
+  "post": {
+    "bloom": 0.7,
+    "bloomThreshold": 0.45,
+    "vignette": 0.5
+  }
+}
