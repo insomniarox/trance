@@ -207,6 +207,8 @@ private:
     void compositeScene(Scene &scene, GLuint fbo, int width, int height, float blend, GLuint snapshot, bool glass);
     void drawLayers(Scene &scene, bool stashWaves, bool morphWaves);
     void drawText();
+    void emitText();
+    void overlayText(GLuint fbo, int width, int height);
     void sampleAt(double t, float out[3]) const;
     void evalColor(const ColorSpec *spec, float out[3]);
     void uploadVariables(GLuint program, const Scene &scene);
@@ -285,6 +287,8 @@ private:
     bool m_textPending = false;
     GLuint m_textTexture = 0;
     float m_textAge = 1e9f, m_textAspect = 1;
+    // This frame's title: its size and its color, alpha 0 when none shows.
+    float m_textWidth = 0, m_textHeight = 0, m_textColor[4] = {0, 0, 0, 0};
 
     ThemeColors m_theme;
     QString m_paletteOverride;

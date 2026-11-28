@@ -1013,6 +1013,7 @@ void Engine::render(const AudioFrame &audio, double dt, unsigned targetFbo, int 
     } else {
         compositeScene(*m_scene, targetFbo, width, height, 1, 0, m_glass);
     }
+    overlayText(targetFbo, width, height);
 
     glBindVertexArray(0);
     glUseProgram(0);
@@ -1204,33 +1205,70 @@ void Engine::drawText() {
         glBindTexture(GL_TEXTURE_2D, m_buffers[m_current].texture);
     }
     const float duration = 3.6f;
+    m_textColor[3] = 0;
     if (m_textAge >= duration || !m_textTexture)
         return;
     const float in = clampTo(m_textAge / 0.35f, 0.f, 1.f), out = clampTo((duration - m_textAge) / 1.2f, 0.f, 1.f);
     m_textAge += float(m_dt);
 
-    float height = 0.3f, width = height * m_textAspect;
+    m_textHeight = 0.3f;
+    m_textWidth = m_textHeight * m_textAspect;
     const float room = 1.8f * m_aspect;
-    if (width > room) {
-        height *= room / width;
-        width = room;
+    if (m_textWidth > room) {
+        m_textHeight *= room / m_textWidth;
+        m_textWidth = room;
     }
     float tint[3];
     m_colors = m_scene.get();
     sampleAt(m_time * 0.05, tint);
-    const float rgba[4] = {0.55f + 0.45f * tint[0], 0.55f + 0.45f * tint[1], 0.55f + 0.45f * tint[2],
-                           0.9f * in * out};
-    const float left = -width / 2, right = width / 2, bottom = -height / 2, top = height / 2;
-    // The image's first row is its top; a texture's is its bottom.
-    vertex(left, bottom, rgba, 0, 0, 0, 1);
-    vertex(right, bottom, rgba, 0, 0, 1, 1);
-    vertex(right, top, rgba, 0, 0, 1, 0);
-    vertex(left, bottom, rgba, 0, 0, 0, 1);
-    vertex(right, top, rgba, 0, 0, 1, 0);
-    vertex(left, top, rgba, 0, 0, 0, 0);
+    for (int i = 0; i < 3; ++i)
+        m_textColor[i] = 0.55f + 0.45f * tint[i];
+    m_textColor[3] = 0.9f * in * out;
+    emitText();
     glBindTexture(GL_TEXTURE_2D, m_textTexture);
     flush(Blend::Over);
     glBindTexture(GL_TEXTURE_2D, m_buffers[m_current].texture);
+}
+
+void Engine::emitText() {
+    const float left = -m_textWidth / 2, right = m_textWidth / 2, bottom = -m_textHeight / 2, top = m_textHeight / 2;
+    // The image's first row is its top; a texture's is its bottom.
+    vertex(left, bottom, m_textColor, 0, 0, 0, 1);
+    vertex(right, bottom, m_textColor, 0, 0, 1, 1);
+    vertex(right, top, m_textColor, 0, 0, 1, 0);
+    vertex(left, bottom, m_textColor, 0, 0, 0, 1);
+    vertex(right, top, m_textColor, 0, 0, 1, 0);
+    vertex(left, top, m_textColor, 0, 0, 0, 0);
+}
+
+// The same title again, over the finished frame. What the preset does on
+// the way to the screen (its shade, mirror, kaleidoscope, colorize) works on
+// the copy in the picture as well, and can paint it over or fold it; this
+// one stays readable, while the copy under it streams away. It covers the
+// picture's alpha too, so in glass mode the letters are solid.
+void Engine::overlayText(GLuint fbo, int width, int height) {
+    if (m_textColor[3] <= 0)
+        return;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glViewport(0, 0, width, height);
+    glUseProgram(m_prim);
+    glUniform1f(glGetUniformLocation(m_prim, "u_aspect"), m_aspect);
+    glUniform1i(glGetUniformLocation(m_prim, "u_tex"), 0);
+    glUniform1f(m_primCover, 1.f);
+    glUniform1f(m_primGain, 1.f);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_textTexture);
+    glBindVertexArray(m_primVao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    emitText();
+    m_frameVertices += int(m_used / 10);
+    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(m_used * sizeof(float)), m_vertices.data(), GL_STREAM_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_used / 10));
+    m_used = 0;
+    glDisable(GL_BLEND);
 }
 
 // The feedback pass asks, for every pixel, where its color comes from. This
