@@ -50,7 +50,8 @@ Every preset can be changed while it runs. See them move on
 - **Your colors.** `T` recolors every preset with your desktop theme's
   colors on [Omarchy](https://omarchy.org), or with one of 65 palettes.
 - **Glass.** `G` makes black see-through, so your desktop shows behind the
-  picture.
+  picture. On Windows it pauses in full screen, where Windows bypasses the
+  desktop compositor that does the see-through part.
 - **Mash-ups and visitors.** `X` builds a new preset from parts of others,
   the motion from one, the layers from another, the look and the
   background from two more; how bright it gets, and whether it is colored

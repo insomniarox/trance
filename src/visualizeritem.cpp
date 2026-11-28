@@ -53,7 +53,7 @@ public:
             m_titleRevision = backend->titleRevision();
             m_engine.showText(backend->titleImage());
         }
-        m_engine.setGlass(backend->glass());
+        m_engine.setGlass(backend->glass() && !backend->glassHeld());
         m_engine.setGlassOpacity(backend->glassOpacity());
         m_engine.setQuality(backend->quality());
         m_engine.setMaxLines(backend->maxLines());

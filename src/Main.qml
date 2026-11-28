@@ -12,7 +12,7 @@ ApplicationWindow {
     minimumHeight: 420
     visible: true
     title: backend.currentName.length > 0 ? backend.currentName + " — Trance" : "Trance"
-    color: backend.glass ? "transparent" : "black"
+    color: backend.glass && !glassHeld ? "transparent" : "black"
 
     Material.theme: Material.Dark
     Material.accent: theme.accent
@@ -33,6 +33,13 @@ ApplicationWindow {
     // Letter keys belong to the text box while one has the cursor.
     readonly property bool typing: activeFocusItem !== null && activeFocusItem.hasOwnProperty("cursorPosition")
     readonly property bool fullScreen: visibility === Window.FullScreen
+    // A window that fills the screen on Windows is shown without the
+    // desktop's compositor, which is what lets the desktop show through, so
+    // glass waits until it is a window again. The setting stays as it is.
+    readonly property bool glassHeld: fullScreen && Qt.platform.os === "windows"
+    readonly property string glassHeldText: qsTr("Glass is unavailable in full screen")
+    Binding { target: backend; property: "glassHeld"; value: win.glassHeld }
+    onGlassHeldChanged: if (glassHeld && backend.glass) toast(glassHeldText)
 
     onEditorVisibleChanged: backend.editing = editorVisible
     // The levels are only worth announcing while something shows them.
@@ -178,6 +185,10 @@ ApplicationWindow {
     Shortcut {
         sequence: "G"; enabled: !win.typing
         onActivated: {
+            if (win.glassHeld) {
+                win.toast(win.glassHeldText)
+                return
+            }
             backend.glass = !backend.glass
             win.toast(backend.glass ? qsTr("Glass on") : qsTr("Glass off"))
         }
